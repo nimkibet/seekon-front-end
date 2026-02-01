@@ -56,6 +56,7 @@ const Collection = () => {
     const category = searchParams.get('category');
     const brand = searchParams.get('brand');
     const gender = searchParams.get('gender');
+    const type = searchParams.get('type');
     const product = searchParams.get('product');
     
     // Set active category based on URL
@@ -117,6 +118,7 @@ const Collection = () => {
     const category = searchParams.get('category');
     const brand = searchParams.get('brand');
     const gender = searchParams.get('gender');
+    const type = searchParams.get('type');
     const product = searchParams.get('product');
     const search = searchParams.get('search');
     
@@ -163,6 +165,15 @@ const Collection = () => {
     } else if (gender) {
       filtered = filtered.filter(p => 
         p.gender?.toLowerCase() === gender.toLowerCase()
+      );
+    }
+
+    // Apply type/subCategory filter (sidebar or URL)
+    if (filters.type?.length > 0) {
+      filtered = filtered.filter(p => filters.type.includes(p.subCategory));
+    } else if (type) {
+      filtered = filtered.filter(p => 
+        p.subCategory?.toLowerCase().includes(type.toLowerCase())
       );
     }
     

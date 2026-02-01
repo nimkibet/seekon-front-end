@@ -8,6 +8,9 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
+import VerifyEmail from './pages/VerifyEmail';
 import Collection from './pages/Collection';
 import ProductDetail from './pages/ProductDetail';
 import Cart from './pages/Cart';
@@ -111,6 +114,20 @@ const App = () => {
                   <Register />
                 </PublicRoute>
               } />
+
+              <Route path="/forgot-password" element={
+                <PublicRoute>
+                  <ForgotPassword />
+                </PublicRoute>
+              } />
+
+              <Route path="/reset-password/:token" element={
+                <PublicRoute>
+                  <ResetPassword />
+                </PublicRoute>
+              } />
+
+              <Route path="/verify-email/:token" element={<VerifyEmail />} />
               
               {/* Protected Routes */}
               <Route path="/" element={

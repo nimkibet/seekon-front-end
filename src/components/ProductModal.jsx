@@ -52,8 +52,8 @@ const ProductModal = ({ isOpen, onClose, product, onSave }) => {
       brands: ['Nike', 'Adidas', 'Jordan', 'Puma']
     },
     Accessories: {
-      subCategories: ['All Accessories', 'Bags', 'Hats', 'Socks', 'Watches'],
-      brands: ['Nike', 'Adidas', 'Puma', 'Jordan']
+      subCategories: ['All Accessories', 'Bags', 'Hats', 'Socks', 'Watches', 'Wallets', 'Sunglasses'],
+      brands: ['Nike', 'Adidas', 'Puma', 'Jordan', 'Restyle']
     }
   };
 

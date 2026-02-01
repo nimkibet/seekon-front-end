@@ -5,6 +5,7 @@ import { useDispatch } from 'react-redux';
 import { validateToken } from '../store/slices/userSlice';
 import { FiUser, FiMail, FiPhone, FiMapPin, FiCamera, FiSave, FiEdit2 } from 'react-icons/fi';
 import { uploadAvatarToCloudinary } from '../utils/cloudinary';
+import { getUserAvatar, setUserAvatar, initializeUserAvatar } from '../utils/userAvatar';
 import toast from 'react-hot-toast';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
@@ -25,19 +26,28 @@ const Profile = () => {
 
   useEffect(() => {
     if (user) {
+      const userId = user.id || user._id;
+      
+      // Initialize avatar with migration support
+      let avatarSource = user.avatar || user.profilePhoto || null;
+      
+      if (!avatarSource) {
+        // Try to get from localStorage (with migration from old key)
+        avatarSource = initializeUserAvatar(userId);
+      }
+      
       setFormData({
         name: user.name || '',
         email: user.email || '',
         phoneNumber: user.phoneNumber || '',
         address: user.address || '',
       });
-      // Priority: user.avatar (from backend) > localStorage > null
-      const avatarSource = user.avatar || user.profilePhoto || localStorage.getItem('userAvatar') || null;
+      
       setAvatar(avatarSource);
       
-      // If we have a backend profilePhoto, save it to localStorage for persistence
+      // If we have a backend profilePhoto, save it to user-specific localStorage
       if (user.avatar || user.profilePhoto) {
-        localStorage.setItem('userAvatar', user.avatar || user.profilePhoto);
+        setUserAvatar(userId, user.avatar || user.profilePhoto);
       }
     }
   }, [user]);
@@ -78,8 +88,13 @@ const Profile = () => {
       try {
         // Upload to Cloudinary avatars folder
         const uploadResult = await uploadAvatarToCloudinary(file);
-        setAvatar(uploadResult.url);
-        localStorage.setItem('userAvatar', uploadResult.url);
+        const newAvatarUrl = uploadResult.url;
+        setAvatar(newAvatarUrl);
+        
+        // Save to user-specific localStorage
+        const userId = user?.id || user?._id;
+        setUserAvatar(userId, newAvatarUrl);
+        
         toast.success('Profile photo uploaded successfully! Click Save to save changes.');
       } catch (error) {
         console.error('Avatar upload error:', error);
@@ -149,14 +164,15 @@ const Profile = () => {
 
       const data = await response.json();
       
-      // Always save profile photo to localStorage for persistence
+      // Always save profile photo to user-specific localStorage for persistence
+      const userId = user?.id || user?._id;
       if (avatar) {
-        localStorage.setItem('userAvatar', avatar);
+        setUserAvatar(userId, avatar);
       }
 
-      // Update local storage avatar if changed
+      // Update user-specific localStorage avatar if changed from backend
       if (avatar && data.user?.profilePhoto) {
-        localStorage.setItem('userAvatar', data.user.profilePhoto);
+        setUserAvatar(userId, data.user.profilePhoto);
       }
 
       toast.success('Profile updated successfully!');
@@ -175,11 +191,12 @@ const Profile = () => {
               address: updatedUser.address || '',
             });
             // Update avatar from backend response
-            const newAvatar = updatedUser.avatar || updatedUser.profilePhoto || localStorage.getItem('userAvatar') || null;
+            const newAvatar = updatedUser.avatar || updatedUser.profilePhoto || getUserAvatar(updatedUser.id || updatedUser._id) || null;
             setAvatar(newAvatar);
-            // Save to localStorage for persistence
+            // Save to user-specific localStorage for persistence
+            const refreshUserId = updatedUser.id || updatedUser._id;
             if (updatedUser.avatar || updatedUser.profilePhoto) {
-              localStorage.setItem('userAvatar', updatedUser.avatar || updatedUser.profilePhoto);
+              setUserAvatar(refreshUserId, updatedUser.avatar || updatedUser.profilePhoto);
             }
           }
         } catch (error) {
@@ -395,7 +412,8 @@ const Profile = () => {
                           phoneNumber: user.phoneNumber || '',
                           address: user.address || '',
                         });
-                        setAvatar(user.avatar || localStorage.getItem('userAvatar') || null);
+                        const userId = user.id || user._id;
+                        setAvatar(user.avatar || getUserAvatar(userId) || null);
                       }
                       setErrors({});
                     }}

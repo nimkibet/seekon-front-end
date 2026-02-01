@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiEye, FiEyeOff, FiMail, FiLock, FiArrowRight, FiMenu, FiX } from 'react-icons/fi';
+import { FiEye, FiEyeOff, FiMail, FiLock, FiArrowRight, FiMenu, FiX, FiSend } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import { useDispatch } from 'react-redux';
-import { loginUser, registerUser } from '../store/slices/userSlice';
+import { loginUser, registerUser, resendVerificationEmail } from '../store/slices/userSlice';
 import { addToWishlistLocal } from '../store/slices/wishlistSlice';
 import { addToCart } from '../store/slices/cartSlice';
 import toast from 'react-hot-toast';
@@ -23,6 +23,8 @@ const Login = () => {
   const [passwordStrength, setPasswordStrength] = useState(null);
   const [errors, setErrors] = useState({});
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [showResendVerification, setShowResendVerification] = useState(false);
+  const [isResending, setIsResending] = useState(false);
   const menuRef = useRef(null);
 
   const { login, isLoading, error, clearError, isAuthenticated, user } = useAuth();
@@ -245,7 +247,35 @@ const Login = () => {
       console.error('Auth error:', err);
       // Show the actual error message from the backend
       const errorMessage = err?.message || err || (isSignUp ? 'Registration failed. Please try again.' : 'Login failed. Please try again.');
+      
+      // Check if error is due to unverified email
+      if (!isSignUp && errorMessage.toLowerCase().includes('verify your email')) {
+        setShowResendVerification(true);
+      }
+      
       toast.error(errorMessage, { id: 'login-submit', duration: 4000 });
+    }
+  };
+
+  // Handle resend verification email
+  const handleResendVerification = async () => {
+    if (!formData.email) {
+      toast.error('Please enter your email address first');
+      return;
+    }
+    
+    setIsResending(true);
+    toast.loading('Sending verification email...', { id: 'resend-verification' });
+    
+    try {
+      await dispatch(resendVerificationEmail(formData.email)).unwrap();
+      toast.success('Verification email sent! Please check your inbox.', { id: 'resend-verification' });
+      setShowResendVerification(false);
+    } catch (err) {
+      const errorMessage = err?.message || err || 'Failed to resend verification email';
+      toast.error(errorMessage, { id: 'resend-verification', duration: 4000 });
+    } finally {
+      setIsResending(false);
     }
   };
 
@@ -527,6 +557,18 @@ const Login = () => {
               {errors.password && (
                     <p className="mt-1 text-xs text-red-600">{errors.password}</p>
               )}
+
+              {/* Forgot Password Link - Only for Login */}
+                  {!isSignUp && (
+                <div className="flex justify-end">
+                      <Link
+                        to="/forgot-password"
+                        className="text-xs text-[#00A676] hover:text-[#008A5E] transition-colors duration-200 font-medium"
+                      >
+                        Forgot password?
+                      </Link>
+                </div>
+                  )}
             </div>
 
             {/* Confirm Password Field - Only for Sign Up */}
@@ -576,6 +618,34 @@ const Login = () => {
                 <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                   <p className="text-sm text-red-600">{error}</p>
             </div>
+          )}
+
+          {/* Resend Verification Button */}
+          {showResendVerification && !isSignUp && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-yellow-50 border border-yellow-200 rounded-lg p-4"
+            >
+              <p className="text-sm text-yellow-800 mb-3">
+                Didn't receive the verification email?
+              </p>
+              <button
+                type="button"
+                onClick={handleResendVerification}
+                disabled={isResending}
+                className="w-full bg-yellow-500 text-white text-sm font-semibold py-2 px-4 rounded-lg hover:bg-yellow-600 transition-colors duration-200 flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isResending ? (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <>
+                    <span>Resend Verification Email</span>
+                    <FiSend className="w-4 h-4" />
+                  </>
+                )}
+              </button>
+            </motion.div>
           )}
 
           {/* Submit Button */}
