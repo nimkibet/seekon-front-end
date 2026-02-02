@@ -114,16 +114,89 @@ const ProductModal = ({ isOpen, onClose, product, onSave }) => {
   };
 
   const handleImageUpload = (imageInfo, index = 0) => {
+    console.log('[DEBUG] handleImageUpload called with:', imageInfo, 'at index:', index);
+    
+    // Handle multiple images (array) - add as new slots
+    if (Array.isArray(imageInfo)) {
+      console.log('[DEBUG] Multiple images uploaded:', imageInfo.length);
+      const newUrls = imageInfo.map(img => img.url || img);
+      
+      setCurrentImages(prev => {
+        const newImages = [...prev];
+        // Replace from index onwards with new images
+        newUrls.forEach((url, i) => {
+          const targetIndex = index + i;
+          if (targetIndex < newImages.length) {
+            newImages[targetIndex] = url;
+          } else {
+            newImages.push(url);
+          }
+        });
+        console.log('[DEBUG] newImages after update:', newImages);
+        return newImages;
+      });
+      
+      setFormData(prev => {
+        const newImages = [...(prev.images || [])];
+        newUrls.forEach((url, i) => {
+          const targetIndex = index + i;
+          if (targetIndex < newImages.length) {
+            newImages[targetIndex] = url;
+          } else {
+            newImages.push(url);
+          }
+        });
+        return {
+          ...prev,
+          images: newImages,
+          image: newImages[0] || prev.image
+        };
+      });
+      return;
+    }
+    
+    // Handle single image (backward compatibility)
     const imageUrl = imageInfo.url || imageInfo;
+    console.log('[DEBUG] Single image uploaded:', imageUrl);
+    console.log('[DEBUG] currentImages before update:', currentImages);
+    
     setCurrentImages(prev => {
       const newImages = [...prev];
+      // Ensure we have enough slots
+      while (newImages.length <= index) {
+        newImages.push(null);
+      }
       newImages[index] = imageUrl;
+      console.log('[DEBUG] newImages after update:', newImages);
       return newImages;
     });
     setFormData(prev => ({
       ...prev,
       image: index === 0 ? imageUrl : prev.image,
       images: [...(prev.images || [])].map((img, i) => i === index ? imageUrl : img)
+    }));
+  };
+
+  const handleAddImages = (imageInfos) => {
+    console.log('[DEBUG] handleAddImages called with:', imageInfos);
+    
+    if (!Array.isArray(imageInfos)) {
+      console.log('[DEBUG] Not an array, ignoring');
+      return;
+    }
+    
+    const newUrls = imageInfos.map(img => img.url || img);
+    
+    setCurrentImages(prev => {
+      const newImages = [...prev, ...newUrls];
+      console.log('[DEBUG] newImages after adding:', newImages);
+      return newImages;
+    });
+    
+    setFormData(prev => ({
+      ...prev,
+      images: [...(prev.images || []), ...newUrls],
+      image: prev.image || newUrls[0]
     }));
   };
 
@@ -243,21 +316,40 @@ const ProductModal = ({ isOpen, onClose, product, onSave }) => {
                 
                 {/* Multiple Image Upload Slots */}
                 <div className="space-y-3">
-                  {currentImages.map((img, index) => (
-                    <div key={index} className="relative">
+                  {/* Main Image Upload - supports adding multiple images */}
+                  {currentImages.length > 0 && (
+                    <div className="relative">
                       <div className="flex items-center space-x-2">
                         <div className="flex-1">
                           <ImageUpload
-                            onImageUpload={(imageInfo) => handleImageUpload(imageInfo, index)}
-                            onImageRemove={() => handleImageRemove(index)}
+                            onImageUpload={(imageInfo) => handleImageUpload(imageInfo, 0)}
+                            onAddImages={handleAddImages}
+                            onImageRemove={() => handleImageRemove(0)}
+                            initialImage={currentImages[0]}
+                            label="Main Image (select multiple to add more)"
+                            multiple={true}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Additional Image Slots */}
+                  {currentImages.slice(1).map((img, idx) => (
+                    <div key={idx + 1} className="relative">
+                      <div className="flex items-center space-x-2">
+                        <div className="flex-1">
+                          <ImageUpload
+                            onImageUpload={(imageInfo) => handleImageUpload(imageInfo, idx + 1)}
+                            onImageRemove={() => handleImageRemove(idx + 1)}
                             initialImage={img}
-                            label={index === 0 ? 'Main Image' : `Additional Image ${index}`}
+                            label={`Additional Image ${idx + 1}`}
                           />
                         </div>
                         {currentImages.length > 1 && (
                           <button
                             type="button"
-                            onClick={() => handleImageRemove(index)}
+                            onClick={() => handleImageRemove(idx + 1)}
                             className="p-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors"
                             title="Remove image"
                           >

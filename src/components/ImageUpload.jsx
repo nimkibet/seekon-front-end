@@ -13,10 +13,12 @@ const getAuthToken = () => {
 const ImageUpload = ({ 
   onImageUpload, 
   onImageRemove, 
+  onAddImages,
   initialImage = null,
-  label = 'Product Image'
+  label = 'Product Image',
+  multiple = false
 }) => {
-  const [preview, setPreview] = useState(initialImage);
+  const [previews, setPreviews] = useState(initialImage ? [initialImage] : []);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState('');
   const [inputType, setInputType] = useState('file'); // 'file' or 'url'
@@ -72,54 +74,86 @@ const ImageUpload = ({
   };
 
   const handleFileChange = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
 
-    if (!validateFile(file)) {
-      return;
+    console.log('[DEBUG] Files selected:', files.length, files);
+
+    // Validate all files first
+    for (const file of files) {
+      if (!validateFile(file)) {
+        return;
+      }
     }
 
     setIsUploading(true);
 
     try {
-      // Show preview immediately using local URL
-      const localPreview = URL.createObjectURL(file);
-      setPreview(localPreview);
+      // Upload all files
+      const uploadPromises = files.map(async (file) => {
+        // Show preview immediately using local URL
+        const localPreview = URL.createObjectURL(file);
+        return { localPreview, file };
+      });
 
-      // Upload to server/Cloudinary
-      const result = await uploadFileToServer(file);
+      const uploadResults = await Promise.all(uploadPromises);
+      
+      // Add local previews immediately
+      setPreviews(prev => {
+        const newPreviews = multiple ? [...prev, ...uploadResults.map(r => r.localPreview)] : [uploadResults[0].localPreview];
+        return newPreviews;
+      });
 
-      if (result.success && result.data) {
-        const imageData = {
-          url: result.data.url,
-          publicId: result.data.publicId
-        };
-
-        if (onImageUpload) {
-          onImageUpload(imageData);
+      // Upload to server and get real URLs
+      const imageUploadPromises = uploadResults.map(async (result) => {
+        const serverResult = await uploadFileToServer(result.file);
+        if (serverResult.success && serverResult.data) {
+          return {
+            url: serverResult.data.url,
+            publicId: serverResult.data.publicId
+          };
         }
-
-        toast.success('Image uploaded successfully!');
-      } else {
         throw new Error('Upload failed');
+      });
+
+      const imageDataArray = await Promise.all(imageUploadPromises);
+      console.log('[DEBUG] Uploaded images:', imageDataArray);
+
+      if (imageDataArray.length > 1 && onAddImages) {
+        // Multiple files uploaded - add as new images instead of replacing
+        console.log('[DEBUG] Calling onAddImages with:', imageDataArray);
+        onAddImages(imageDataArray);
+        // Clear previews after adding
+        setPreviews(initialImage ? [initialImage] : []);
+      } else if (onImageUpload) {
+        // Single file or no onAddImages callback
+        if (multiple) {
+          onImageUpload(imageDataArray);
+        } else {
+          onImageUpload(imageDataArray[0]);
+        }
       }
+
+      toast.success(imageDataArray.length > 1 ? `${imageDataArray.length} images uploaded successfully!` : 'Image uploaded successfully!');
     } catch (error) {
       console.error('Upload error:', error);
-      toast.error('Failed to upload image. Please try again.');
+      toast.error('Failed to upload image(s). Please try again.');
       setError('Upload failed: ' + error.message);
-      // Clear preview on error
-      setPreview(null);
+      // Clear previews on error
+      setPreviews(initialImage ? [initialImage] : []);
     } finally {
       setIsUploading(false);
       e.target.value = '';
     }
   };
 
-  const handleRemove = () => {
-    setPreview(null);
-    setUrlInput('');
+  const handleRemove = (indexToRemove) => {
+    setPreviews(prev => {
+      const newPreviews = prev.filter((_, index) => index !== indexToRemove);
+      return newPreviews;
+    });
     if (onImageRemove) {
-      onImageRemove();
+      onImageRemove(indexToRemove);
     }
   };
 
@@ -217,16 +251,19 @@ const ImageUpload = ({
             placeholder="Enter image URL (https://...)"
             className="w-full px-4 py-2.5 bg-white/5 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-[#00A676] transition-colors"
           />
-          {preview && (
+          {urlInput && (
             <div className="relative">
               <img
-                src={preview}
+                src={urlInput}
                 alt="Preview"
                 className="w-full h-40 sm:h-48 object-cover rounded-lg"
               />
               <button
                 type="button"
-                onClick={handleRemove}
+                onClick={() => {
+                  setUrlInput('');
+                  if (onImageRemove) onImageRemove();
+                }}
                 className="absolute top-2 right-2 p-1.5 bg-red-500 rounded-full text-white hover:bg-red-600 transition-colors shadow-lg"
               >
                 <FiX className="w-4 h-4" />
@@ -248,9 +285,10 @@ const ImageUpload = ({
             className="hidden"
             id="image-upload-input"
             disabled={isUploading}
+            multiple={multiple}
           />
 
-          {!preview && !isUploading && (
+          {!previews.length && !isUploading && (
             <label
               htmlFor="image-upload-input"
               className="flex flex-col items-center justify-center space-y-3 sm:space-y-4 cursor-pointer"
@@ -259,7 +297,9 @@ const ImageUpload = ({
                 <FiImage className="w-6 h-6 sm:w-8 sm:h-8 text-[#00A676]" />
               </div>
               <div className="text-center">
-                <p className="text-white font-medium text-sm sm:text-base mb-1">Click to upload</p>
+                <p className="text-white font-medium text-sm sm:text-base mb-1">
+                  {multiple ? 'Click to upload multiple images' : 'Click to upload'}
+                </p>
                 <p className="text-gray-400 text-xs sm:text-sm">or drag and drop</p>
                 <p className="text-gray-500 text-xs mt-2">
                   PNG, JPG, GIF up to 5MB
@@ -271,35 +311,37 @@ const ImageUpload = ({
           {isUploading && (
             <div className="flex flex-col items-center justify-center space-y-3 sm:space-y-4 py-6 sm:py-8">
               <FiLoader className="w-10 h-10 sm:w-12 sm:h-12 text-[#00A676] animate-spin" />
-              <p className="text-white font-medium text-sm sm:text-base">Uploading image...</p>
+              <p className="text-white font-medium text-sm sm:text-base">Uploading image(s)...</p>
               <p className="text-gray-400 text-xs sm:text-sm">Please wait</p>
             </div>
           )}
 
           <AnimatePresence>
-            {preview && !isUploading && (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                className="relative"
-              >
-                <img
-                  src={preview}
-                  alt="Preview"
-                  className="w-full h-40 sm:h-48 object-cover rounded-lg"
-                />
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handleRemove();
-                  }}
-                  className="absolute top-2 right-2 p-1.5 bg-red-500 rounded-full text-white hover:bg-red-600 transition-colors shadow-lg"
-                >
-                  <FiX className="w-4 h-4" />
-                </button>
-              </motion.div>
+            {previews.length > 0 && (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-4">
+                {previews.map((previewUrl, index) => (
+                  <motion.div
+                    key={index}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    className="relative"
+                  >
+                    <img
+                      src={previewUrl}
+                      alt={`Preview ${index + 1}`}
+                      className="w-full h-24 sm:h-32 object-cover rounded-lg"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => handleRemove(index)}
+                      className="absolute top-1 right-1 p-1 bg-red-500 rounded-full text-white hover:bg-red-600 transition-colors shadow-lg"
+                    >
+                      <FiX className="w-3 h-3" />
+                    </button>
+                  </motion.div>
+                ))}
+              </div>
             )}
           </AnimatePresence>
         </div>
