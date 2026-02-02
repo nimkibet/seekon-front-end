@@ -22,6 +22,21 @@ export const loginUser = createAsyncThunk(
         }),
       });
 
+      // Log response status for debugging
+      console.log('Login response status:', response.status);
+
+      // Handle non-OK responses before parsing JSON
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Login error response:', errorText);
+        try {
+          const errorData = JSON.parse(errorText);
+          return rejectWithValue(errorData.message || `Login failed (${response.status})`);
+        } catch (e) {
+          return rejectWithValue(`Server error (${response.status}): ${errorText}`);
+        }
+      }
+
       const data = await response.json();
 
       if (!response.ok) {
