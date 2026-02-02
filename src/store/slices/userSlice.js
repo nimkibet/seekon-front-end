@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { getUserAvatar, setUserAvatar, cleanupOldAvatarKeys } from '../../utils/userAvatar';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_URL = import.meta.env.VITE_API_URL || 'https://seekoon-backend-production.up.railway.app';
 
 // Clean up old shared avatar keys on initialization
 cleanupOldAvatarKeys();

@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// Use environment variable for deployment, fallback to localhost for development
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+// Use environment variable for deployment, fallback to production URL for development
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://seekoon-backend-production.up.railway.app/api';
 
 // Create axios instance with default config
 const client = axios.create({

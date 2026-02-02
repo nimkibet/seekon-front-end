@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 
 // API URL - remove trailing slash to prevent /api/api issue
-const API_URL = (import.meta.env.VITE_API_URL || 'http://localhost:3000').replace(/\/$/, '');
+const API_URL = (import.meta.env.VITE_API_URL || 'https://seekoon-backend-production.up.railway.app').replace(/\/$/, '');
 
 // Mock API call for fetching products
 export const fetchProducts = createAsyncThunk(

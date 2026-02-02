@@ -7,7 +7,7 @@ import axios from 'axios';
 
 class ProductRecommendationService {
   constructor() {
-    this.baseURL = process.env.REACT_APP_API_URL || 'http://localhost:3001/api';
+    this.baseURL = import.meta.env.VITE_API_URL || 'https://seekoon-backend-production.up.railway.app/api';
     
     this.client = axios.create({
       baseURL: this.baseURL,

@@ -8,7 +8,7 @@ import { uploadAvatarToCloudinary } from '../utils/cloudinary';
 import { getUserAvatar, setUserAvatar, initializeUserAvatar } from '../utils/userAvatar';
 import toast from 'react-hot-toast';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_URL = import.meta.env.VITE_API_URL || 'https://seekoon-backend-production.up.railway.app';
 
 const Profile = () => {
   const { user, isAuthenticated } = useAuth();
