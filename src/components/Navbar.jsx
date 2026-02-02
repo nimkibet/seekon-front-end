@@ -272,7 +272,7 @@ const Navbar = () => {
                 <div key={item.name} className={`group ${item.type === 'mega' ? '' : 'relative'}`}>
                   <Link 
                     to={item.path}
-                    className="text-sm font-bold text-gray-800 hover:text-black transition-colors flex items-center gap-1 py-4"
+                    className="text-base font-bold text-gray-800 hover:text-black transition-colors flex items-center gap-1 py-4"
                   >
                     {item.name}
                     {(item.dropdown || item.type === 'mega') && <FiChevronDown className="w-4 h-4" />}
