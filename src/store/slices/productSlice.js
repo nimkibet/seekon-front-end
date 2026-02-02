@@ -49,7 +49,8 @@ export const fetchProducts = createAsyncThunk(
         console.log('✅ Products transformed and ready:', transformedProducts.length);
         return transformedProducts;
       } else {
-        throw new Error('Backend unavailable, using mock data');
+        console.error('❌ Backend unavailable. Status:', backendResponse.status);
+        return rejectWithValue('🔧 Server Maintenance: Backend is temporarily unavailable. Please try again later.');
       }
     } catch (error) {
       console.log('⚠️ Backend unavailable, using mock products...', error.message);
