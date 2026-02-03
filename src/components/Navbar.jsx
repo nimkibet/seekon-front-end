@@ -385,19 +385,6 @@ const Navbar = () => {
 
             {/* Right Icons */}
             <div className="flex items-center space-x-4">
-              {/* Flash Sale Toggle Button */}
-              <button
-                onClick={toggleFlashSale}
-                className={`hidden sm:flex items-center gap-1 px-3 py-1.5 rounded-full transition-colors ${
-                  isFlashSaleActive 
-                    ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white' 
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                <FiZap className={`w-4 h-4 ${isFlashSaleActive ? 'animate-pulse' : ''}`} />
-                <span className="text-sm font-medium">Flash Sale</span>
-              </button>
-
               <Link to="/" className="p-2 hover:bg-gray-100 rounded-full transition-colors" title="Home">
                 <FiHome className="w-5 h-5 text-gray-700" />
               </Link>
@@ -489,24 +476,6 @@ const Navbar = () => {
               className="md:hidden bg-white border-t border-gray-100 overflow-hidden"
             >
               <div className="px-4 py-4 space-y-2">
-                {/* Mobile Flash Sale Toggle */}
-                <button
-                  onClick={toggleFlashSale}
-                  className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors ${
-                    isFlashSaleActive 
-                      ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white' 
-                      : 'bg-gray-100 text-gray-700'
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <FiZap className={`w-5 h-5 ${isFlashSaleActive ? 'animate-pulse' : ''}`} />
-                    <span className="font-medium">Flash Sale</span>
-                  </div>
-                  <span className="text-xs opacity-80">
-                    {isFlashSaleActive ? 'ON - Tap to turn off' : 'OFF - Tap to activate'}
-                  </span>
-                </button>
-
                 {/* Mobile Nav Items */}
                 {navItems.map((item) => (
                   <Link
