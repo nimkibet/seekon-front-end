@@ -17,12 +17,13 @@ import {
   FiEye,
   FiMenu,
   FiX,
-  FiUser
+  FiUser,
+  FiZap
 } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 
-const AdminSidebar = () => {
+const AdminSidebar = ({ onToggleFlashSale, isFlashSaleActive = false }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -61,6 +62,7 @@ const AdminSidebar = () => {
     { path: '/admin/dashboard', label: 'Dashboard', icon: FiLayout },
     { path: '/admin/shop', label: 'Shop View', icon: FiEye, external: true },
     { path: '/admin/products', label: 'Products', icon: FiPackage },
+    { path: '/admin/flash-sale', label: 'Flash Sale', icon: FiZap, isFlashSale: true },
     { path: '/admin/inventory', label: 'Inventory', icon: FiBox },
     { path: '/admin/carts', label: 'Carts', icon: FiShoppingCart },
     { path: '/admin/orders', label: 'Orders', icon: FiShoppingBag },
@@ -132,10 +134,33 @@ const AdminSidebar = () => {
 
       {/* Navigation */}
       <nav className="flex-1 overflow-y-auto p-4">
+        {/* Global Flash Sale Toggle */}
+        <div className="mb-4 p-4 bg-gradient-to-r from-orange-500/20 to-red-500/20 border border-orange-500/30 rounded-xl">
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <FiZap className={`w-5 h-5 ${isFlashSaleActive ? 'text-orange-400 animate-pulse' : 'text-gray-400'}`} />
+              <span className="text-white font-medium">Flash Sale Mode</span>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isFlashSaleActive}
+                onChange={() => onToggleFlashSale && onToggleFlashSale(!isFlashSaleActive)}
+                className="sr-only peer"
+              />
+              <div className="w-9 h-5 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-orange-500"></div>
+            </label>
+          </div>
+          <p className="text-xs text-gray-400">
+            {isFlashSaleActive ? 'Active - Customers see flash sale prices' : 'Inactive - Enable to show flash sales'}
+          </p>
+        </div>
+        
         <ul className="space-y-2">
           {menuItems.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.path);
+            const isFlashSaleItem = item.isFlashSale;
             
             if (item.external) {
               return (
@@ -158,11 +183,18 @@ const AdminSidebar = () => {
                   className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all duration-200 ${
                     active
                       ? 'bg-[#00A676] text-white shadow-lg shadow-[#00A676]/50'
-                      : 'text-gray-300 hover:bg-white/10 hover:text-white'
+                      : isFlashSaleItem && isFlashSaleActive
+                        ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30'
+                        : 'text-gray-300 hover:bg-white/10 hover:text-white'
                   }`}
                 >
                   <Icon className="w-5 h-5" />
                   <span className="font-medium">{item.label}</span>
+                  {isFlashSaleItem && isFlashSaleActive && (
+                    <span className="ml-auto px-2 py-0.5 bg-orange-500 text-white text-[10px] rounded-full animate-pulse">
+                      ON
+                    </span>
+                  )}
                 </Link>
               </li>
             );

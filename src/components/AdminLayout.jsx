@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { FiBell, FiSearch, FiUser, FiShoppingBag, FiUsers, FiPackage, FiAlertCircle } from 'react-icons/fi';
+import { FiBell, FiSearch, FiUser, FiShoppingBag, FiUsers, FiPackage, FiAlertCircle, FiZap } from 'react-icons/fi';
 import AdminSidebar from './AdminSidebar';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
@@ -21,8 +21,24 @@ const AdminLayout = ({ children }) => {
   const [notifications, setNotifications] = useState(mockNotifications);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [isFlashSaleActive, setIsFlashSaleActive] = useState(false);
 
   const unreadCount = notifications.filter(n => !n.read).length;
+
+  const handleToggleFlashSale = (active) => {
+    setIsFlashSaleActive(active);
+    if (active) {
+      toast.success('Flash Sale Mode activated!', {
+        icon: '⚡',
+        duration: 3000
+      });
+    } else {
+      toast('Flash Sale Mode deactivated', {
+        icon: '🔴',
+        duration: 2000
+      });
+    }
+  };
 
   const markAsRead = (id) => {
     setNotifications(prev => 
@@ -47,8 +63,25 @@ const AdminLayout = ({ children }) => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black flex" style={{ position: 'relative' }}>
+      {/* Flash Sale Banner */}
+      <AnimatePresence>
+        {isFlashSaleActive && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="fixed top-0 left-0 right-0 bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 text-white z-[99999] flex items-center justify-center py-2"
+          >
+            <div className="flex items-center gap-2">
+              <FiZap className="w-5 h-5 animate-pulse" />
+              <span className="font-bold text-sm">FLASH SALE MODE ACTIVE</span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Permanent Sidebar */}
-      <AdminSidebar />
+      <AdminSidebar onToggleFlashSale={handleToggleFlashSale} isFlashSaleActive={isFlashSaleActive} />
 
       {/* Main Content */}
       <div className="flex-1 lg:ml-64 flex flex-col relative" style={{ zIndex: 1 }}>
