@@ -12,7 +12,6 @@ import {
   FiEdit3,
   FiCamera,
   FiMenu,
-  FiX,
   FiZap,
   FiExternalLink
 } from 'react-icons/fi';
@@ -26,7 +25,11 @@ const Navbar = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const [isFlashSaleActive, setIsFlashSaleActive] = useState(false);
+  const [isFlashSaleActive] = useState(() => {
+    // Initialize from localStorage - flash sale state is controlled by admin
+    const saved = localStorage.getItem('seekon_flash_sale_active');
+    return saved === 'true';
+  });
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
   
@@ -85,21 +88,6 @@ const Navbar = () => {
     toast.success('Logged out successfully');
     navigate('/');
     setIsDropdownOpen(false);
-  };
-
-  const toggleFlashSale = () => {
-    setIsFlashSaleActive(!isFlashSaleActive);
-    if (!isFlashSaleActive) {
-      toast.success('Flash Sale activated!', {
-        icon: '⚡',
-        duration: 3000
-      });
-    } else {
-      toast('Flash Sale ended', {
-        icon: '🔴',
-        duration: 2000
-      });
-    }
   };
 
   // Navigation Structure
@@ -282,19 +270,11 @@ const Navbar = () => {
             className="bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 text-white overflow-hidden"
           >
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
-              <div className="flex items-center justify-between">
-                <Link to="/flash-sale" className="flex items-center gap-2 hover:opacity-90 transition-opacity">
-                  <FiZap className="w-5 h-5 animate-pulse" />
-                  <span className="font-bold text-sm">FLASH SALE! Up to 70% OFF - Limited Time Only!</span>
-                  <FiExternalLink className="w-4 h-4" />
-                </Link>
-                <button
-                  onClick={toggleFlashSale}
-                  className="text-white/80 hover:text-white transition-colors"
-                >
-                  <FiX className="w-4 h-4" />
-                </button>
-              </div>
+              <Link to="/flash-sale" className="flex items-center justify-center gap-2 hover:opacity-90 transition-opacity">
+                <FiZap className="w-5 h-5 animate-pulse" />
+                <span className="font-bold text-sm">FLASH SALE! Up to 70% OFF - Limited Time Only!</span>
+                <FiExternalLink className="w-4 h-4" />
+              </Link>
             </div>
           </motion.div>
         )}

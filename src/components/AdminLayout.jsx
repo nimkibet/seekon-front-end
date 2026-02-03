@@ -21,12 +21,18 @@ const AdminLayout = ({ children }) => {
   const [notifications, setNotifications] = useState(mockNotifications);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
-  const [isFlashSaleActive, setIsFlashSaleActive] = useState(false);
+  const [isFlashSaleActive, setIsFlashSaleActive] = useState(() => {
+    // Initialize from localStorage to persist across sessions
+    const saved = localStorage.getItem('seekon_flash_sale_active');
+    return saved === 'true';
+  });
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
   const handleToggleFlashSale = (active) => {
     setIsFlashSaleActive(active);
+    // Persist to localStorage
+    localStorage.setItem('seekon_flash_sale_active', active.toString());
     if (active) {
       toast.success('Flash Sale Mode activated!', {
         icon: '⚡',
