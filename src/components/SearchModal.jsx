@@ -82,7 +82,8 @@ const SearchModal = ({ isOpen, onClose }) => {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -20 }}
-          className="fixed inset-x-0 top-0 w-full bg-white shadow-lg border-b border-gray-100 z-[60]"
+          className="fixed inset-x-0 top-0 w-full bg-white shadow-lg border-b border-gray-100 z-[99999]"
+          style={{ zIndex: 99999 }}
         >
           {/* Search Input */}
           <form onSubmit={handleSearch} className="relative w-full">
