@@ -10,7 +10,10 @@ import {
   FiLogOut,
   FiHeart,
   FiEdit3,
-  FiCamera
+  FiCamera,
+  FiMenu,
+  FiX,
+  FiZap
 } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import { openCart } from '../store/slices/cartSlice';
@@ -22,6 +25,8 @@ const Navbar = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isFlashSaleActive, setIsFlashSaleActive] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
   
   const navigate = useNavigate();
@@ -45,6 +50,7 @@ const Navbar = () => {
   useEffect(() => {
     setIsSearchOpen(false);
     setIsDropdownOpen(false);
+    setIsMobileMenuOpen(false);
   }, [location.pathname]);
 
   // Animation variants for the navbar transitions
@@ -78,6 +84,21 @@ const Navbar = () => {
     toast.success('Logged out successfully');
     navigate('/');
     setIsDropdownOpen(false);
+  };
+
+  const toggleFlashSale = () => {
+    setIsFlashSaleActive(!isFlashSaleActive);
+    if (!isFlashSaleActive) {
+      toast.success('Flash Sale activated!', {
+        icon: '⚡',
+        duration: 3000
+      });
+    } else {
+      toast('Flash Sale ended', {
+        icon: '🔴',
+        duration: 2000
+      });
+    }
   };
 
   // Navigation Structure
@@ -244,6 +265,33 @@ const Navbar = () => {
 
   return (
     <>
+      {/* Flash Sale Banner */}
+      <AnimatePresence>
+        {isFlashSaleActive && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 text-white overflow-hidden"
+          >
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <FiZap className="w-5 h-5 animate-pulse" />
+                  <span className="font-bold text-sm">FLASH SALE! Up to 70% OFF - Limited Time Only!</span>
+                </div>
+                <button
+                  onClick={toggleFlashSale}
+                  className="text-white/80 hover:text-white transition-colors"
+                >
+                  <FiX className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <motion.nav
         className={`sticky top-0 left-0 right-0 z-[9999] transition-all duration-300 ${
           isScrolled 
@@ -349,6 +397,19 @@ const Navbar = () => {
 
             {/* Right Icons */}
             <div className="flex items-center space-x-4">
+              {/* Flash Sale Toggle Button */}
+              <button
+                onClick={toggleFlashSale}
+                className={`hidden sm:flex items-center gap-1 px-3 py-1.5 rounded-full transition-colors ${
+                  isFlashSaleActive 
+                    ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white' 
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                <FiZap className={`w-4 h-4 ${isFlashSaleActive ? 'animate-pulse' : ''}`} />
+                <span className="text-sm font-medium">Flash Sale</span>
+              </button>
+
               <Link to="/" className="p-2 hover:bg-gray-100 rounded-full transition-colors" title="Home">
                 <FiHome className="w-5 h-5 text-gray-700" />
               </Link>
@@ -414,9 +475,99 @@ const Navbar = () => {
                   )}
                 </AnimatePresence>
               </div>
+
+              {/* Mobile Menu Button */}
+              <button 
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="md:hidden p-2 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                {isMobileMenuOpen ? (
+                  <FiX className="w-5 h-5 text-gray-700" />
+                ) : (
+                  <FiMenu className="w-5 h-5 text-gray-700" />
+                )}
+              </button>
             </div>
           </div>
         </div>
+
+        {/* Mobile Menu Dropdown */}
+        <AnimatePresence>
+          {isMobileMenuOpen && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="md:hidden bg-white border-t border-gray-100 overflow-hidden"
+            >
+              <div className="px-4 py-4 space-y-2">
+                {/* Mobile Flash Sale Toggle */}
+                <button
+                  onClick={toggleFlashSale}
+                  className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors ${
+                    isFlashSaleActive 
+                      ? 'bg-gradient-to-r from-orange-500 to-red-500 text-white' 
+                      : 'bg-gray-100 text-gray-700'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <FiZap className={`w-5 h-5 ${isFlashSaleActive ? 'animate-pulse' : ''}`} />
+                    <span className="font-medium">Flash Sale</span>
+                  </div>
+                  <span className="text-xs opacity-80">
+                    {isFlashSaleActive ? 'ON - Tap to turn off' : 'OFF - Tap to activate'}
+                  </span>
+                </button>
+
+                {/* Mobile Nav Items */}
+                {navItems.map((item) => (
+                  <Link
+                    key={item.name}
+                    to={item.path}
+                    className="block px-4 py-3 text-base font-bold text-gray-800 hover:bg-gray-50 rounded-lg transition-colors"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    {item.name}
+                  </Link>
+                ))}
+
+                {/* Mobile User Links */}
+                {isAuthenticated ? (
+                  <>
+                    <Link 
+                      to="/profile" 
+                      className="block px-4 py-3 text-base text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      Profile
+                    </Link>
+                    <Link 
+                      to="/wishlist" 
+                      className="block px-4 py-3 text-base text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      Wishlist
+                    </Link>
+                    <button 
+                      onClick={handleLogout}
+                      className="w-full text-left px-4 py-3 text-base text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    >
+                      Logout
+                    </button>
+                  </>
+                ) : (
+                  <Link 
+                    to="/login" 
+                    className="block px-4 py-3 text-base font-bold text-black hover:bg-gray-50 rounded-lg transition-colors"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    LOGIN
+                  </Link>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.nav>
 
       {/* Search Modal */}
