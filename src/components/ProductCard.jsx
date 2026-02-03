@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
-import { FiShoppingCart, FiHeart, FiEye } from 'react-icons/fi';
+import { FiShoppingCart, FiHeart, FiEye, FiZap } from 'react-icons/fi';
 import { useDispatch, useSelector } from 'react-redux';
 // 👇 NEW: Import the API-ready action
 import { addToCartAPI } from '../store/slices/cartSlice';
@@ -9,6 +9,7 @@ import { addToWishlistLocal, removeFromWishlistLocal } from '../store/slices/wis
 import { useAuth } from '../context/AuthContext';
 import { formatPrice } from '../utils/formatPrice'; // Ensure this utility exists, or use simple formatter
 import toast from 'react-hot-toast';
+import FlashSaleCountdown from './FlashSaleCountdown';
 
 const ProductCard = ({ product, viewMode = 'grid' }) => {
   const dispatch = useDispatch();
@@ -25,6 +26,12 @@ const ProductCard = ({ product, viewMode = 'grid' }) => {
   
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [selectedColor, setSelectedColor] = useState(safeColors[0] || 'black');
+
+  // Check if product is on flash sale
+  const isOnFlashSale = product?.isOnFlashSale || false;
+  const activePrice = product?.activePrice || product?.price || 0;
+  const originalPrice = product?.originalPrice || product?.price || 0;
+  const flashSaleEndTime = product?.flashSaleEndTime || null;
 
   // Check wishlist status
   useEffect(() => {
@@ -48,9 +55,11 @@ const ProductCard = ({ product, viewMode = 'grid' }) => {
         id: product.id,
         _id: product.id, // Support both id formats
         name: product.name,
-        price: product.price,
+        price: isOnFlashSale ? activePrice : product.price,
         image: safeImage,
         brand: product.brand,
+        isOnFlashSale,
+        originalPrice: isOnFlashSale ? originalPrice : null
       },
       color: selectedColor,
       size: null, 
@@ -117,17 +126,30 @@ const ProductCard = ({ product, viewMode = 'grid' }) => {
           
           {/* Badges */}
           <div className="absolute top-2 left-2 flex flex-col space-y-1">
-            {product.discount > 0 && (
+            {isOnFlashSale && (
+              <span className="bg-gradient-to-r from-orange-500 to-red-500 text-white text-xs px-2 py-1 rounded-full font-medium flex items-center gap-1">
+                <FiZap className="w-3 h-3" />
+                FLASH SALE
+              </span>
+            )}
+            {product.discount > 0 && !isOnFlashSale && (
               <span className="bg-red-500 text-white text-xs px-2 py-1 rounded-full font-medium">
                 -{product.discount}%
               </span>
             )}
-            {product.newProduct && (
+            {product.newProduct && !isOnFlashSale && (
               <span className="bg-blue-500 text-white text-xs px-2 py-1 rounded-full font-medium">
                 NEW
               </span>
             )}
           </div>
+
+          {/* Flash Sale Countdown */}
+          {isOnFlashSale && flashSaleEndTime && (
+            <div className="absolute top-2 right-2">
+              <FlashSaleCountdown endTime={flashSaleEndTime} />
+            </div>
+          )}
 
           {/* Quick Actions Overlay */}
           <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
@@ -162,9 +184,23 @@ const ProductCard = ({ product, viewMode = 'grid' }) => {
           
           {/* Price */}
           <div className="flex items-center space-x-2 mb-3">
-            <span className="font-bold text-green-600 text-lg">
-              KSh {product.price?.toLocaleString()}
-            </span>
+            {isOnFlashSale ? (
+              <>
+                <span className="font-bold text-red-500 text-lg">
+                  KSh {activePrice?.toLocaleString()}
+                </span>
+                <span className="text-gray-400 text-sm line-through">
+                  KSh {originalPrice?.toLocaleString()}
+                </span>
+                <span className="bg-red-100 text-red-600 text-xs px-2 py-0.5 rounded-full font-medium">
+                  -{Math.round((1 - activePrice / originalPrice) * 100)}% OFF
+                </span>
+              </>
+            ) : (
+              <span className="font-bold text-green-600 text-lg">
+                KSh {product.price?.toLocaleString()}
+              </span>
+            )}
           </div>
 
           {/* Colors & Button Row */}

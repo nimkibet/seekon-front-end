@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiX, FiSave, FiPlus, FiTrash2 } from 'react-icons/fi';
+import { FiX, FiSave, FiPlus, FiTrash2, FiZap, FiClock, FiArrowRight } from 'react-icons/fi';
 import ImageUpload from './ImageUpload';
 import toast from 'react-hot-toast';
 
@@ -20,7 +20,12 @@ const ProductModal = ({ isOpen, onClose, product, onSave }) => {
     isTrending: false,
     isFeatured: false,
     isNew: false,
-    isBestSeller: false
+    isBestSeller: false,
+    // Flash Sale fields
+    isFlashSale: false,
+    flashSalePrice: '',
+    saleStartTime: '',
+    saleEndTime: ''
   });
   const [errors, setErrors] = useState({});
   const [currentImages, setCurrentImages] = useState([]);
@@ -75,7 +80,12 @@ const ProductModal = ({ isOpen, onClose, product, onSave }) => {
         isTrending: product.isTrending || product.isFeatured || false,
         isFeatured: product.isFeatured || false,
         isNew: product.isNew || false,
-        isBestSeller: product.isBestSeller || false
+        isBestSeller: product.isBestSeller || false,
+        // Flash Sale fields
+        isFlashSale: product.isFlashSale || false,
+        flashSalePrice: product.flashSalePrice || '',
+        saleStartTime: product.saleStartTime ? new Date(product.saleStartTime).toISOString().slice(0, 16) : '',
+        saleEndTime: product.saleEndTime ? new Date(product.saleEndTime).toISOString().slice(0, 16) : ''
       });
       setCurrentImages(imagesArray);
     } else {
@@ -94,7 +104,12 @@ const ProductModal = ({ isOpen, onClose, product, onSave }) => {
         isTrending: false,
         isFeatured: false,
         isNew: false,
-        isBestSeller: false
+        isBestSeller: false,
+        // Flash Sale fields
+        isFlashSale: false,
+        flashSalePrice: '',
+        saleStartTime: '',
+        saleEndTime: ''
       });
       setCurrentImages([]);
     }
@@ -252,7 +267,12 @@ const ProductModal = ({ isOpen, onClose, product, onSave }) => {
         newProduct: formData.isNew,
         // Set both single image and images array for compatibility
         image: imageUrl,
-        images: validImages.length > 0 ? validImages : []
+        images: validImages.length > 0 ? validImages : [],
+        // Flash Sale data - only include if flash sale is enabled
+        isFlashSale: formData.isFlashSale,
+        flashSalePrice: formData.isFlashSale ? Number(formData.flashSalePrice) : null,
+        saleStartTime: formData.isFlashSale ? formData.saleStartTime : null,
+        saleEndTime: formData.isFlashSale ? formData.saleEndTime : null
       };
 
       // Remove fields that shouldn't be sent to backend
@@ -611,6 +631,133 @@ const ProductModal = ({ isOpen, onClose, product, onSave }) => {
                     <span className="text-white text-sm font-medium">🏆 Best Seller</span>
                   </label>
                 </div>
+              </div>
+
+              {/* Flash Sale Settings */}
+              <div className="bg-gradient-to-r from-orange-500/10 to-red-500/10 border border-orange-500/20 rounded-xl p-4">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center space-x-3">
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
+                      formData.isFlashSale 
+                        ? 'bg-gradient-to-br from-orange-500 to-red-500 animate-pulse' 
+                        : 'bg-gray-600'
+                    }`}>
+                      <FiZap className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="text-white font-bold">Flash Sale</h3>
+                      <p className="text-gray-400 text-xs">Set special pricing for a limited time</p>
+                    </div>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={formData.isFlashSale}
+                      onChange={(e) => setFormData(prev => ({ 
+                        ...prev, 
+                        isFlashSale: e.target.checked,
+                        // Clear flash sale fields when turning off
+                        flashSalePrice: e.target.checked ? prev.flashSalePrice : '',
+                        saleStartTime: e.target.checked ? prev.saleStartTime : '',
+                        saleEndTime: e.target.checked ? prev.saleEndTime : ''
+                      }))}
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
+                  </label>
+                </div>
+
+                {/* Flash Sale Inputs - Show when enabled */}
+                <AnimatePresence>
+                  {formData.isFlashSale && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="space-y-4"
+                    >
+                      {/* Flash Sale Price */}
+                      <div>
+                        <label htmlFor="flashSalePrice" className="block text-gray-300 text-sm font-medium mb-2">
+                          Flash Sale Price (KSh) <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          type="number"
+                          id="flashSalePrice"
+                          name="flashSalePrice"
+                          value={formData.flashSalePrice}
+                          onChange={handleChange}
+                          placeholder="0.00"
+                          min="0"
+                          step="0.01"
+                          className="w-full px-4 py-2.5 bg-white/5 border border-orange-500/50 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-orange-500 transition-colors"
+                        />
+                        {formData.isFlashSale && !formData.flashSalePrice && (
+                          <p className="text-orange-400 text-xs mt-1">Flash sale price is required</p>
+                        )}
+                      </div>
+
+                      {/* Date/Time Scheduling */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label htmlFor="saleStartTime" className="block text-gray-300 text-sm font-medium mb-2">
+                            <FiClock className="inline w-4 h-4 mr-1" />
+                            Start Date & Time <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="datetime-local"
+                            id="saleStartTime"
+                            name="saleStartTime"
+                            value={formData.saleStartTime}
+                            onChange={handleChange}
+                            className="w-full px-4 py-2.5 bg-white/5 border border-orange-500/50 rounded-lg text-white focus:outline-none focus:border-orange-500 transition-colors"
+                          />
+                        </div>
+                        <div>
+                          <label htmlFor="saleEndTime" className="block text-gray-300 text-sm font-medium mb-2">
+                            <FiClock className="inline w-4 h-4 mr-1" />
+                            End Date & Time <span className="text-red-500">*</span>
+                          </label>
+                          <input
+                            type="datetime-local"
+                            id="saleEndTime"
+                            name="saleEndTime"
+                            value={formData.saleEndTime}
+                            onChange={handleChange}
+                            min={formData.saleStartTime}
+                            className="w-full px-4 py-2.5 bg-white/5 border border-orange-500/50 rounded-lg text-white focus:outline-none focus:border-orange-500 transition-colors"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Validation */}
+                      {formData.saleStartTime && formData.saleEndTime && formData.saleEndTime < formData.saleStartTime && (
+                        <p className="text-red-400 text-xs mt-1">End time must be after start time</p>
+                      )}
+
+                      {/* Price comparison preview */}
+                      {formData.price && formData.flashSalePrice && (
+                        <div className="flex items-center justify-between bg-white/5 rounded-lg p-3">
+                          <div>
+                            <p className="text-gray-400 text-xs">Original Price</p>
+                            <p className="text-white font-medium">KSh {Number(formData.price).toLocaleString()}</p>
+                          </div>
+                          <FiArrowRight className="text-gray-400" />
+                          <div>
+                            <p className="text-gray-400 text-xs">Flash Price</p>
+                            <p className="text-orange-400 font-bold">KSh {Number(formData.flashSalePrice).toLocaleString()}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-400 text-xs">Discount</p>
+                            <p className="text-green-400 font-bold">
+                              -{Math.round((1 - Number(formData.flashSalePrice) / Number(formData.price)) * 100)}%
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
 
               {/* Action Buttons */}
