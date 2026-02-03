@@ -6,10 +6,11 @@ import { fetchProducts, setFilters, applyFilters } from '../store/slices/product
 import ProductCard from '../components/ProductCard';
 import FilterSortButton from '../components/FilterSortButton';
 import FilterSidebar from '../components/FilterSidebar';
-import { FiFilter, FiX } from 'react-icons/fi';
+import { FiFilter, FiX, FiZap } from 'react-icons/fi';
 
 const categories = [
   { name: 'All Products', value: 'all' },
+  { name: 'Flash Sale', value: 'flashsale', icon: '🔥' },
   { name: 'All Footwear', value: 'Footwear' },
   { name: 'All Apparel', value: 'Apparel' },
   { name: 'All Accessories', value: 'Accessories' }
@@ -67,9 +68,11 @@ const Collection = () => {
       if (foundCategory) {
         setActiveCategory(foundCategory);
       } else if (category.toLowerCase() === 'sneakers') {
-        setActiveCategory(categories[1]); // All Footwear
+        setActiveCategory(categories[2]); // All Footwear
       } else if (category.toLowerCase() === 'apparel') {
-        setActiveCategory(categories[2]); // All Apparel
+        setActiveCategory(categories[3]); // All Apparel
+      } else if (category.toLowerCase() === 'flashsale') {
+        setActiveCategory(categories[1]); // Flash Sale
       }
     }
   }, [searchParams]);
@@ -141,12 +144,22 @@ const Collection = () => {
       // Apply category filter from URL or active category if no sidebar filter
       const categoryFilter = category || (activeCategory.value !== 'all' ? activeCategory.value : null);
       if (categoryFilter && categoryFilter.toLowerCase() !== 'all') {
-        filtered = filtered.filter(p => {
-          const prodCategory = p.category?.toLowerCase();
-          return prodCategory === categoryFilter.toLowerCase() ||
-                 prodCategory === 'sneakers' ||
-                 prodCategory === 'footwear';
-        });
+        // Handle Flash Sale category
+        if (categoryFilter.toLowerCase() === 'flashsale') {
+          filtered = filtered.filter(p => 
+            p.isFlashSale && 
+            p.flashSalePrice && 
+            p.saleStartTime && 
+            p.saleEndTime
+          );
+        } else {
+          filtered = filtered.filter(p => {
+            const prodCategory = p.category?.toLowerCase();
+            return prodCategory === categoryFilter.toLowerCase() ||
+                   prodCategory === 'sneakers' ||
+                   prodCategory === 'footwear';
+          });
+        }
       }
     }
     
@@ -253,7 +266,8 @@ const Collection = () => {
                     'jackets': 'JACKETS',
                     'bags': 'BAGS',
                     'hats': 'HATS',
-                    'socks': 'SOCKS'
+                    'socks': 'SOCKS',
+                    'flashsale': '🔥 FLASH SALE'
                   };
                   
                   // Check if it's a main category view (not a sub-filter)

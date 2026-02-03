@@ -2,12 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useSelector, useDispatch } from 'react-redux';
 import { useLocation, Link } from 'react-router-dom';
-import { FiArrowLeft } from 'react-icons/fi';
+import { FiArrowLeft, FiClock, FiExternalLink } from 'react-icons/fi';
 import { fetchProducts } from '../store/slices/productSlice';
 import HeroBanner from '../components/HeroBanner';
 import ProductCard from '../components/ProductCard';
 import FilterBar from '../components/FilterBar';
 import PromotionalBanner from '../components/PromotionalBanner';
+import FlashSaleCountdown from '../components/FlashSaleCountdown';
 import { SectionFallback, ProductCardSkeleton, EmptyState } from '../components/Fallbacks';
 import toast from 'react-hot-toast';
 
@@ -79,6 +80,17 @@ const Home = () => {
   const newProducts = products.filter(product => product.newProduct).slice(0, 6);
   const saleProducts = products.filter(product => product.discount > 0).slice(0, 6);
   
+  // Flash Sale products - only active ones
+  const flashSaleProducts = products.filter(product => 
+    product.isFlashSale && 
+    product.flashSalePrice && 
+    product.saleStartTime && 
+    product.saleEndTime
+  ).slice(0, 8);
+  
+  // Check if flash sale is currently active
+  const isFlashSaleActive = flashSaleProducts.length > 0;
+  
   // FIXED: Use case-insensitive category filtering - limit to 6 each
   const sneakers = products.filter(product => product.category?.toLowerCase() === 'sneakers').slice(0, 6);
   const apparel = products.filter(product => product.category?.toLowerCase() === 'apparel').slice(0, 6);
@@ -129,6 +141,72 @@ const Home = () => {
       
       {/* Hero Banner */}
       <HeroBanner />
+
+      {/* Flash Sale Section - Shows when admin activates flash sale */}
+      {isFlashSaleActive && (
+        <motion.section
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-gradient-to-r from-red-600 via-red-500 to-orange-500 relative overflow-hidden"
+        >
+          {/* Animated background particles */}
+          <div className="absolute inset-0 overflow-hidden">
+            <div className="absolute -top-24 -right-24 w-96 h-96 bg-white/10 rounded-full blur-3xl animate-pulse"></div>
+            <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-yellow-400/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
+          </div>
+          
+          <div className="relative max-w-7xl mx-auto px-2 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6">
+            {/* Flash Sale Header */}
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-4">
+              <div className="flex items-center gap-3">
+                <div className="bg-white text-red-600 px-4 py-2 rounded-xl font-bold text-lg shadow-lg animate-bounce">
+                  🔥 FLASH SALE
+                </div>
+                <div className="text-white">
+                  <h2 className="text-2xl sm:text-3xl font-bold">HUGE DISCOUNTS!</h2>
+                  <p className="text-red-100 text-sm">Limited time offers on premium items</p>
+                </div>
+              </div>
+              
+              {/* Countdown Timer */}
+              <div className="flex items-center gap-2">
+                <FiClock className="text-white w-5 h-5" />
+                <FlashSaleCountdown products={flashSaleProducts} />
+              </div>
+              
+              {/* View All Link */}
+              <Link
+                to="/flash-sale"
+                className="bg-white text-red-600 px-6 py-2 rounded-full font-bold hover:bg-red-50 transition-colors flex items-center gap-2 shadow-lg"
+              >
+                View All Deals
+                <FiExternalLink className="w-4 h-4" />
+              </Link>
+            </div>
+            
+            {/* Flash Sale Products Grid */}
+            {isLoading ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-4">
+                {[...Array(5)].map((_, index) => (
+                  <div key={index} className="bg-white/20 rounded-xl h-48 animate-pulse"></div>
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-4">
+                {flashSaleProducts.map((product) => (
+                  <motion.div
+                    key={product.id}
+                    whileHover={{ scale: 1.02 }}
+                    className="bg-white rounded-xl p-2 shadow-lg"
+                  >
+                    <ProductCard product={product} />
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </div>
+        </motion.section>
+      )}
 
       {/* Main Content */}
         <div className="max-w-7xl mx-auto px-2 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8 lg:py-12 bg-seekon-platinumSilver">

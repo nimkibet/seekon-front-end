@@ -13,7 +13,8 @@ import {
   FiCamera,
   FiMenu,
   FiX,
-  FiZap
+  FiZap,
+  FiExternalLink
 } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import { openCart } from '../store/slices/cartSlice';
@@ -261,6 +262,12 @@ const Navbar = () => {
         path: '/collection?category=accessories'
       }
     },
+    { 
+      name: 'Flash Sale', 
+      path: '/flash-sale',
+      highlight: true,
+      icon: <FiZap className="w-4 h-4" />
+    },
   ];
 
   return (
@@ -276,10 +283,11 @@ const Navbar = () => {
           >
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
+                <Link to="/flash-sale" className="flex items-center gap-2 hover:opacity-90 transition-opacity">
                   <FiZap className="w-5 h-5 animate-pulse" />
                   <span className="font-bold text-sm">FLASH SALE! Up to 70% OFF - Limited Time Only!</span>
-                </div>
+                  <FiExternalLink className="w-4 h-4" />
+                </Link>
                 <button
                   onClick={toggleFlashSale}
                   className="text-white/80 hover:text-white transition-colors"

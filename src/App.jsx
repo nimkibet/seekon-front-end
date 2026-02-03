@@ -37,6 +37,7 @@ import Wishlist from './pages/Wishlist';
 import AllFootwear from './pages/AllFootwear';
 import AllApparel from './pages/AllApparel';
 import AllAccessories from './pages/AllAccessories';
+import FlashSale from './pages/FlashSale';
 
 // Components
 import Layout from './components/Layout';
@@ -158,6 +159,12 @@ const App = () => {
               <Route path="/all-accessories" element={
                 <AppLayout>
                   <AllAccessories />
+                </AppLayout>
+              } />
+
+              <Route path="/flash-sale" element={
+                <AppLayout>
+                  <FlashSale />
                 </AppLayout>
               } />
 
