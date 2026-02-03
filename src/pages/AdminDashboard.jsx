@@ -24,6 +24,7 @@ const AdminDashboard = () => {
   const [recentActivities, setRecentActivities] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isFlashSaleActive, setIsFlashSaleActive] = useState(false);
 
   useEffect(() => {
     fetchStats();
@@ -65,6 +66,21 @@ const AdminDashboard = () => {
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
+    }
+  };
+
+  const toggleFlashSale = () => {
+    setIsFlashSaleActive(!isFlashSaleActive);
+    if (!isFlashSaleActive) {
+      toast.success('Flash Sale activated! Customers will see the banner.', {
+        icon: '⚡',
+        duration: 4000
+      });
+    } else {
+      toast('Flash Sale ended', {
+        icon: '🔴',
+        duration: 3000
+      });
     }
   };
 
@@ -373,7 +389,18 @@ const AdminDashboard = () => {
         className="bg-white/10 backdrop-blur-xl rounded-xl p-6 border border-white/20"
       >
         <h3 className="text-lg font-bold text-white mb-4">Quick Actions</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          <button
+            onClick={toggleFlashSale}
+            className={`flex items-center space-x-3 p-4 rounded-lg transition-all text-white ${
+              isFlashSaleActive 
+                ? 'bg-gradient-to-br from-orange-500 to-red-500 animate-pulse' 
+                : 'bg-gradient-to-br from-gray-600 to-gray-700 hover:from-gray-500 hover:to-gray-600'
+            }`}
+          >
+            <FiZap className="w-5 h-5" />
+            <span className="font-medium">{isFlashSaleActive ? 'Flash Sale ON' : 'Start Flash Sale'}</span>
+          </button>
           <button
             onClick={() => navigate('/admin/products')}
             className="flex items-center space-x-3 p-4 bg-gradient-to-br from-[#00A676] to-[#008A5E] hover:from-[#008A5E] hover:to-[#00A676] rounded-lg transition-all text-white"
