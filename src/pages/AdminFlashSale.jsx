@@ -40,6 +40,8 @@ const AdminFlashSale = () => {
       
       setProducts(productsData.products || productsData || []);
       
+      console.log('Flash Sale Settings Fetched:', settingsData);
+      
       if (settingsData) {
         setGlobalSettings({
           isActive: settingsData.isActive || false,
