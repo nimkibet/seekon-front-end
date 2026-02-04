@@ -197,19 +197,9 @@ const AdminFlashSale = () => {
               <p className="text-sm text-gray-400">Enable or disable flash sale globally</p>
             </div>
             <button
-              onClick={async () => {
+              onClick={() => {
                 const newStatus = !globalSettings.isActive;
                 setGlobalSettings(prev => ({ ...prev, isActive: newStatus }));
-                try {
-                  await adminApi.updateFlashSaleSettings({
-                    isActive: newStatus,
-                    endTime: globalSettings.endTime
-                  });
-                  toast.success(newStatus ? 'Flash Sale Activated!' : 'Flash Sale Deactivated');
-                } catch (error) {
-                  setGlobalSettings(prev => ({ ...prev, isActive: !newStatus }));
-                  toast.error('Failed to update status');
-                }
               }}
               className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${
                 globalSettings.isActive ? 'bg-[#00A676]' : 'bg-gray-600'
@@ -238,6 +228,22 @@ const AdminFlashSale = () => {
           </div>
         </div>
       </motion.div>
+
+      {/* Save Button */}
+      <div className="flex justify-end mt-4">
+        <button
+          onClick={handleSaveGlobalSettings}
+          disabled={isSavingSettings}
+          className="bg-[#00A676] hover:bg-[#008A5E] text-white font-bold py-2 px-6 rounded-lg transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {isSavingSettings ? (
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+          ) : (
+            <FiSave className="w-4 h-4" />
+          )}
+          {isSavingSettings ? 'Saving...' : 'Save Changes'}
+        </button>
+      </div>
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
