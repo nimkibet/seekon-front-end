@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { FiZap, FiClock, FiEdit, FiX, FiPlus, FiTrendingUp, FiDollarSign, FiCalendar } from 'react-icons/fi';
+import { FiZap, FiClock, FiEdit, FiX, FiPlus, FiTrendingUp, FiDollarSign, FiCalendar, FiSave } from 'react-icons/fi';
 import { adminApi } from '../utils/adminApi';
+import { api } from '../utils/api';
 import toast from 'react-hot-toast';
 import FlashSaleCountdown from '../components/FlashSaleCountdown';
 
@@ -10,6 +11,14 @@ const AdminFlashSale = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [editingProduct, setEditingProduct] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  
+  // Global Flash Sale Settings
+  const [globalSettings, setGlobalSettings] = useState({
+    isActive: false,
+    endTime: ''
+  });
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
+
   const [formData, setFormData] = useState({
     isFlashSale: false,
     flashSalePrice: '',
@@ -18,19 +27,55 @@ const AdminFlashSale = () => {
   });
 
   useEffect(() => {
-    fetchProducts();
+    fetchData();
   }, []);
+
+  const fetchData = async () => {
+    try {
+      setIsLoading(true);
+      const [productsData, settingsData] = await Promise.all([
+        adminApi.getProducts(),
+        api.getFlashSaleSettings()
+      ]);
+      
+      setProducts(productsData.products || productsData || []);
+      
+      if (settingsData) {
+        setGlobalSettings({
+          isActive: settingsData.isActive || false,
+          endTime: settingsData.endTime ? new Date(settingsData.endTime).toISOString().slice(0, 16) : ''
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      toast.error('Failed to load data');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSaveGlobalSettings = async () => {
+    try {
+      setIsSavingSettings(true);
+      await adminApi.updateFlashSaleSettings({
+        isActive: globalSettings.isActive,
+        endTime: globalSettings.endTime
+      });
+      toast.success('Global flash sale settings updated!');
+    } catch (error) {
+      console.error('Error updating settings:', error);
+      toast.error('Failed to update settings');
+    } finally {
+      setIsSavingSettings(false);
+    }
+  };
 
   const fetchProducts = async () => {
     try {
-      setIsLoading(true);
       const data = await adminApi.getProducts();
       setProducts(data.products || data || []);
     } catch (error) {
       console.error('Error fetching products:', error);
-      toast.error('Failed to load products');
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -128,6 +173,69 @@ const AdminFlashSale = () => {
           <p className="text-gray-400">Manage flash sale prices and schedules for all products</p>
         </div>
       </div>
+
+      {/* Global Settings Card */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-white/10 backdrop-blur-xl rounded-xl p-6 border border-white/20 mb-8"
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-bold text-white flex items-center gap-2">
+            <FiZap className="text-orange-500" />
+            Global Flash Sale Settings
+          </h2>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Toggle Switch */}
+          <div className="flex items-center justify-between p-4 bg-black/20 rounded-lg border border-white/10">
+            <div>
+              <h3 className="text-white font-medium mb-1">Flash Sale Status</h3>
+              <p className="text-sm text-gray-400">Enable or disable flash sale globally</p>
+            </div>
+            <button
+              onClick={async () => {
+                const newStatus = !globalSettings.isActive;
+                setGlobalSettings(prev => ({ ...prev, isActive: newStatus }));
+                try {
+                  await adminApi.updateFlashSaleSettings({
+                    isActive: newStatus,
+                    endTime: globalSettings.endTime
+                  });
+                  toast.success(newStatus ? 'Flash Sale Activated!' : 'Flash Sale Deactivated');
+                } catch (error) {
+                  setGlobalSettings(prev => ({ ...prev, isActive: !newStatus }));
+                  toast.error('Failed to update status');
+                }
+              }}
+              className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${
+                globalSettings.isActive ? 'bg-[#00A676]' : 'bg-gray-600'
+              }`}
+            >
+              <span
+                className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform ${
+                  globalSettings.isActive ? 'translate-x-7' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+
+          {/* End Time Picker */}
+          <div className="p-4 bg-black/20 rounded-lg border border-white/10">
+            <h3 className="text-white font-medium mb-2">Flash Sale End Time</h3>
+            <div className="flex items-center gap-2">
+              <FiClock className="text-gray-400" />
+              <input
+                type="datetime-local"
+                value={globalSettings.endTime}
+                onChange={(e) => setGlobalSettings(prev => ({ ...prev, endTime: e.target.value }))}
+                className="bg-transparent border border-gray-600 rounded px-3 py-1 text-white focus:outline-none focus:border-[#00A676] w-full"
+              />
+            </div>
+          </div>
+        </div>
+      </motion.div>
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
@@ -301,121 +409,74 @@ const AdminFlashSale = () => {
               </h2>
               <button
                 onClick={() => setShowModal(false)}
-                className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+                className="text-gray-400 hover:text-white"
               >
-                <FiX className="w-5 h-5 text-gray-400" />
+                <FiX className="w-6 h-6" />
               </button>
             </div>
 
-            {/* Product Info */}
-            <div className="flex items-center gap-3 mb-6 p-3 bg-white/5 rounded-lg">
-              <img
-                src={editingProduct?.image}
-                alt={editingProduct?.name}
-                className="w-12 h-12 object-cover rounded-lg"
-              />
-              <div>
-                <p className="text-white font-medium">{editingProduct?.name}</p>
-                <p className="text-gray-400 text-sm">Regular Price: KSh {editingProduct?.price?.toLocaleString()}</p>
-              </div>
-            </div>
-
-            {/* Toggle */}
-            <div className="flex items-center justify-between mb-4 p-4 bg-gradient-to-r from-orange-500/10 to-red-500/10 border border-orange-500/20 rounded-xl">
-              <div className="flex items-center gap-2">
-                <FiZap className={`w-5 h-5 ${formData.isFlashSale ? 'text-orange-400' : 'text-gray-400'}`} />
-                <span className="text-white font-medium">Enable Flash Sale</span>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={formData.isFlashSale}
-                  onChange={(e) => setFormData(prev => ({ ...prev, isFlashSale: e.target.checked }))}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
-              </label>
-            </div>
-
-            {/* Sale Inputs */}
-            {formData.isFlashSale && (
-              <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
-                <div>
-                  <label className="block text-gray-300 text-sm font-medium mb-2">
-                    Flash Sale Price (KSh)
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.flashSalePrice}
-                    onChange={(e) => setFormData(prev => ({ ...prev, flashSalePrice: e.target.value }))}
-                    placeholder="0.00"
-                    min="0"
-                    step="0.01"
-                    className="w-full px-4 py-2.5 bg-white/5 border border-orange-500/50 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-orange-500"
+            <div className="space-y-4">
+              {/* Toggle */}
+              <div className="flex items-center justify-between p-3 bg-black/20 rounded-lg">
+                <span className="text-white">Enable Flash Sale</span>
+                <button
+                  onClick={() => setFormData({ ...formData, isFlashSale: !formData.isFlashSale })}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    formData.isFlashSale ? 'bg-[#00A676]' : 'bg-gray-600'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      formData.isFlashSale ? 'translate-x-6' : 'translate-x-1'
+                    }`}
                   />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-gray-300 text-sm font-medium mb-2">
-                      Start Date & Time
-                    </label>
-                    <input
-                      type="datetime-local"
-                      value={formData.saleStartTime}
-                      onChange={(e) => setFormData(prev => ({ ...prev, saleStartTime: e.target.value }))}
-                      className="w-full px-4 py-2.5 bg-white/5 border border-orange-500/50 rounded-lg text-white focus:outline-none focus:border-orange-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-gray-300 text-sm font-medium mb-2">
-                      End Date & Time
-                    </label>
-                    <input
-                      type="datetime-local"
-                      value={formData.saleEndTime}
-                      onChange={(e) => setFormData(prev => ({ ...prev, saleEndTime: e.target.value }))}
-                      min={formData.saleStartTime}
-                      className="w-full px-4 py-2.5 bg-white/5 border border-orange-500/50 rounded-lg text-white focus:outline-none focus:border-orange-500"
-                    />
-                  </div>
-                </div>
-
-                {/* Preview */}
-                {formData.flashSalePrice && (
-                  <div className="flex items-center justify-between p-3 bg-white/5 rounded-lg">
-                    <div>
-                      <p className="text-gray-400 text-xs">Original Price</p>
-                      <p className="text-white font-medium">KSh {editingProduct?.price?.toLocaleString()}</p>
-                    </div>
-                    <FiClock className="text-gray-400" />
-                    <div>
-                      <p className="text-gray-400 text-xs">Flash Price</p>
-                      <p className="text-orange-400 font-bold">KSh {Number(formData.flashSalePrice).toLocaleString()}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-400 text-xs">Discount</p>
-                      <p className="text-green-400 font-bold">
-                        -{Math.round((1 - Number(formData.flashSalePrice) / editingProduct?.price) * 100)}%
-                      </p>
-                    </div>
-                  </div>
-                )}
+                </button>
               </div>
-            )}
 
-            {/* Actions */}
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={() => setShowModal(false)}
-                className="flex-1 px-4 py-2.5 bg-gray-600 hover:bg-gray-700 text-white rounded-lg transition-colors"
-              >
-                Cancel
-              </button>
+              {/* Price */}
+              {formData.isFlashSale && (
+                <>
+                  <div>
+                    <label className="block text-gray-400 text-sm mb-1">Flash Sale Price (KSh)</label>
+                    <div className="relative">
+                      <FiDollarSign className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                      <input
+                        type="number"
+                        value={formData.flashSalePrice}
+                        onChange={(e) => setFormData({ ...formData, flashSalePrice: e.target.value })}
+                        className="w-full bg-black/20 border border-gray-600 rounded-lg py-2 pl-10 pr-4 text-white focus:border-[#00A676] focus:outline-none"
+                        placeholder="0.00"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Dates */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-gray-400 text-sm mb-1">Start Time</label>
+                      <input
+                        type="datetime-local"
+                        value={formData.saleStartTime}
+                        onChange={(e) => setFormData({ ...formData, saleStartTime: e.target.value })}
+                        className="w-full bg-black/20 border border-gray-600 rounded-lg py-2 px-3 text-white focus:border-[#00A676] focus:outline-none text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-gray-400 text-sm mb-1">End Time</label>
+                      <input
+                        type="datetime-local"
+                        value={formData.saleEndTime}
+                        onChange={(e) => setFormData({ ...formData, saleEndTime: e.target.value })}
+                        className="w-full bg-black/20 border border-gray-600 rounded-lg py-2 px-3 text-white focus:border-[#00A676] focus:outline-none text-sm"
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+
               <button
                 onClick={handleSave}
-                disabled={formData.isFlashSale && (!formData.flashSalePrice || !formData.saleStartTime || !formData.saleEndTime)}
-                className="flex-1 px-4 py-2.5 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full mt-4 bg-[#00A676] hover:bg-[#008A5E] text-white font-bold py-3 rounded-xl transition-colors"
               >
                 Save Changes
               </button>

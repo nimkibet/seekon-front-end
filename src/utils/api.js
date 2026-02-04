@@ -93,6 +93,19 @@ export const api = {
   },
 
   // ==========================================
+  // ⚙️ SETTINGS
+  // ==========================================
+  getFlashSaleSettings: async () => {
+    try {
+      const response = await client.get('/settings/flash-sale');
+      return response.data;
+    } catch (error) {
+      // Return default if error (e.g. endpoint not ready)
+      return { isActive: false, endTime: null };
+    }
+  },
+
+  // ==========================================
   // 📦 ORDERS & PAYMENTS
   // ==========================================
   createOrder: async (orderData) => {

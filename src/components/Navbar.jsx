@@ -13,23 +13,22 @@ import {
   FiCamera,
   FiMenu,
   FiZap,
-  FiExternalLink
+  FiExternalLink,
+  FiX
 } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import { openCart } from '../store/slices/cartSlice';
 import SearchModal from './SearchModal';
 import toast from 'react-hot-toast';
+import { api } from '../utils/api';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const [isFlashSaleActive] = useState(() => {
-    // Initialize from localStorage - flash sale state is controlled by admin
-    const saved = localStorage.getItem('seekon_flash_sale_active');
-    return saved === 'true';
-  });
+  const [isFlashSaleActive, setIsFlashSaleActive] = useState(false);
+  const [mobileExpanded, setMobileExpanded] = useState({});
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
   
@@ -40,6 +39,19 @@ const Navbar = () => {
   
   // 👇 FIX: Matches the 'cartSlice.js' variable name (totalQuantity)
   const { totalQuantity } = useSelector(state => state.cart);
+
+  // Fetch Flash Sale Settings
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const settings = await api.getFlashSaleSettings();
+        setIsFlashSaleActive(settings?.isActive || false);
+      } catch (error) {
+        console.error('Error fetching settings:', error);
+      }
+    };
+    fetchSettings();
+  }, []);
 
   // Track scroll for glass effect
   useEffect(() => {
@@ -304,7 +316,7 @@ const Navbar = () => {
 
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center space-x-8">
-              {navItems.map((item) => (
+              {navItems.filter(item => item.name !== 'Flash Sale' || isFlashSaleActive).map((item) => (
                 <div key={item.name} className={`group ${item.type === 'mega' ? '' : 'relative'}`}>
                   <Link 
                     to={item.path}
@@ -477,15 +489,96 @@ const Navbar = () => {
             >
               <div className="px-4 py-4 space-y-2">
                 {/* Mobile Nav Items */}
-                {navItems.map((item) => (
-                  <Link
-                    key={item.name}
-                    to={item.path}
-                    className="block px-4 py-3 text-base font-bold text-gray-800 hover:bg-gray-50 rounded-lg transition-colors"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    {item.name}
-                  </Link>
+                {navItems.filter(item => item.name !== 'Flash Sale' || isFlashSaleActive).map((item) => (
+                  <div key={item.name}>
+                    <div className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 rounded-lg transition-colors">
+                      <Link
+                        to={item.path}
+                        className="text-base font-bold text-gray-800 flex-1"
+                        onClick={() => !item.sections && !item.dropdown && setIsMobileMenuOpen(false)}
+                      >
+                        {item.name}
+                      </Link>
+                      {(item.sections || item.dropdown) && (
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setMobileExpanded(prev => ({ ...prev, [item.name]: !prev[item.name] }));
+                          }}
+                          className="p-3 -mr-2 hover:bg-gray-100 rounded-full transition-colors"
+                          aria-label={mobileExpanded[item.name] ? "Collapse menu" : "Expand menu"}
+                        >
+                          <FiChevronDown className={`w-5 h-5 transition-transform duration-200 ${mobileExpanded[item.name] ? 'rotate-180' : ''}`} />
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Mobile Submenu */}
+                    <AnimatePresence>
+                      {mobileExpanded[item.name] && (item.sections || item.dropdown) && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          className="overflow-hidden bg-gray-50 rounded-lg mx-4 mb-2"
+                        >
+                          <div className="p-4 space-y-4">
+                            {item.sections ? (
+                              // Mega Menu Sections
+                              item.sections.map((section, idx) => (
+                                <div key={idx} className="space-y-2">
+                                  {section.title && (
+                                    <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                      {section.title}
+                                    </h4>
+                                  )}
+                                  {section.items ? (
+                                    <ul className="space-y-2 pl-2 border-l-2 border-gray-200">
+                                      {section.items.map((subItem, subIdx) => (
+                                        <li key={subIdx}>
+                                          <Link
+                                            to={subItem.path}
+                                            className="block text-sm text-gray-600 hover:text-black"
+                                            onClick={() => setIsMobileMenuOpen(false)}
+                                          >
+                                            {subItem.name}
+                                          </Link>
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  ) : (
+                                    <Link
+                                      to={section.path}
+                                      className="block text-sm font-bold text-black"
+                                      onClick={() => setIsMobileMenuOpen(false)}
+                                    >
+                                      {section.label}
+                                    </Link>
+                                  )}
+                                </div>
+                              ))
+                            ) : (
+                              // Regular Dropdown
+                              <ul className="space-y-2">
+                                {item.dropdown.map((sub, idx) => (
+                                  <li key={idx}>
+                                    <Link
+                                      to={sub.path}
+                                      className="block text-sm text-gray-600 hover:text-black"
+                                      onClick={() => setIsMobileMenuOpen(false)}
+                                    >
+                                      {sub.name}
+                                    </Link>
+                                  </li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
                 ))}
 
                 {/* Mobile User Links */}

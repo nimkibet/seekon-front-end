@@ -170,10 +170,11 @@ const Register = () => {
         password: formData.password,
       })).unwrap();
       
-      toast.success('Account created successfully! Welcome to Seekon!', { id: 'register-submit' });
+      // Registration successful - user must verify email before logging in
+      toast.success('Account created! Please check your email and verify your account before logging in.', { id: 'register-submit' });
       
-      // Redirect to home page
-      navigate('/', { replace: true });
+      // Redirect to verify email page with pre-filled email
+      navigate(`/verify-email?email=${encodeURIComponent(formData.email)}`, { replace: true });
     } catch (err) {
       console.error('Registration error:', err);
       // Show the actual error message from the backend

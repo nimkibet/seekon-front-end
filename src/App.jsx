@@ -1,8 +1,10 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { store } from './store/store';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { api } from './utils/api';
+import toast from 'react-hot-toast';
 
 // Pages
 import Home from './pages/Home';
@@ -73,6 +75,40 @@ const PublicRoute = ({ children }) => {
       return <Navigate to="/admin" replace />;
     }
     return <Navigate to="/" replace />;
+  }
+
+  return children;
+};
+
+// Protected Flash Sale Route
+const ProtectedFlashSaleRoute = ({ children }) => {
+  const [isActive, setIsActive] = useState(null);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const checkStatus = async () => {
+      try {
+        const settings = await api.getFlashSaleSettings();
+        if (!settings?.isActive) {
+          toast.error('Flash Sale is currently inactive');
+          navigate('/');
+        } else {
+          setIsActive(true);
+        }
+      } catch (error) {
+        console.error('Error checking flash sale status:', error);
+        navigate('/');
+      }
+    };
+    checkStatus();
+  }, [navigate]);
+
+  if (isActive === null) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
+      </div>
+    );
   }
 
   return children;
@@ -163,9 +199,11 @@ const App = () => {
               } />
 
               <Route path="/flash-sale" element={
-                <AppLayout>
-                  <FlashSale />
-                </AppLayout>
+                <ProtectedFlashSaleRoute>
+                  <AppLayout>
+                    <FlashSale />
+                  </AppLayout>
+                </ProtectedFlashSaleRoute>
               } />
 
               <Route path="/logo-3d" element={

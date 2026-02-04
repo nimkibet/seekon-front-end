@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { FiBell, FiSearch, FiUser, FiShoppingBag, FiUsers, FiPackage, FiAlertCircle, FiZap } from 'react-icons/fi';
 import AdminSidebar from './AdminSidebar';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
+import { api } from '../utils/api';
 
 // Mock notification data
 const mockNotifications = [
@@ -21,30 +22,21 @@ const AdminLayout = ({ children }) => {
   const [notifications, setNotifications] = useState(mockNotifications);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
-  const [isFlashSaleActive, setIsFlashSaleActive] = useState(() => {
-    // Initialize from localStorage to persist across sessions
-    const saved = localStorage.getItem('seekon_flash_sale_active');
-    return saved === 'true';
-  });
+  const [isFlashSaleActive, setIsFlashSaleActive] = useState(false);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const settings = await api.getFlashSaleSettings();
+        setIsFlashSaleActive(settings?.isActive || false);
+      } catch (error) {
+        console.error('Error fetching flash sale settings:', error);
+      }
+    };
+    fetchSettings();
+  }, []);
 
   const unreadCount = notifications.filter(n => !n.read).length;
-
-  const handleToggleFlashSale = (active) => {
-    setIsFlashSaleActive(active);
-    // Persist to localStorage
-    localStorage.setItem('seekon_flash_sale_active', active.toString());
-    if (active) {
-      toast.success('Flash Sale Mode activated!', {
-        icon: '⚡',
-        duration: 3000
-      });
-    } else {
-      toast('Flash Sale Mode deactivated', {
-        icon: '🔴',
-        duration: 2000
-      });
-    }
-  };
 
   const markAsRead = (id) => {
     setNotifications(prev => 
@@ -87,7 +79,7 @@ const AdminLayout = ({ children }) => {
       </AnimatePresence>
 
       {/* Permanent Sidebar */}
-      <AdminSidebar onToggleFlashSale={handleToggleFlashSale} isFlashSaleActive={isFlashSaleActive} />
+      <AdminSidebar isFlashSaleActive={isFlashSaleActive} />
 
       {/* Main Content */}
       <div className="flex-1 lg:ml-64 flex flex-col relative" style={{ zIndex: 1 }}>

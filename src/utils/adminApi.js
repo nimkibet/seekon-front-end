@@ -95,6 +95,26 @@ export const adminApi = {
   }),
   deleteProduct: (id) => apiCall(`/products/${id}`, { method: 'DELETE' }),
 
+  // Settings
+  updateFlashSaleSettings: async (settings) => {
+    const token = getAuthToken();
+    const response = await fetch(`${API_URL}/api/settings/flash-sale`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(settings),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || 'Failed to update settings');
+    }
+    
+    return response.json();
+  },
+
   // Orders
   getOrders: (params = {}) => {
     const queryString = new URLSearchParams(params).toString();
