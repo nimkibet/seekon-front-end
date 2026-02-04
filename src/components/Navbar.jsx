@@ -45,7 +45,7 @@ const Navbar = () => {
     const fetchSettings = async () => {
       try {
         const settings = await api.getFlashSaleSettings();
-        setIsFlashSaleActive(settings?.isActive || false);
+        setIsFlashSaleActive(settings?.value?.isActive || false);
       } catch (error) {
         console.error('Error fetching settings:', error);
       }

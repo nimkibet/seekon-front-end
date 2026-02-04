@@ -45,7 +45,7 @@ const AdminFlashSale = () => {
       if (settingsData) {
         setGlobalSettings({
           isActive: settingsData.isActive || false,
-          endTime: settingsData.endTime ? new Date(settingsData.endTime).toISOString().slice(0, 16) : ''
+          endTime: settingsData.value?.endTime ? new Date(settingsData.value.endTime).toISOString().slice(0, 16) : ''
         });
       }
     } catch (error) {
@@ -226,13 +226,13 @@ const AdminFlashSale = () => {
           {/* End Time Picker */}
           <div className="p-4 bg-black/20 rounded-lg border border-white/10">
             <h3 className="text-white font-medium mb-2">Flash Sale End Time</h3>
-            <div className="flex items-center gap-2">
-              <FiClock className="text-gray-400" />
+            <div className="relative">
+              <FiCalendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 type="datetime-local"
                 value={globalSettings.endTime}
                 onChange={(e) => setGlobalSettings(prev => ({ ...prev, endTime: e.target.value }))}
-                className="bg-transparent border border-gray-600 rounded px-3 py-1 text-white focus:outline-none focus:border-[#00A676] w-full"
+                className="w-full bg-gray-800/50 border border-gray-600 rounded-lg py-2 pl-10 pr-4 text-white focus:border-[#00A676] focus:outline-none transition-colors"
               />
             </div>
           </div>
