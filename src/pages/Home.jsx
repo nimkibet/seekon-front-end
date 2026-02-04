@@ -25,7 +25,7 @@ const Home = () => {
     const fetchSettings = async () => {
       try {
         const settings = await api.getFlashSaleSettings();
-        setGlobalFlashSaleActive(settings?.isActive || false);
+        setGlobalFlashSaleActive(settings?.value?.isActive || false);
       } catch (error) {
         console.error('Error fetching settings:', error);
       }
@@ -95,15 +95,16 @@ const Home = () => {
   const saleProducts = products.filter(product => product.discount > 0).slice(0, 6);
   
   // Flash Sale products - only active ones
+  const now = new Date();
   const flashSaleProducts = products.filter(product => 
     product.isFlashSale && 
     product.flashSalePrice && 
-    product.saleStartTime && 
-    product.saleEndTime
+    product.saleEndTime &&
+    new Date(product.saleEndTime) > now
   ).slice(0, 8);
   
-  // Check if flash sale is currently active
-  const isFlashSaleActive = globalFlashSaleActive && flashSaleProducts.length > 0;
+  // Check if flash sale is currently active (Global setting OR if products are on sale)
+  const isFlashSaleActive = globalFlashSaleActive || flashSaleProducts.length > 0;
   
   // FIXED: Use case-insensitive category filtering - limit to 6 each
   const sneakers = products.filter(product => product.category?.toLowerCase() === 'sneakers').slice(0, 6);

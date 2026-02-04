@@ -45,7 +45,7 @@ const AdminFlashSale = () => {
       if (settingsData) {
         setGlobalSettings({
           isActive: settingsData.isActive || false,
-          endTime: settingsData.value?.endTime ? new Date(settingsData.value.endTime).toISOString().slice(0, 16) : ''
+          endTime: settingsData.value?.endTime || ''
         });
       }
     } catch (error) {
