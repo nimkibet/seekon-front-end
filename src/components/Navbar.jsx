@@ -17,17 +17,16 @@ import {
   FiX
 } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
+import { useSettings } from '../context/SettingsContext';
 import { openCart } from '../store/slices/cartSlice';
 import SearchModal from './SearchModal';
 import toast from 'react-hot-toast';
-import { api } from '../utils/api';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const [isFlashSaleActive, setIsFlashSaleActive] = useState(false);
   const [mobileExpanded, setMobileExpanded] = useState({});
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
@@ -37,21 +36,9 @@ const Navbar = () => {
   
   const { user, isAuthenticated, logout } = useAuth();
   
-  // 👇 FIX: Matches the 'cartSlice.js' variable name (totalQuantity)
-  const { totalQuantity } = useSelector(state => state.cart);
-
-  // Fetch Flash Sale Settings
-  useEffect(() => {
-    const fetchSettings = async () => {
-      try {
-        const settings = await api.getFlashSaleSettings();
-        setIsFlashSaleActive(settings?.isActive || false);
-      } catch (error) {
-        console.error('Error fetching settings:', error);
-      }
-    };
-    fetchSettings();
-  }, []);
+  // Use SettingsContext for global flash sale state - eliminates triple-fetch
+  const { flashSaleSettings } = useSettings();
+  const isFlashSaleActive = flashSaleSettings?.isActive || false;
 
   // Track scroll for glass effect
   useEffect(() => {

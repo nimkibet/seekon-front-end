@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FiZap, FiClock, FiEdit, FiX, FiPlus, FiTrendingUp, FiDollarSign, FiCalendar, FiSave } from 'react-icons/fi';
 import { adminApi } from '../utils/adminApi';
-import { api } from '../utils/api';
 import toast from 'react-hot-toast';
 import FlashSaleCountdown from '../components/FlashSaleCountdown';
+import { useSettings } from '../context/SettingsContext';
 
 const AdminFlashSale = () => {
   const [products, setProducts] = useState([]);
@@ -12,7 +12,10 @@ const AdminFlashSale = () => {
   const [editingProduct, setEditingProduct] = useState(null);
   const [showModal, setShowModal] = useState(false);
   
-  // Global Flash Sale Settings
+  // Use SettingsContext for global flash sale state - eliminates triple-fetch
+  const { flashSaleSettings, updateFlashSaleSettings } = useSettings();
+  
+  // Local state for editing (synced with context when saved)
   const [globalSettings, setGlobalSettings] = useState({
     isActive: false,
     endTime: ''
@@ -26,31 +29,27 @@ const AdminFlashSale = () => {
     saleEndTime: ''
   });
 
+  // Sync local state with SettingsContext when it loads
   useEffect(() => {
-    fetchData();
+    if (flashSaleSettings) {
+      setGlobalSettings({
+        isActive: flashSaleSettings.isActive || false,
+        endTime: flashSaleSettings.endTime || ''
+      });
+    }
+  }, [flashSaleSettings]);
+
+  useEffect(() => {
+    fetchProducts();
   }, []);
 
-  const fetchData = async () => {
+  const fetchProducts = async () => {
     try {
       setIsLoading(true);
-      const [productsData, settingsData] = await Promise.all([
-        adminApi.getProducts(),
-        api.getFlashSaleSettings()
-      ]);
-      
+      const productsData = await adminApi.getProducts();
       setProducts(productsData.products || productsData || []);
-      
-      console.log('Flash Sale Settings Fetched:', settingsData);
-      
-      if (settingsData) {
-        setGlobalSettings({
-          isActive: settingsData.isActive || false,
-          endTime: settingsData.endTime || ''
-        });
-      }
     } catch (error) {
-      console.error('Error fetching data:', error);
-      toast.error('Failed to load data');
+      console.error('Error fetching products:', error);
     } finally {
       setIsLoading(false);
     }
@@ -60,6 +59,11 @@ const AdminFlashSale = () => {
     try {
       setIsSavingSettings(true);
       await adminApi.updateFlashSaleSettings({
+        isActive: globalSettings.isActive,
+        endTime: globalSettings.endTime
+      });
+      // Update global context so all components reflect the change immediately
+      updateFlashSaleSettings({
         isActive: globalSettings.isActive,
         endTime: globalSettings.endTime
       });

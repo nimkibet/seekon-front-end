@@ -11,27 +11,19 @@ import PromotionalBanner from '../components/PromotionalBanner';
 import FlashSaleCountdown from '../components/FlashSaleCountdown';
 import { SectionFallback, ProductCardSkeleton, EmptyState } from '../components/Fallbacks';
 import toast from 'react-hot-toast';
-import { api } from '../utils/api';
+import { useSettings } from '../context/SettingsContext';
 
 const Home = () => {
   const dispatch = useDispatch();
   const location = useLocation();
   const { products, isLoading, error } = useSelector(state => state.products);
   const [email, setEmail] = useState('');
-  const [globalFlashSaleActive, setGlobalFlashSaleActive] = useState(false);
+  
+  // Use SettingsContext for global flash sale state - eliminates triple-fetch
+  const { flashSaleSettings } = useSettings();
+  const globalFlashSaleActive = flashSaleSettings?.isActive || false;
+  
   const isAdminView = new URLSearchParams(location.search).get('admin') === 'true';
-
-  useEffect(() => {
-    const fetchSettings = async () => {
-      try {
-        const settings = await api.getFlashSaleSettings();
-        setGlobalFlashSaleActive(settings?.isActive || false);
-      } catch (error) {
-        console.error('Error fetching settings:', error);
-      }
-    };
-    fetchSettings();
-  }, []);
 
   useEffect(() => {
     dispatch(fetchProducts())

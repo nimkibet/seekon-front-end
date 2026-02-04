@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { store } from './store/store';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { api } from './utils/api';
+import { SettingsProvider, useSettings } from './context/SettingsContext';
 import toast from 'react-hot-toast';
 
 // Pages
@@ -80,35 +80,28 @@ const PublicRoute = ({ children }) => {
   return children;
 };
 
-// Protected Flash Sale Route
+// Protected Flash Sale Route - Uses SettingsContext for global state
 const ProtectedFlashSaleRoute = ({ children }) => {
-  const [isActive, setIsActive] = useState(null);
+  const { flashSaleSettings, isLoading } = useSettings();
   const navigate = useNavigate();
 
   useEffect(() => {
-    const checkStatus = async () => {
-      try {
-        const settings = await api.getFlashSaleSettings();
-        if (!settings?.isActive) {
-          toast.error('Flash Sale is currently inactive');
-          navigate('/');
-        } else {
-          setIsActive(true);
-        }
-      } catch (error) {
-        console.error('Error checking flash sale status:', error);
-        navigate('/');
-      }
-    };
-    checkStatus();
-  }, [navigate]);
+    if (!isLoading && !flashSaleSettings?.isActive) {
+      toast.error('Flash Sale is currently inactive');
+      navigate('/');
+    }
+  }, [flashSaleSettings, isLoading, navigate]);
 
-  if (isActive === null) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
       </div>
     );
+  }
+
+  if (!flashSaleSettings?.isActive) {
+    return null;
   }
 
   return children;
@@ -137,7 +130,8 @@ const App = () => {
     <ErrorBoundary>
       <Provider store={store}>
         <AuthProvider>
-          <Router>
+          <SettingsProvider>
+            <Router>
             <div className="App">
               <Routes>
               {/* Public Routes */}
@@ -431,6 +425,7 @@ const App = () => {
             </Routes>
           </div>
         </Router>
+        </SettingsProvider>
       </AuthProvider>
     </Provider>
     </ErrorBoundary>
