@@ -1,7 +1,12 @@
 import axios from 'axios';
 
 // Use environment variable for deployment, fallback to production URL for development
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://seekoon-backend-production.up.railway.app/api';
+// Ensure baseURL always ends with /api for correct routing
+let apiUrl = import.meta.env.VITE_API_URL || 'https://seekoon-backend-production.up.railway.app/api';
+if (!apiUrl.endsWith('/api')) {
+  apiUrl = apiUrl + '/api';
+}
+const API_BASE_URL = apiUrl;
 
 // Create axios instance with default config
 const client = axios.create({
