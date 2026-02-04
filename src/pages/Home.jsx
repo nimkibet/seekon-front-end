@@ -25,7 +25,7 @@ const Home = () => {
     const fetchSettings = async () => {
       try {
         const settings = await api.getFlashSaleSettings();
-        setGlobalFlashSaleActive(settings?.value?.isActive || false);
+        setGlobalFlashSaleActive(settings?.isActive || false);
       } catch (error) {
         console.error('Error fetching settings:', error);
       }
