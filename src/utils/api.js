@@ -102,10 +102,9 @@ export const api = {
   // ==========================================
   getFlashSaleSettings: async () => {
     try {
-      const response = await client.get('/settings/flash-sale');
-      // Backend returns { value: { isActive: ..., endTime: ... } }
-      // We return the value directly to simplify components
-      return response.data.value || { isActive: false, endTime: null };
+      const response = await client.get('/api/settings/flash-sale');
+      // Backend returns { isActive: ..., endTime: ... } directly
+      return response.data || { isActive: false, endTime: null };
     } catch (error) {
       // Return default structure if error
       return { isActive: false, endTime: null };
