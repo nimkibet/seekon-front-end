@@ -100,15 +100,14 @@ export const api = {
   // ==========================================
   // ⚙️ SETTINGS
   // ==========================================
+  // HARDCODED FIX for Flash Sale - directly calling verified backend endpoint
   getFlashSaleSettings: async () => {
     try {
-      // BaseURL already includes /api, so just use /settings/flash-sale
-      const response = await client.get('/settings/flash-sale');
+      const response = await axios.get('https://seekoon-backend-production.up.railway.app/api/settings/flash-sale');
       console.log('Flash Sale Settings Response:', response.data);
-      // Backend returns { isActive: ..., endTime: ... } directly
       return response.data || { isActive: false, endTime: null };
     } catch (error) {
-      // Return default structure if error
+      console.error('Flash Sale Settings Error:', error.message);
       return { isActive: false, endTime: null };
     }
   },
