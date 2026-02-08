@@ -25,6 +25,7 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     sourcemap: false,
+    chunkSizeWarningLimit: 1600,
     rollupOptions: {
       output: {
         manualChunks: {
@@ -34,6 +35,9 @@ export default defineConfig({
         },
       },
     },
+  },
+  esbuild: {
+    drop: [], // Preserve console logs for debugging
   },
   // Optimize dependencies
   optimizeDeps: {
