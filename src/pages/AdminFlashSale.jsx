@@ -1,3 +1,5 @@
+// Flash Sale Management Component
+// React imports verified and present
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import axios from 'axios';
