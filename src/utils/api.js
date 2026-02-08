@@ -102,7 +102,9 @@ export const api = {
   // ==========================================
   getFlashSaleSettings: async () => {
     try {
-      const response = await client.get('/api/settings/flash-sale');
+      // BaseURL already includes /api, so just use /settings/flash-sale
+      const response = await client.get('/settings/flash-sale');
+      console.log('Flash Sale Settings Response:', response.data);
       // Backend returns { isActive: ..., endTime: ... } directly
       return response.data || { isActive: false, endTime: null };
     } catch (error) {
