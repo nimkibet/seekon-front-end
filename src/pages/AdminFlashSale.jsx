@@ -75,36 +75,6 @@ const AdminFlashSale = () => {
     }
   };
 
-  const handleSaveGlobalSettings = async () => {
-    try {
-      setIsSavingSettings(true);
-      await adminApi.updateFlashSaleSettings({
-        isActive: globalSettings.isActive,
-        endTime: globalSettings.endTime
-      });
-      // Update global context so all components reflect the change immediately
-      updateFlashSaleSettings({
-        isActive: globalSettings.isActive,
-        endTime: globalSettings.endTime
-      });
-      toast.success('Global flash sale settings updated!');
-    } catch (error) {
-      console.error('Error updating settings:', error);
-      toast.error('Failed to update settings');
-    } finally {
-      setIsSavingSettings(false);
-    }
-  };
-
-  const fetchProducts = async () => {
-    try {
-      const data = await adminApi.getProducts();
-      setProducts(data.products || data || []);
-    } catch (error) {
-      console.error('Error fetching products:', error);
-    }
-  };
-
   const handleEdit = (product) => {
     setEditingProduct(product);
     setFormData({
