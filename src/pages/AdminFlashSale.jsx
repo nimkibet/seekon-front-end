@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import axios from 'axios';
 import { FiZap, FiClock, FiEdit, FiX, FiPlus, FiTrendingUp, FiDollarSign, FiCalendar, FiSave } from 'react-icons/fi';
 import { adminApi } from '../utils/adminApi';
 import toast from 'react-hot-toast';
@@ -28,6 +29,25 @@ const AdminFlashSale = () => {
     saleStartTime: '',
     saleEndTime: ''
   });
+
+  // DIRECT FIX: Bypass api.js and hit the URL directly
+  useEffect(() => {
+    const fetchFlashSaleSettings = async () => {
+      try {
+        const response = await axios.get('https://seekoon-backend-production.up.railway.app/api/settings/flash-sale');
+        console.log("NUCLEAR FIX SUCCESS:", response.data);
+        if (response.data) {
+          setGlobalSettings({
+            isActive: response.data.isActive,
+            endTime: response.data.endTime || ''
+          });
+        }
+      } catch (error) {
+        console.error("Fix failed:", error);
+      }
+    };
+    fetchFlashSaleSettings();
+  }, []);
 
   // Sync local state with SettingsContext when it loads
   useEffect(() => {
