@@ -43,8 +43,12 @@ const VerifyOtp = () => {
     try {
       const result = await dispatch(verifyOTP({ email, otp })).unwrap();
       toast.success('Email verified successfully!');
-      // Redirect to home
-      navigate('/', { replace: true });
+      
+      // Clear localStorage
+      localStorage.removeItem('registrationEmail');
+      
+      // Redirect to login page
+      navigate('/login', { replace: true });
     } catch (err) {
       console.error('OTP verification error:', err);
       toast.error(err || 'Invalid OTP. Please try again.');
