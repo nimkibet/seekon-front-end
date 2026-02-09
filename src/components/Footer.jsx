@@ -1,7 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FiMail, FiPhone, FiMapPin, FiInstagram, FiTwitter, FiFacebook, FiYoutube } from 'react-icons/fi';
+import { FiMail, FiPhone, FiMapPin, FiInstagram } from 'react-icons/fi';
+import { FaTiktok } from 'react-icons/fa';
 import PromotionalBanner from './PromotionalBanner';
 
 const Footer = () => {
@@ -74,11 +75,11 @@ const Footer = () => {
                 >
                   <FiPhone className="w-4 h-4 text-seekon-neonCyan flex-shrink-0" />
                   <a 
-                    href="tel:+254700123456"
-                    onClick={() => handleExternalLink('tel:+254700123456')}
+                    href="tel:+254727672772"
+                    onClick={() => handleExternalLink('tel:+254727672772')}
                     className="text-seekon-platinumSilver text-sm hover:text-seekon-neonCyan transition-colors duration-200"
                   >
-                    +254 700 123 456
+                    +254 727 672 772
                   </a>
                 </motion.div>
                 
@@ -88,7 +89,7 @@ const Footer = () => {
                 >
                   <FiMapPin className="w-4 h-4 text-seekon-neonCyan flex-shrink-0" />
                   <span className="text-seekon-platinumSilver text-sm">
-                    Westlands Business Centre, 3rd Floor, Waiyaki Way, Nairobi 00100
+                    Thika Rd Kahawa Sukari, Kilimani, Runda Mall and Ngong Rd
                   </span>
                 </motion.div>
               </div>
@@ -234,8 +235,8 @@ const Footer = () => {
               <motion.a
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.95 }}
-                href="https://instagram.com/seekonapparel"
-                onClick={() => handleExternalLink('https://instagram.com/seekonapparel')}
+                href="https://www.instagram.com/seekon_apparel?igsh=MWg4NzJudDFjZmVrcg%3D%3D&utm_source=qr"
+                onClick={() => handleExternalLink('https://www.instagram.com/seekon_apparel?igsh=MWg4NzJudDFjZmVrcg%3D%3D&utm_source=qr')}
                 className="w-8 h-8 bg-gray-700 rounded-full flex items-center justify-center text-white hover:text-cyan-400 hover:bg-cyan-500 transition-all duration-200"
               >
                 <FiInstagram className="w-5 h-5" />
@@ -244,31 +245,11 @@ const Footer = () => {
               <motion.a
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.95 }}
-                href="https://twitter.com/seekonapparel"
-                onClick={() => handleExternalLink('https://twitter.com/seekonapparel')}
+                href="https://www.tiktok.com/@seekonapparel?_r=1&_t=ZM-91cAgV12dBb"
+                onClick={() => handleExternalLink('https://www.tiktok.com/@seekonapparel?_r=1&_t=ZM-91cAgV12dBb')}
                 className="w-8 h-8 bg-gray-700 rounded-full flex items-center justify-center text-white hover:text-cyan-400 hover:bg-cyan-500 transition-all duration-200"
               >
-                <FiTwitter className="w-5 h-5" />
-              </motion.a>
-              
-              <motion.a
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.95 }}
-                href="https://facebook.com/seekonapparel"
-                onClick={() => handleExternalLink('https://facebook.com/seekonapparel')}
-                className="w-8 h-8 bg-gray-700 rounded-full flex items-center justify-center text-white hover:text-cyan-400 hover:bg-cyan-500 transition-all duration-200"
-              >
-                <FiFacebook className="w-5 h-5" />
-              </motion.a>
-              
-              <motion.a
-                whileHover={{ scale: 1.1 }}
-                whileTap={{ scale: 0.95 }}
-                href="https://youtube.com/seekonapparel"
-                onClick={() => handleExternalLink('https://youtube.com/seekonapparel')}
-                className="w-8 h-8 bg-gray-700 rounded-full flex items-center justify-center text-white hover:text-cyan-400 hover:bg-cyan-500 transition-all duration-200"
-              >
-                <FiYoutube className="w-5 h-5" />
+                <FaTiktok className="w-5 h-5" />
               </motion.a>
             </div>
 
