@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiEye, FiEyeOff, FiMail, FiLock, FiUser, FiArrowRight, FiMenu, FiX } from 'react-icons/fi';
+import { FiEye, FiEyeOff, FiMail, FiLock, FiUser, FiArrowRight, FiMenu, FiX, FiCheck } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
-import { useDispatch } from 'react-redux';
-import { registerUser } from '../store/slices/userSlice';
+import { useDispatch, useSelector } from 'react-redux';
+import { registerUser, verifyOTP } from '../store/slices/userSlice';
 import toast from 'react-hot-toast';
 import Logo3D from '../components/Logo3D';
 
@@ -15,11 +15,13 @@ const Register = () => {
     password: '',
     confirmPassword: '',
   });
+  const [otp, setOtp] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(null);
   const [errors, setErrors] = useState({});
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [step, setStep] = useState(1); // 1 = form, 2 = OTP verification
   const menuRef = useRef(null);
   
   // Password strength validation (production-ready)
@@ -51,9 +53,10 @@ const Register = () => {
     return { valid: true, requirements };
   };
 
-  const { register, isLoading, error, clearError, isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { isLoading, error } = useSelector((state) => state.user);
 
   useEffect(() => {
     if (isAuthenticated && user) {
@@ -61,14 +64,10 @@ const Register = () => {
       if (user.role === 'admin' || user.role === 'superadmin') {
         navigate('/admin/dashboard', { replace: true });
       } else {
-      navigate('/', { replace: true });
-    }
+        navigate('/', { replace: true });
+      }
     }
   }, [isAuthenticated, user, navigate]);
-
-  useEffect(() => {
-    return () => clearError();
-  }, [clearError]);
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -171,19 +170,50 @@ const Register = () => {
         password: formData.password,
       })).unwrap();
       
-      // Registration successful - OTP sent to email, user must verify OTP
-      toast.success('Account created! Please check your email and enter the OTP to verify your account.', { id: 'register-submit' });
-      
-      // Store email in localStorage for persistence
-      localStorage.setItem('registrationEmail', formData.email);
-      
-      // Redirect to OTP verification page with pre-filled email
-      navigate(`/verify-otp?email=${encodeURIComponent(formData.email)}`, { replace: true });
+      // Registration successful - show OTP input
+      toast.success('Account created! Please enter the OTP sent to your email.', { id: 'register-submit' });
+      setStep(2);
     } catch (err) {
       console.error('Registration error:', err);
-      // Show the actual error message from the backend
       const errorMessage = err?.message || err || 'Registration failed. Please try again.';
       toast.error(errorMessage, { id: 'register-submit', duration: 4000 });
+    }
+  };
+
+  const handleOtpSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!otp || otp.length !== 6) {
+      toast.error('Please enter the 6-digit OTP');
+      return;
+    }
+
+    try {
+      toast.loading('Verifying OTP...', { id: 'otp-submit' });
+      
+      await dispatch(verifyOTP({
+        email: formData.email,
+        otp: otp,
+      })).unwrap();
+      
+      toast.success('Email verified successfully!', { id: 'otp-submit' });
+      
+      // Clear localStorage
+      localStorage.removeItem('registrationEmail');
+      
+      // Redirect to login page
+      navigate('/login', { replace: true });
+    } catch (err) {
+      console.error('OTP verification error:', err);
+      toast.error(err || 'Invalid OTP. Please try again.', { id: 'otp-submit', duration: 4000 });
+    }
+  };
+
+  const handleResendOtp = async () => {
+    try {
+      toast.success('New OTP sent to your email!');
+    } catch (err) {
+      toast.error('Failed to resend OTP');
     }
   };
 
@@ -243,9 +273,9 @@ const Register = () => {
             {/* Dropdown Menu */}
             <AnimatePresence>
               {isMenuOpen && (
-        <motion.div
+          <motion.div
                   initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
+            animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
                   className="absolute right-0 mt-2 bg-gray-900/40 backdrop-blur-xl shadow-xl border border-gray-200/20 dark:border-gray-700/30 rounded-lg overflow-hidden z-[9999]"
                 >
@@ -284,7 +314,7 @@ const Register = () => {
                       className="block px-5 py-2.5 hover:bg-white/10 text-white transition-all duration-200 font-medium text-sm mx-2 rounded-lg"
                     >
                       Investors
-          </Link>
+                    </Link>
                   </div>
                 </motion.div>
               )}
@@ -302,246 +332,327 @@ const Register = () => {
             {/* Form Header */}
             <div className="text-center">
               <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-            Create your account
-          </h2>
+                {step === 1 ? 'Create your account' : 'Verify your email'}
+              </h2>
               <p className="mt-1 text-xs sm:text-sm text-gray-700 dark:text-gray-300">
-            Join Seekon Apparel and start your style journey
-          </p>
+                {step === 1 
+                  ? 'Join Seekon Apparel and start your style journey'
+                  : `Enter the 6-digit code sent to ${formData.email}`
+                }
+              </p>
             </div>
 
-        {/* Registration Form */}
-        <form
-          className="space-y-3"
-          onSubmit={handleSubmit}
-        >
-          <div className="space-y-2.5">
-            {/* Name Field */}
-            <div>
-                  <label htmlFor="name" className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Full name
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FiUser className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
-                </div>
-                <input
-                  id="name"
-                  name="name"
-                  type="text"
-                  autoComplete="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  className={`w-full pl-9 sm:pl-10 py-2.5 sm:py-3 text-sm sm:text-base bg-white/20 backdrop-blur-md border border-white/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00A676]/50 focus:border-[#00A676] text-gray-900 dark:text-white placeholder:text-gray-600 dark:placeholder:text-gray-400 ${errors.name ? 'border-red-500 focus:ring-red-500' : ''}`}
-                  placeholder="Enter your full name"
-                />
-              </div>
-              {errors.name && (
-                <p className="mt-0.5 text-[10px] text-red-600 dark:text-red-400">{errors.name}</p>
-              )}
-            </div>
-
-            {/* Email Field */}
-            <div>
-              <label htmlFor="email" className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Email address
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FiMail className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
-                </div>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  className={`w-full pl-9 sm:pl-10 py-2.5 sm:py-3 text-sm sm:text-base bg-white/20 backdrop-blur-md border border-white/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00A676]/50 focus:border-[#00A676] text-gray-900 dark:text-white placeholder:text-gray-600 dark:placeholder:text-gray-400 ${errors.email ? 'border-red-500 focus:ring-red-500' : ''}`}
-                  placeholder="Enter your email"
-                />
-              </div>
-              {errors.email && (
-                <p className="mt-0.5 text-[10px] text-red-600 dark:text-red-400">{errors.email}</p>
-              )}
-            </div>
-
-            {/* Password Field */}
-            <div>
-              <label htmlFor="password" className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Password
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FiLock className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
-                </div>
-                <input
-                  id="password"
-                  name="password"
-                  type={showPassword ? 'text' : 'password'}
-                  autoComplete="new-password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  className={`w-full pl-9 sm:pl-10 pr-9 sm:pr-10 py-2.5 sm:py-3 text-sm sm:text-base bg-white/20 backdrop-blur-md border border-white/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00A676]/50 focus:border-[#00A676] text-gray-900 dark:text-white placeholder:text-gray-600 dark:placeholder:text-gray-400 ${errors.password ? 'border-red-500 focus:ring-red-500' : ''}`}
-                  placeholder="Create a password"
-                />
-                <button
-                  type="button"
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                  onClick={() => setShowPassword(!showPassword)}
+            {/* Step 1: Registration Form */}
+            <AnimatePresence mode="wait">
+              {step === 1 && (
+                <motion.form
+                  key="register-form"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  className="space-y-3"
+                  onSubmit={handleSubmit}
                 >
-                  {showPassword ? (
-                    <FiEyeOff className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" />
-                  ) : (
-                    <FiEye className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" />
-                  )}
-                </button>
-              </div>
-              
-              {/* Password Strength Indicator */}
-              {passwordStrength && formData.password && (
-                <div className="mt-2 space-y-2">
-                  {/* Password Requirements Checklist */}
-                  <div className="text-xs space-y-1">
-                    <div className={`flex items-center ${passwordStrength.requirements?.minLength ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
-                      <span className="mr-1.5">{passwordStrength.requirements?.minLength ? '✓' : '○'}</span>
-                      <span>At least 8 characters</span>
+                  <div className="space-y-2.5">
+                    {/* Name Field */}
+                    <div>
+                      <label htmlFor="name" className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Full name
+                      </label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <FiUser className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
+                        </div>
+                        <input
+                          id="name"
+                          name="name"
+                          type="text"
+                          autoComplete="name"
+                          value={formData.name}
+                          onChange={handleChange}
+                          className={`w-full pl-9 sm:pl-10 py-2.5 sm:py-3 text-sm sm:text-base bg-white/20 backdrop-blur-md border border-white/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00A676]/50 focus:border-[#00A676] text-gray-900 dark:text-white placeholder:text-gray-600 dark:placeholder:text-gray-400 ${errors.name ? 'border-red-500 focus:ring-red-500' : ''}`}
+                          placeholder="Enter your full name"
+                        />
+                      </div>
+                      {errors.name && (
+                        <p className="mt-0.5 text-[10px] text-red-600 dark:text-red-400">{errors.name}</p>
+                      )}
                     </div>
-                    <div className={`flex items-center ${passwordStrength.requirements?.hasUpperCase ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
-                      <span className="mr-1.5">{passwordStrength.requirements?.hasUpperCase ? '✓' : '○'}</span>
-                      <span>One uppercase letter</span>
+
+                    {/* Email Field */}
+                    <div>
+                      <label htmlFor="email" className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Email address
+                      </label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <FiMail className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
+                        </div>
+                        <input
+                          id="email"
+                          name="email"
+                          type="email"
+                          autoComplete="email"
+                          value={formData.email}
+                          onChange={handleChange}
+                          className={`w-full pl-9 sm:pl-10 py-2.5 sm:py-3 text-sm sm:text-base bg-white/20 backdrop-blur-md border border-white/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00A676]/50 focus:border-[#00A676] text-gray-900 dark:text-white placeholder:text-gray-600 dark:placeholder:text-gray-400 ${errors.email ? 'border-red-500 focus:ring-red-500' : ''}`}
+                          placeholder="Enter your email"
+                        />
+                      </div>
+                      {errors.email && (
+                        <p className="mt-0.5 text-[10px] text-red-600 dark:text-red-400">{errors.email}</p>
+                      )}
                     </div>
-                    <div className={`flex items-center ${passwordStrength.requirements?.hasLowerCase ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
-                      <span className="mr-1.5">{passwordStrength.requirements?.hasLowerCase ? '✓' : '○'}</span>
-                      <span>One lowercase letter</span>
+
+                    {/* Password Field */}
+                    <div>
+                      <label htmlFor="password" className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Password
+                      </label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <FiLock className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
+                        </div>
+                        <input
+                          id="password"
+                          name="password"
+                          type={showPassword ? 'text' : 'password'}
+                          autoComplete="new-password"
+                          value={formData.password}
+                          onChange={handleChange}
+                          className={`w-full pl-9 sm:pl-10 pr-9 sm:pr-10 py-2.5 sm:py-3 text-sm sm:text-base bg-white/20 backdrop-blur-md border border-white/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00A676]/50 focus:border-[#00A676] text-gray-900 dark:text-white placeholder:text-gray-600 dark:placeholder:text-gray-400 ${errors.password ? 'border-red-500 focus:ring-red-500' : ''}`}
+                          placeholder="Create a password"
+                        />
+                        <button
+                          type="button"
+                          className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                          onClick={() => setShowPassword(!showPassword)}
+                        >
+                          {showPassword ? (
+                            <FiEyeOff className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" />
+                          ) : (
+                            <FiEye className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" />
+                          )}
+                        </button>
+                      </div>
+                      
+                      {/* Password Strength Indicator */}
+                      {passwordStrength && formData.password && (
+                        <div className="mt-2 space-y-2">
+                          <div className="text-xs space-y-1">
+                            <div className={`flex items-center ${passwordStrength.requirements?.minLength ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                              <span className="mr-1.5">{passwordStrength.requirements?.minLength ? '✓' : '○'}</span>
+                              <span>At least 8 characters</span>
+                            </div>
+                            <div className={`flex items-center ${passwordStrength.requirements?.hasUpperCase ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                              <span className="mr-1.5">{passwordStrength.requirements?.hasUpperCase ? '✓' : '○'}</span>
+                              <span>One uppercase letter</span>
+                            </div>
+                            <div className={`flex items-center ${passwordStrength.requirements?.hasLowerCase ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                              <span className="mr-1.5">{passwordStrength.requirements?.hasLowerCase ? '✓' : '○'}</span>
+                              <span>One lowercase letter</span>
+                            </div>
+                            <div className={`flex items-center ${passwordStrength.requirements?.hasNumber ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                              <span className="mr-1.5">{passwordStrength.requirements?.hasNumber ? '✓' : '○'}</span>
+                              <span>One number</span>
+                            </div>
+                          </div>
+                          {passwordStrength.valid && (
+                            <div className="h-1 bg-green-500 rounded-full transition-all duration-300"></div>
+                          )}
+                        </div>
+                      )}
+                      
+                      {errors.password && (
+                        <p className="mt-0.5 text-[10px] text-red-600 dark:text-red-400">{errors.password}</p>
+                      )}
                     </div>
-                    <div className={`flex items-center ${passwordStrength.requirements?.hasNumber ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
-                      <span className="mr-1.5">{passwordStrength.requirements?.hasNumber ? '✓' : '○'}</span>
-                      <span>One number</span>
+
+                    {/* Confirm Password Field */}
+                    <div>
+                      <label htmlFor="confirmPassword" className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Confirm password
+                      </label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <FiLock className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
+                        </div>
+                        <input
+                          id="confirmPassword"
+                          name="confirmPassword"
+                          type={showConfirmPassword ? 'text' : 'password'}
+                          autoComplete="new-password"
+                          value={formData.confirmPassword}
+                          onChange={handleChange}
+                          className={`w-full pl-9 sm:pl-10 pr-9 sm:pr-10 py-2.5 sm:py-3 text-sm sm:text-base bg-white/20 backdrop-blur-md border border-white/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00A676]/50 focus:border-[#00A676] text-gray-900 dark:text-white placeholder:text-gray-600 dark:placeholder:text-gray-400 ${errors.confirmPassword ? 'border-red-500 focus:ring-red-500' : ''}`}
+                          placeholder="Confirm your password"
+                        />
+                        <button
+                          type="button"
+                          className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        >
+                          {showConfirmPassword ? (
+                            <FiEyeOff className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" />
+                          ) : (
+                            <FiEye className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" />
+                          )}
+                        </button>
+                      </div>
+                        {errors.confirmPassword && (
+                        <p className="mt-0.5 text-[10px] text-red-600 dark:text-red-400">{errors.confirmPassword}</p>
+                      )}
+                      {formData.confirmPassword && formData.password === formData.confirmPassword && !errors.confirmPassword && (
+                        <p className="mt-0.5 text-[10px] text-green-600 dark:text-green-400">✓ Passwords match</p>
+                      )}
                     </div>
                   </div>
-                  
-                  {/* Password Strength Bar */}
-                  {passwordStrength.valid && (
-                    <div className="h-1 bg-green-500 rounded-full transition-all duration-300"></div>
+
+                  {/* Error Message */}
+                  {error && (
+                    <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-2">
+                      <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
+                    </div>
                   )}
-                </div>
-              )}
-              
-              {errors.password && (
-                <p className="mt-0.5 text-[10px] text-red-600 dark:text-red-400">{errors.password}</p>
-              )}
-            </div>
 
-            {/* Confirm Password Field */}
-            <div>
-              <label htmlFor="confirmPassword" className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Confirm password
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FiLock className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400" />
-                </div>
-                <input
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  type={showConfirmPassword ? 'text' : 'password'}
-                  autoComplete="new-password"
-                  value={formData.confirmPassword}
-                  onChange={handleChange}
-                  className={`w-full pl-9 sm:pl-10 pr-9 sm:pr-10 py-2.5 sm:py-3 text-sm sm:text-base bg-white/20 backdrop-blur-md border border-white/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00A676]/50 focus:border-[#00A676] text-gray-900 dark:text-white placeholder:text-gray-600 dark:placeholder:text-gray-400 ${errors.confirmPassword ? 'border-red-500 focus:ring-red-500' : ''}`}
-                  placeholder="Confirm your password"
-                />
-                <button
-                  type="button"
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  {/* Terms and Conditions */}
+                  <div className="flex items-start -mt-1">
+                    <div className="flex items-center h-4">
+                      <input
+                        id="terms"
+                        name="terms"
+                        type="checkbox"
+                        required
+                        className="h-3.5 w-3.5 accent-[#00A676] text-[#00A676] focus:ring-[#00A676] border-gray-300 dark:border-gray-600 rounded"
+                      />
+                    </div>
+                    <div className="ml-2.5 text-[10px] sm:text-xs">
+                      <label htmlFor="terms" className="text-gray-700 dark:text-gray-300">
+                        I agree to the{' '}
+                        <Link
+                          to="/terms"
+                          className="font-semibold text-[#00A676] hover:text-[#008A5E] transition-colors duration-200"
+                        >
+                          Terms of Service
+                        </Link>{' '}
+                        and{' '}
+                        <Link
+                          to="/privacy"
+                          className="font-semibold text-[#00A676] hover:text-[#008A5E] transition-colors duration-200"
+                        >
+                          Privacy Policy
+                        </Link>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Submit Button */}
+                  <motion.button
+                    type="submit"
+                    disabled={isLoading}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="w-full bg-[#00A676] hover:bg-[#008A5E] text-white font-semibold py-2 sm:py-2.5 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                  >
+                    {isLoading ? (
+                      <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <>
+                        <span>Create account</span>
+                        <FiArrowRight className="w-3 h-3 sm:w-4 sm:h-4" />
+                      </>
+                    )}
+                  </motion.button>
+
+                  {/* Sign In Link */}
+                  <div className="text-center mt-2">
+                    <p className="text-[10px] sm:text-xs text-gray-700 dark:text-gray-300">
+                      Already have an account?{' '}
+                      <Link
+                        to="/login"
+                        className="font-semibold text-[#00A676] hover:text-[#008A5E] transition-colors duration-200"
+                      >
+                        Sign in here
+                      </Link>
+                    </p>
+                  </div>
+                </motion.form>
+              )}
+
+              {/* Step 2: OTP Verification */}
+              {step === 2 && (
+                <motion.form
+                  key="otp-form"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  className="space-y-4"
+                  onSubmit={handleOtpSubmit}
                 >
-                  {showConfirmPassword ? (
-                    <FiEyeOff className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" />
-                  ) : (
-                    <FiEye className="h-4 w-4 sm:h-5 sm:w-5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" />
-                  )}
-                </button>
-              </div>
-                {errors.confirmPassword && (
-                <p className="mt-0.5 text-[10px] text-red-600 dark:text-red-400">{errors.confirmPassword}</p>
+                  {/* OTP Input */}
+                  <div>
+                    <label htmlFor="otp" className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-2 text-center">
+                      Verification Code
+                    </label>
+                    <div className="relative">
+                      <input
+                        id="otp"
+                        type="text"
+                        value={otp}
+                        onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                        placeholder="000000"
+                        maxLength={6}
+                        className="w-full pl-4 pr-4 py-4 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#00A676] focus:border-transparent text-center text-2xl tracking-widest font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Verify Button */}
+                  <motion.button
+                    type="submit"
+                    disabled={isLoading || otp.length !== 6}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className="w-full bg-[#00A676] hover:bg-[#008A5E] text-white font-semibold py-2.5 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isLoading ? (
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <>
+                        <span>Verify & Complete</span>
+                        <FiCheck className="w-4 h-4" />
+                      </>
+                    )}
+                  </motion.button>
+
+                  {/* Resend Link */}
+                  <div className="text-center">
+                    <p className="text-xs text-gray-700 dark:text-gray-300">
+                      Didn't receive the code?{' '}
+                      <button
+                        type="button"
+                        onClick={handleResendOtp}
+                        className="font-semibold text-[#00A676] hover:text-[#008A5E] transition-colors duration-200"
+                      >
+                        Resend OTP
+                      </button>
+                    </p>
+                  </div>
+
+                  {/* Back to Registration */}
+                  <div className="text-center">
+                    <button
+                      type="button"
+                      onClick={() => setStep(1)}
+                      className="text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors duration-200"
+                    >
+                      ← Back to registration
+                    </button>
+                  </div>
+                </motion.form>
               )}
-              {formData.confirmPassword && formData.password === formData.confirmPassword && !errors.confirmPassword && (
-                <p className="mt-0.5 text-[10px] text-green-600 dark:text-green-400">✓ Passwords match</p>
-              )}
-            </div>
-          </div>
-
-          {/* Error Message */}
-          {error && (
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-2">
-              <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
-            </div>
-          )}
-
-          {/* Terms and Conditions */}
-          <div className="flex items-start -mt-1">
-            <div className="flex items-center h-4">
-              <input
-                id="terms"
-                name="terms"
-                type="checkbox"
-                required
-                className="h-3.5 w-3.5 accent-[#00A676] text-[#00A676] focus:ring-[#00A676] border-gray-300 dark:border-gray-600 rounded"
-              />
-            </div>
-            <div className="ml-2.5 text-[10px] sm:text-xs">
-              <label htmlFor="terms" className="text-gray-700 dark:text-gray-300">
-                I agree to the{' '}
-                <Link
-                  to="/terms"
-                  className="font-semibold text-[#00A676] hover:text-[#008A5E] transition-colors duration-200"
-                >
-                  Terms of Service
-                </Link>{' '}
-                and{' '}
-                <Link
-                  to="/privacy"
-                  className="font-semibold text-[#00A676] hover:text-[#008A5E] transition-colors duration-200"
-                >
-                  Privacy Policy
-                </Link>
-              </label>
-            </div>
-          </div>
-
-          {/* Submit Button */}
-          <motion.button
-            type="submit"
-            disabled={isLoading}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            className="w-full bg-[#00A676] hover:bg-[#008A5E] text-white font-semibold py-2 sm:py-2.5 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-          >
-            {isLoading ? (
-              <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <>
-                <span>Create account</span>
-                <FiArrowRight className="w-3 h-3 sm:w-4 sm:h-4" />
-              </>
-            )}
-          </motion.button>
-
-          {/* Sign In Link */}
-          <div className="text-center mt-2">
-            <p className="text-[10px] sm:text-xs text-gray-700 dark:text-gray-300">
-              Already have an account?{' '}
-              <Link
-                to="/login"
-                className="font-semibold text-[#00A676] hover:text-[#008A5E] transition-colors duration-200"
-              >
-                Sign in here
-              </Link>
-            </p>
-          </div>
-        </form>
-        </motion.div>
+            </AnimatePresence>
+          </motion.div>
         </div>
       </div>
     </div>
@@ -549,4 +660,3 @@ const Register = () => {
 };
 
 export default Register;
-
