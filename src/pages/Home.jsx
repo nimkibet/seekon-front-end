@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
-import { ArrowRight, Clock, ShoppingBag } from 'lucide-react';
+import { FiArrowRight, FiClock, FiShoppingBag } from 'react-icons/fi';
 
 const Home = () => {
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
