@@ -1,23 +1,26 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
-import { FiUpload, FiVideo, FiX } from 'react-icons/fi';
-import { uploadVideoToCloudinary } from '../../utils/cloudinary';
+import { FiSave, FiLayout, FiType, FiSliders, FiEye, FiVideo } from 'react-icons/fi';
 
 const WebSettings = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
   const [formData, setFormData] = useState({
     heroVideoUrl: '',
     heroHeading: '',
-    heroSubtitle: ''
+    heroSubtitle: '',
+    heroOverlayOpacity: 50,
+    heroHeight: 85,
+    heroHeadingSize: 'large',
+    showHeroBadge: true
   });
-  const [videoPreview, setVideoPreview] = useState(null);
-  const fileInputRef = useRef(null);
 
-  // Hardcoded backend URL for safety
   const API_URL = 'https://seekoon-backend-production.up.railway.app/api/settings/home';
+
+  useEffect(() => {
+    fetchSettings();
+  }, []);
 
   const fetchSettings = async () => {
     try {
@@ -26,9 +29,6 @@ const WebSettings = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       setFormData(res.data);
-      if (res.data.heroVideoUrl) {
-        setVideoPreview(res.data.heroVideoUrl);
-      }
     } catch (error) {
       console.error('Error fetching settings:', error);
     } finally {
@@ -36,180 +36,209 @@ const WebSettings = () => {
     }
   };
 
-  useEffect(() => {
-    fetchSettings();
-  }, []);
-
-  const handleFileSelect = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    // Validate file type
-    const validVideoTypes = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime'];
-    if (!validVideoTypes.includes(file.type)) {
-      toast.error('Please select a valid video file (MP4, WebM, OGG)');
-      return;
-    }
-
-    // Validate file size (max 50MB)
-    if (file.size > 50 * 1024 * 1024) {
-      toast.error('Video file must be less than 50MB');
-      return;
-    }
-
-    // Create preview URL
-    const previewUrl = URL.createObjectURL(file);
-    setVideoPreview(previewUrl);
-
-    // Upload to Cloudinary
-    try {
-      setUploading(true);
-      toast.loading('Uploading video to Cloudinary...');
-      
-      const result = await uploadVideoToCloudinary(file, 'seekon-hero');
-      
-      setFormData(prev => ({ ...prev, heroVideoUrl: result.url }));
-      
-      toast.dismiss();
-      toast.success('Video uploaded successfully!');
-    } catch (error) {
-      toast.dismiss();
-      toast.error('Failed to upload video. Please try again.');
-      console.error('Upload error:', error);
-    } finally {
-      setUploading(false);
-    }
+  const handleChange = (e) => {
+    const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
+    setFormData({ ...formData, [e.target.name]: value });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setSaving(true);
     try {
-      setSaving(true);
       const token = localStorage.getItem('token');
       await axios.put(API_URL, formData, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      toast.success('Website settings saved! Refresh home page to see changes.');
+      toast.success('Website updated successfully!');
     } catch (error) {
-      toast.error('Failed to save settings');
-      console.error('Save error:', error);
+      console.error('Update failed:', error);
+      toast.error('Failed to save changes');
     } finally {
       setSaving(false);
     }
   };
 
-  const removeVideo = () => {
-    setVideoPreview(null);
-    setFormData(prev => ({ ...prev, heroVideoUrl: '' }));
+  const isVideo = (url) => url && (url.includes('/video/') || url.endsWith('.mp4') || url.endsWith('.webm'));
+
+  const fontSizeClasses = {
+    small: 'text-3xl md:text-5xl',
+    medium: 'text-4xl md:text-6xl',
+    large: 'text-5xl md:text-7xl',
+    xlarge: 'text-6xl md:text-8xl'
   };
 
-  if (loading) return <div className="p-6">Loading Settings...</div>;
+  if (loading) return <div className="p-6">Loading...</div>;
 
   return (
-    <div className="p-6 max-w-2xl mx-auto">
+    <div className="p-6 max-w-5xl mx-auto">
       <h1 className="text-2xl font-bold mb-6">🎨 Website Settings</h1>
-      
+
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Video Upload Section */}
-        <div>
-          <label className="block text-sm font-medium mb-2">
-            Hero Video Upload
-          </label>
-          
-          {videoPreview ? (
-            <div className="relative rounded-lg overflow-hidden bg-black">
-              <video 
-                src={videoPreview} 
-                className="w-full h-48 object-cover"
-                controls
-              />
-              <button
-                type="button"
-                onClick={removeVideo}
-                className="absolute top-2 right-2 bg-red-600 text-white p-1 rounded-full hover:bg-red-700"
-              >
-                <FiX size={16} />
-              </button>
+        
+        {/* Live Preview Section */}
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 sticky top-4 z-10">
+          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+            <FiEye size={20} /> Live Preview
+          </h2>
+          <div 
+            className="rounded-xl overflow-hidden relative bg-gray-900 flex items-center justify-center text-center"
+            style={{ height: `${formData.heroHeight * 0.4}vh`, maxHeight: '400px' }}
+          >
+            {/* Media */}
+            <div className="absolute inset-0">
+              {isVideo(formData.heroVideoUrl) ? (
+                <video src={formData.heroVideoUrl} className="w-full h-full object-cover" autoPlay muted loop />
+              ) : (
+                <img src={formData.heroVideoUrl} className="w-full h-full object-cover" alt="Preview" />
+              )}
             </div>
-          ) : (
+            {/* Overlay */}
             <div 
-              onClick={() => fileInputRef.current?.click()}
-              className="border-2 border-dashed border-gray-600 rounded-lg p-8 text-center cursor-pointer hover:border-[#00A676] transition-colors"
-            >
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="video/mp4,video/webm,video/ogg"
-                onChange={handleFileSelect}
-                className="hidden"
+              className="absolute inset-0" 
+              style={{ backgroundColor: `rgba(0,0,0,${formData.heroOverlayOpacity / 100})` }} 
+            />
+            
+            {/* Content */}
+            <div className="relative z-10 text-white px-4">
+              {formData.showHeroBadge && (
+                <div className="inline-block border border-white/30 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest mb-2">
+                  New Collection
+                </div>
+              )}
+              <h1 className={`${fontSizeClasses[formData.heroHeadingSize]} font-black leading-tight tracking-tighter uppercase drop-shadow-lg line-clamp-2`}>
+                {formData.heroHeading || 'Your Heading'}
+              </h1>
+              <p className="text-sm opacity-90 mt-2 max-w-lg mx-auto font-light leading-relaxed line-clamp-2">
+                {formData.heroSubtitle || 'Your Subtitle'}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Appearance Settings */}
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+            <FiSliders size={20} /> Appearance & Layout
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Overlay Opacity ({formData.heroOverlayOpacity}%)
+              </label>
+              <input 
+                type="range" 
+                name="heroOverlayOpacity" 
+                min="0" 
+                max="90" 
+                value={formData.heroOverlayOpacity} 
+                onChange={handleChange} 
+                className="w-full accent-[#00A676]"
               />
-              <FiVideo className="w-12 h-12 mx-auto text-gray-400 mb-2" />
-              <p className="text-gray-400 mb-1">
-                Click to upload a video (MP4, WebM, OGG)
-              </p>
-              <p className="text-xs text-gray-500">
-                Maximum file size: 50MB
-              </p>
             </div>
-          )}
-          
-          {uploading && (
-            <div className="mt-2 text-sm text-[#00A676]">
-              Uploading to Cloudinary...
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Section Height ({formData.heroHeight}vh)
+              </label>
+              <input 
+                type="range" 
+                name="heroHeight" 
+                min="50" 
+                max="100" 
+                value={formData.heroHeight} 
+                onChange={handleChange} 
+                className="w-full accent-[#00A676]"
+              />
             </div>
-          )}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Heading Size</label>
+              <select 
+                name="heroHeadingSize" 
+                value={formData.heroHeadingSize} 
+                onChange={handleChange} 
+                className="w-full p-3 border rounded-lg bg-gray-800 text-white"
+              >
+                <option value="small">Small</option>
+                <option value="medium">Medium</option>
+                <option value="large">Large (Default)</option>
+                <option value="xlarge">Extra Large</option>
+              </select>
+            </div>
+            <div className="flex items-center justify-between p-3 border rounded-lg">
+              <label className="text-sm font-medium text-gray-700">Show 'New Collection' Badge</label>
+              <input 
+                type="checkbox" 
+                name="showHeroBadge" 
+                checked={formData.showHeroBadge} 
+                onChange={handleChange} 
+                className="w-5 h-5 accent-[#00A676]"
+              />
+            </div>
+          </div>
         </div>
 
-        {/* Video URL (auto-filled after upload) */}
-        <div>
-          <label className="block text-sm font-medium mb-2">
-            Video URL (Auto-filled after upload)
-          </label>
-          <input
-            type="url"
-            value={formData.heroVideoUrl}
-            onChange={(e) => setFormData({...formData, heroVideoUrl: e.target.value})}
-            className="w-full p-3 border rounded-lg bg-gray-800 text-white"
-            placeholder="https://res.cloudinary.com/..."
-            readOnly={uploading}
-          />
+        {/* Content Settings */}
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+            <FiType size={20} /> Text Content
+          </h2>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Main Heading</label>
+              <input 
+                type="text" 
+                name="heroHeading" 
+                value={formData.heroHeading} 
+                onChange={handleChange} 
+                className="w-full p-3 border rounded-lg bg-gray-800 text-white font-bold text-lg" 
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Subtitle</label>
+              <textarea 
+                name="heroSubtitle" 
+                value={formData.heroSubtitle} 
+                onChange={handleChange} 
+                rows="3" 
+                className="w-full p-3 border rounded-lg bg-gray-800 text-white" 
+              />
+            </div>
+          </div>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium mb-2">Hero Heading</label>
-          <input
-            type="text"
-            value={formData.heroHeading}
-            onChange={(e) => setFormData({...formData, heroHeading: e.target.value})}
-            className="w-full p-3 border rounded-lg bg-gray-800 text-white"
-            placeholder="STEP INTO THE FUTURE"
-          />
+        {/* Media Settings */}
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+            <FiLayout size={20} /> Hero Background Media
+          </h2>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Video or Image URL (Cloudinary)
+            </label>
+            <input 
+              type="text" 
+              name="heroVideoUrl" 
+              value={formData.heroVideoUrl} 
+              onChange={handleChange} 
+              placeholder="https://res.cloudinary.com/..." 
+              className="w-full p-3 border rounded-lg bg-gray-800 text-white" 
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              <FiVideo className="inline mr-1" />
+              Upload videos via the admin panel's image upload feature
+            </p>
+          </div>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium mb-2">Hero Subtitle</label>
-          <textarea
-            value={formData.heroSubtitle}
-            onChange={(e) => setFormData({...formData, heroSubtitle: e.target.value})}
-            className="w-full p-3 border rounded-lg bg-gray-800 text-white"
-            rows={3}
-            placeholder="Discover the latest drops..."
-          />
-        </div>
-
-        <button
-          type="submit"
-          disabled={saving || uploading}
-          className="w-full bg-[#00A676] text-white font-bold py-3 rounded-lg hover:bg-[#008A5E] disabled:opacity-50"
+        <button 
+          type="submit" 
+          disabled={saving} 
+          className="flex items-center justify-center gap-2 w-full bg-[#00A676] hover:bg-[#008A5E] text-white py-4 rounded-xl font-bold text-lg transition-all shadow-lg hover:shadow-xl disabled:opacity-50"
         >
-          {saving ? 'Saving...' : 'Save Settings'}
+          {saving ? 'Saving Changes...' : <><FiSave size={20} /> Save & Publish Live</>}
         </button>
       </form>
     </div>
   );
 };
-
-// Need to import useEffect since we're using it
-import { useEffect } from 'react';
 
 export default WebSettings;

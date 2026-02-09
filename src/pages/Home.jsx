@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
-import { FiArrowRight, FiClock, FiShoppingBag } from 'react-icons/fi';
+import { FiArrowRight, FiClock, FiZap } from 'react-icons/fi';
 
 const Home = () => {
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
@@ -10,22 +10,29 @@ const Home = () => {
   const [loading, setLoading] = useState(true);
   const [endTime, setEndTime] = useState(null);
 
-  // DYNAMIC HERO SETTINGS
+  // DYNAMIC HERO SETTINGS WITH NEW FIELDS
   const [heroSettings, setHeroSettings] = useState({
     heroVideoUrl: "https://res.cloudinary.com/demo/video/upload/v1689264426/running_shoes_promo.mp4",
     heroHeading: "STEP INTO THE FUTURE",
-    heroSubtitle: "Discover the latest drops from Nike, Adidas, Jordan, and more."
+    heroSubtitle: "Discover the latest drops from Nike, Adidas, Jordan, and more.",
+    heroOverlayOpacity: 50,
+    heroHeight: 85,
+    heroHeadingSize: 'large',
+    showHeroBadge: true
   });
 
   const SETTINGS_URL = 'https://seekoon-backend-production.up.railway.app/api/settings/flash-sale';
   const PRODUCTS_URL = 'https://seekoon-backend-production.up.railway.app/api/products';
   const HOME_SETTINGS_URL = 'https://seekoon-backend-production.up.railway.app/api/settings/home';
 
-  // Helper: Detect if the URL is a video
-  const isVideo = (url) => {
-    if (!url) return false;
-    // Cloudinary video links contain '/video/', standard files end in .mp4
-    return url.includes('/video/') || url.endsWith('.mp4') || url.endsWith('.webm');
+  const isVideo = (url) => url && (url.includes('/video/') || url.endsWith('.mp4') || url.endsWith('.webm'));
+
+  // Map font size options to Tailwind classes
+  const fontSizeClasses = {
+    small: 'text-3xl md:text-5xl',
+    medium: 'text-4xl md:text-6xl',
+    large: 'text-5xl md:text-7xl',
+    xlarge: 'text-6xl md:text-8xl'
   };
 
   useEffect(() => {
@@ -33,42 +40,32 @@ const Home = () => {
       try {
         setLoading(true);
 
-        // 1. Fetch Timer Settings
+        // 1. Fetch Home Settings
+        try {
+          const homeRes = await axios.get(HOME_SETTINGS_URL);
+          if (homeRes.data) {
+            setHeroSettings(prev => ({ ...prev, ...homeRes.data }));
+          }
+        } catch (e) {
+          console.log("Using default home settings");
+        }
+
+        // 2. Fetch Timer Settings
         const settingsRes = await axios.get(SETTINGS_URL);
         const settingsData = settingsRes.data.value || settingsRes.data;
-        
         if (settingsData && settingsData.endTime) {
           setEndTime(new Date(settingsData.endTime).getTime());
         }
 
-        // 2. Fetch Hero Settings
-        try {
-          const homeRes = await axios.get(HOME_SETTINGS_URL);
-          if (homeRes.data) {
-            setHeroSettings(prev => ({
-              ...prev,
-              heroVideoUrl: homeRes.data.heroVideoUrl || prev.heroVideoUrl,
-              heroHeading: homeRes.data.heroHeading || prev.heroHeading,
-              heroSubtitle: homeRes.data.heroSubtitle || prev.heroSubtitle
-            }));
-          }
-        } catch (homeError) {
-          console.log("Using default hero settings");
-        }
-
-        // 3. Fetch Products
+        // 3. Fetch & Filter Products
         const productsRes = await axios.get(PRODUCTS_URL);
         const allProducts = productsRes.data.products || productsRes.data || [];
-        
-        // Filter for Flash Sale (Client Side)
         const saleItems = allProducts.filter(p => 
           p.onFlashSale === true || 
           (p.flashSalePrice && p.flashSalePrice > 0)
         );
         setFlashProducts(saleItems.slice(0, 4));
-        
-        // Trending
-        setTrendingProducts(allProducts.slice(0, 4));
+        setTrendingProducts(allProducts.filter(p => !saleItems.includes(p)).slice(0, 4));
       } catch (error) {
         console.error("Home fetch error:", error);
       } finally {
@@ -78,7 +75,6 @@ const Home = () => {
     fetchData();
   }, []);
 
-  // Timer Logic
   useEffect(() => {
     if (!endTime) return;
     const timer = setInterval(() => {
@@ -100,7 +96,10 @@ const Home = () => {
   }, [endTime]);
 
   const ProductCard = ({ product, badgeColor = "bg-red-600", badgeText = "SALE" }) => (
-    <Link to={`/product/${product._id}`} className="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+    <Link 
+      to={`/product/${product._id}`} 
+      className="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1"
+    >
       <div className="relative aspect-square bg-gray-100 overflow-hidden">
         <img 
           src={product.images?.[0]?.url || product.image || 'https://via.placeholder.com/400'}
@@ -143,7 +142,10 @@ const Home = () => {
   return (
     <div className="bg-gray-50 min-h-screen">
       {/* HERO SECTION */}
-      <div className="relative bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white overflow-hidden">
+      <div 
+        className="relative bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white overflow-hidden"
+        style={{ minHeight: `${heroSettings.heroHeight}vh` }}
+      >
         {/* Dynamic Background Media */}
         <div className="absolute inset-0 z-0">
           {isVideo(heroSettings.heroVideoUrl) ? (
@@ -151,7 +153,7 @@ const Home = () => {
               autoPlay 
               loop 
               muted 
-              playsInline
+              playsInline 
               className="w-full h-full object-cover opacity-50"
             >
               <source src={heroSettings.heroVideoUrl} type="video/mp4" />
@@ -165,21 +167,31 @@ const Home = () => {
           )}
         </div>
         
-        {/* Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-br from-gray-900/80 via-gray-900/60 to-gray-900/80 z-1"></div>
+        {/* Dynamic Overlay */}
+        <div 
+          className="absolute inset-0 z-1"
+          style={{ backgroundColor: `rgba(0,0,0,${heroSettings.heroOverlayOpacity / 100})` }}
+        ></div>
         
-        <div className="container mx-auto px-4 py-20 md:py-32 relative z-10">
+        <div className="container mx-auto px-4 py-20 relative z-10" style={{ paddingTop: `${heroSettings.heroHeight * 0.15}px`, paddingBottom: `${heroSettings.heroHeight * 0.15}px` }}>
           <div className="flex flex-col md:flex-row items-center justify-between gap-12">
             <div className="flex-1 text-center md:text-left">
-              <div className="inline-flex items-center gap-2 bg-red-500/20 text-red-400 px-4 py-2 rounded-full text-sm font-bold mb-6">
-                <FiShoppingBag size={16} /> New Collection 2025
-              </div>
-              <h1 className="text-4xl md:text-6xl lg:text-7xl font-black mb-6 leading-tight">
+              {/* Dynamic Badge */}
+              {heroSettings.showHeroBadge && (
+                <div className="inline-flex items-center gap-2 bg-red-500/20 text-red-400 px-4 py-2 rounded-full text-sm font-bold mb-6">
+                  <FiZap size={16} /> New Collection 2025
+                </div>
+              )}
+              
+              {/* Dynamic Heading Size */}
+              <h1 className={`${fontSizeClasses[heroSettings.heroHeadingSize]} font-black mb-6 leading-tight tracking-tighter uppercase drop-shadow-lg transition-all duration-500`}>
                 {heroSettings.heroHeading}
               </h1>
+              
               <p className="text-gray-300 text-lg md:text-xl mb-8 max-w-lg">
                 {heroSettings.heroSubtitle}
               </p>
+              
               <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
                 <Link 
                   to="/collection" 
@@ -196,32 +208,34 @@ const Home = () => {
               </div>
             </div>
             
-            {/* TIMER CARD */}
-            <div className="bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/20 shadow-xl">
-              <div className="flex items-center gap-2 mb-4 text-sm font-bold uppercase tracking-widest opacity-80">
-                <FiClock size={16} /> Ending In
+            {/* Timer Card - Hidden on short heights */}
+            {heroSettings.heroHeight > 60 && (
+              <div className="bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/20 shadow-xl">
+                <div className="flex items-center gap-2 mb-4 text-sm font-bold uppercase tracking-widest opacity-80">
+                  <FiClock size={16} /> Ending In
+                </div>
+                <div className="flex gap-3">
+                  {[
+                    { label: 'Days', val: timeLeft.days },
+                    { label: 'Hours', val: timeLeft.hours },
+                    { label: 'Mins', val: timeLeft.minutes },
+                    { label: 'Secs', val: timeLeft.seconds }
+                  ].map((item) => (
+                    <div key={item.label} className="bg-white text-red-600 rounded-lg p-3 min-w-[70px] text-center">
+                      <div className="text-2xl md:text-3xl font-black">{String(item.val).padStart(2, '0')}</div>
+                      <div className="text-[10px] font-bold uppercase text-gray-500">{item.label}</div>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className="flex gap-3">
-                {[
-                  { label: 'Days', val: timeLeft.days },
-                  { label: 'Hours', val: timeLeft.hours },
-                  { label: 'Mins', val: timeLeft.minutes },
-                  { label: 'Secs', val: timeLeft.seconds }
-                ].map((item) => (
-                  <div key={item.label} className="bg-white text-red-600 rounded-lg p-3 min-w-[70px] text-center">
-                    <div className="text-2xl md:text-3xl font-black">{String(item.val).padStart(2, '0')}</div>
-                    <div className="text-[10px] font-bold uppercase text-gray-500">{item.label}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            )}
           </div>
         </div>
       </div>
 
       {/* FLASH SALE SECTION */}
       {flashProducts.length > 0 && (
-        <div className="container mx-auto px-4 mt-16 max-w-6xl">
+        <div className="container mx-auto px-4 mt-16 max-w-7xl">
           <div className="flex items-center justify-between mb-8">
             <h2 className="text-2xl md:text-3xl font-bold flex items-center gap-2">
               🔥 Flash Sale Deals
@@ -239,7 +253,7 @@ const Home = () => {
       )}
 
       {/* TRENDING SECTION */}
-      <div className="container mx-auto px-4 mt-20 max-w-6xl">
+      <div className="container mx-auto px-4 mt-20 max-w-7xl">
         <div className="flex items-center justify-between mb-8">
           <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
             Trending Now
