@@ -19,6 +19,7 @@ const Home = () => {
   // Force flash sale for testing - set to true to always show
   const [endTime, setEndTime] = useState(Date.now() + 86400000); // DEBUG: 24 hours from now
   const [isFlashSaleActive, setIsFlashSaleActive] = useState(true); // DEBUG: Force true for testing
+  const isAdminView = new URLSearchParams(location.search).get('admin') === 'true';
 
   // Dynamic hero settings from backend
   const [heroSettings, setHeroSettings] = useState({
