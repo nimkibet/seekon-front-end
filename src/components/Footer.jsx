@@ -236,7 +236,8 @@ const Footer = () => {
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.95 }}
                 href="https://www.instagram.com/seekon_apparel?igsh=MWg4NzJudDFjZmVrcg%3D%3D&utm_source=qr"
-                onClick={() => handleExternalLink('https://www.instagram.com/seekon_apparel?igsh=MWg4NzJudDFjZmVrcg%3D%3D&utm_source=qr')}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="w-8 h-8 bg-gray-700 rounded-full flex items-center justify-center text-white hover:text-cyan-400 hover:bg-cyan-500 transition-all duration-200"
               >
                 <FiInstagram className="w-5 h-5" />
@@ -246,7 +247,8 @@ const Footer = () => {
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.95 }}
                 href="https://www.tiktok.com/@seekonapparel?_r=1&_t=ZM-91cAgV12dBb"
-                onClick={() => handleExternalLink('https://www.tiktok.com/@seekonapparel?_r=1&_t=ZM-91cAgV12dBb')}
+                target="_blank"
+                rel="noopener noreferrer"
                 className="w-8 h-8 bg-gray-700 rounded-full flex items-center justify-center text-white hover:text-cyan-400 hover:bg-cyan-500 transition-all duration-200"
               >
                 <FaTiktok className="w-5 h-5" />
