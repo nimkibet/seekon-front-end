@@ -8,38 +8,40 @@ const FlashSale = () => {
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const [endTime, setEndTime] = useState(null);
 
-  // HARDCODED URLS - GUARANTEED TO WORK
+  // USE THE MAIN PRODUCT ENDPOINT (Safety Net)
   const SETTINGS_URL = 'https://seekoon-backend-production.up.railway.app/api/settings/flash-sale';
-  const PRODUCTS_URL = 'https://seekoon-backend-production.up.railway.app/api/products/flash-sale';
+  const ALL_PRODUCTS_URL = 'https://seekoon-backend-production.up.railway.app/api/products';
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
 
-        // 1. Fetch Settings (Timer)
+        // 1. Fetch Timer Settings
         const settingsRes = await axios.get(SETTINGS_URL);
-        console.log("Public Flash Sale Settings:", settingsRes.data);
-        
-        // Handle both wrapped { value: ... } and flat { isActive: ... } data formats
         const settingsData = settingsRes.data.value || settingsRes.data;
-        
         if (settingsData && settingsData.endTime) {
           setEndTime(new Date(settingsData.endTime).getTime());
         }
+
+        // 2. FETCH ALL PRODUCTS & FILTER MANUALLY
+        // This guarantees we see what the Admin sees
+        const productsRes = await axios.get(ALL_PRODUCTS_URL);
+        const allProducts = productsRes.data.products || productsRes.data || [];
         
-        // 2. Fetch Products
-        // Note: If the specific flash-sale route fails, we catch it and prevent a crash
-        try {
-          const productsRes = await axios.get(PRODUCTS_URL);
-          const productsData = productsRes.data.products || productsRes.data || [];
-          setProducts(Array.isArray(productsData) ? productsData : []);
-        } catch (prodError) {
-          console.warn("Product fetch warning:", prodError);
-          setProducts([]); // Fail gracefully to empty list
-        }
+        console.log("All Products Fetched:", allProducts.length);
+        
+        // FILTER LOGIC: Look for any sign of a flash sale
+        const saleProducts = allProducts.filter(p => 
+          p.onFlashSale === true || 
+          (p.flashSalePrice && p.flashSalePrice > 0) ||
+          p.isFlashSale === true
+        );
+        
+        console.log("Filtered Sale Products:", saleProducts.length);
+        setProducts(saleProducts);
       } catch (error) {
-        console.error("Error loading flash sale page:", error);
+        console.error("Error loading flash sale data:", error);
       } finally {
         setLoading(false);
       }
@@ -47,10 +49,9 @@ const FlashSale = () => {
     fetchData();
   }, []);
 
-  // Timer Logic
+  // Timer Logic (Preserved)
   useEffect(() => {
     if (!endTime) return;
-
     const timer = setInterval(() => {
       const now = new Date().getTime();
       const distance = endTime - now;
@@ -66,7 +67,6 @@ const FlashSale = () => {
         });
       }
     }, 1000);
-
     return () => clearInterval(timer);
   }, [endTime]);
 
@@ -94,7 +94,7 @@ const FlashSale = () => {
         
         {products.length === 0 ? (
           <div className="text-center py-20 bg-white rounded-xl shadow-sm">
-            <p className="text-gray-500 text-lg">No products currently in the Flash Sale.</p>
+            <p className="text-gray-500 text-lg">No products found with Flash Sale active.</p>
             <Link to="/products" className="inline-block mt-6 px-6 py-2 bg-black text-white rounded-full hover:bg-gray-800">
               Shop All Products
             </Link>
@@ -109,12 +109,17 @@ const FlashSale = () => {
                     alt={product.name}
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
-                  <div className="absolute top-2 right-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">SALE</div>
+                  <div className="absolute top-2 right-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">
+                    {Math.round(((product.price - (product.flashSalePrice || product.price)) / product.price) * 100)}% OFF
+                  </div>
                 </div>
                 <div className="p-4">
                   <h3 className="font-bold text-gray-900 truncate">{product.name}</h3>
                   <div className="flex items-center gap-2 mt-2">
-                    <span className="text-red-600 font-bold text-lg">KSh {product.price}</span>
+                    <span className="text-red-600 font-bold text-lg">KSh {product.flashSalePrice || product.price}</span>
+                    {product.price > (product.flashSalePrice || 0) && (
+                      <span className="text-gray-400 line-through text-sm">KSh {product.price}</span>
+                    )}
                   </div>
                 </div>
               </Link>
