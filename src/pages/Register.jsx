@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { FiEye, FiEyeOff, FiMail, FiLock, FiUser, FiArrowRight, FiMenu, FiX } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import { useDispatch, useSelector } from 'react-redux';
-import { registerUser, resetRegistration } from '../store/slices/userSlice';
+import { registerUser } from '../store/slices/userSlice';
 import toast from 'react-hot-toast';
 import Logo3D from '../components/Logo3D';
 
@@ -54,16 +54,11 @@ const Register = () => {
   const { } = useAuth();
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { isLoading, error, registrationSuccess } = useSelector((state) => state.user);
+  const { isLoading, error } = useSelector((state) => state.user);
 
   useEffect(() => {
-    // STRICT CHECK: Only navigate if registrationSuccess is true
-    if (registrationSuccess) {
-      const emailToVerify = formData.email;
-      dispatch(resetRegistration());
-      navigate('/verify-otp', { state: { email: emailToVerify }, replace: true });
-    }
-  }, [registrationSuccess, formData.email, navigate, dispatch]);
+    // Registration handled in handleSubmit with toast message and redirect
+  }, []);
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -166,14 +161,13 @@ const Register = () => {
         password: formData.password,
       })).unwrap();
       
-      // Registration successful - redirect to OTP verification page
-      toast.success('Account created! Please check your email and enter the OTP to verify your account.', { id: 'register-submit' });
+      // Registration successful - show success message
+      toast.success('Successfully registered! Please verify your email then login.', { id: 'register-submit' });
       
-      // Store email in localStorage for persistence
-      localStorage.setItem('registrationEmail', formData.email);
-      
-      // Redirect to OTP verification page
-      navigate('/verify-otp', { state: { email: formData.email }, replace: true });
+      // Redirect to login page after a short delay to show message
+      setTimeout(() => {
+        navigate('/login', { replace: true });
+      }, 2000);
     } catch (err) {
       console.error('Registration error:', err);
       const errorMessage = err?.message || err || 'Registration failed. Please try again.';
