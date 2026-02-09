@@ -9,18 +9,24 @@ const Home = () => {
   const [trendingProducts, setTrendingProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [endTime, setEndTime] = useState(null);
-  
-  // Hero settings from backend
+
+  // DYNAMIC HERO SETTINGS
   const [heroSettings, setHeroSettings] = useState({
     heroVideoUrl: "https://res.cloudinary.com/demo/video/upload/v1689264426/running_shoes_promo.mp4",
     heroHeading: "STEP INTO THE FUTURE",
     heroSubtitle: "Discover the latest drops from Nike, Adidas, Jordan, and more."
   });
 
-  // HARDCODED URLs (The ones that work)
   const SETTINGS_URL = 'https://seekoon-backend-production.up.railway.app/api/settings/flash-sale';
   const PRODUCTS_URL = 'https://seekoon-backend-production.up.railway.app/api/products';
   const HOME_SETTINGS_URL = 'https://seekoon-backend-production.up.railway.app/api/settings/home';
+
+  // Helper: Detect if the URL is a video
+  const isVideo = (url) => {
+    if (!url) return false;
+    // Cloudinary video links contain '/video/', standard files end in .mp4
+    return url.includes('/video/') || url.endsWith('.mp4') || url.endsWith('.webm');
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -39,7 +45,12 @@ const Home = () => {
         try {
           const homeRes = await axios.get(HOME_SETTINGS_URL);
           if (homeRes.data) {
-            setHeroSettings(homeRes.data);
+            setHeroSettings(prev => ({
+              ...prev,
+              heroVideoUrl: homeRes.data.heroVideoUrl || prev.heroVideoUrl,
+              heroHeading: homeRes.data.heroHeading || prev.heroHeading,
+              heroSubtitle: homeRes.data.heroSubtitle || prev.heroSubtitle
+            }));
           }
         } catch (homeError) {
           console.log("Using default hero settings");
@@ -54,9 +65,9 @@ const Home = () => {
           p.onFlashSale === true || 
           (p.flashSalePrice && p.flashSalePrice > 0)
         );
-        setFlashProducts(saleItems.slice(0, 4)); // Show top 4
+        setFlashProducts(saleItems.slice(0, 4));
         
-        // Trending (Just take the first 4 regular items for now)
+        // Trending
         setTrendingProducts(allProducts.slice(0, 4));
       } catch (error) {
         console.error("Home fetch error:", error);
@@ -88,8 +99,8 @@ const Home = () => {
     return () => clearInterval(timer);
   }, [endTime]);
 
-  const ProductCard = ({ product, badgeColor = "bg-red-500" }) => (
-    <Link to={`/product/${product._id}`} className="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300">
+  const ProductCard = ({ product, badgeColor = "bg-red-600", badgeText = "SALE" }) => (
+    <Link to={`/product/${product._id}`} className="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
       <div className="relative aspect-square bg-gray-100 overflow-hidden">
         <img 
           src={product.images?.[0]?.url || product.image || 'https://via.placeholder.com/400'}
@@ -133,10 +144,29 @@ const Home = () => {
     <div className="bg-gray-50 min-h-screen">
       {/* HERO SECTION */}
       <div className="relative bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white overflow-hidden">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-0 left-0 w-96 h-96 bg-white rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
-          <div className="absolute bottom-0 right-0 w-96 h-96 bg-gray-400 rounded-full blur-3xl translate-x-1/2 translate-y-1/2"></div>
+        {/* Dynamic Background Media */}
+        <div className="absolute inset-0 z-0">
+          {isVideo(heroSettings.heroVideoUrl) ? (
+            <video 
+              autoPlay 
+              loop 
+              muted 
+              playsInline
+              className="w-full h-full object-cover opacity-50"
+            >
+              <source src={heroSettings.heroVideoUrl} type="video/mp4" />
+            </video>
+          ) : (
+            <img 
+              src={heroSettings.heroVideoUrl} 
+              alt="Hero Background"
+              className="w-full h-full object-cover opacity-50"
+            />
+          )}
         </div>
+        
+        {/* Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-br from-gray-900/80 via-gray-900/60 to-gray-900/80 z-1"></div>
         
         <div className="container mx-auto px-4 py-20 md:py-32 relative z-10">
           <div className="flex flex-col md:flex-row items-center justify-between gap-12">
@@ -147,7 +177,7 @@ const Home = () => {
               <h1 className="text-4xl md:text-6xl lg:text-7xl font-black mb-6 leading-tight">
                 {heroSettings.heroHeading}
               </h1>
-              <p className="text-gray-400 text-lg md:text-xl mb-8 max-w-lg">
+              <p className="text-gray-300 text-lg md:text-xl mb-8 max-w-lg">
                 {heroSettings.heroSubtitle}
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
@@ -189,7 +219,7 @@ const Home = () => {
         </div>
       </div>
 
-      {/* NEW SECTION: FLASH SALE PREVIEW */}
+      {/* FLASH SALE SECTION */}
       {flashProducts.length > 0 && (
         <div className="container mx-auto px-4 mt-16 max-w-6xl">
           <div className="flex items-center justify-between mb-8">
