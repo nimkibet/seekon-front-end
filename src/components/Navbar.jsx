@@ -14,7 +14,8 @@ import {
   FiMenu,
   FiZap,
   FiExternalLink,
-  FiX
+  FiX,
+  FiShoppingBag
 } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import { useSettings } from '../context/SettingsContext';
@@ -218,6 +219,7 @@ const Navbar = () => {
       name: 'Accessories', 
       path: '/collection?category=accessories',
       type: 'mega',
+      icon: <FiShoppingBag className="w-4 h-4" />,
       sections: [
         {
           type: 'link',
@@ -306,6 +308,7 @@ const Navbar = () => {
                     to={item.path}
                     className="text-base font-bold text-gray-800 hover:text-black transition-colors flex items-center gap-1 py-4"
                   >
+                    {item.icon && <span className="text-gray-500">{item.icon}</span>}
                     {item.name}
                     {(item.dropdown || item.type === 'mega') && <FiChevronDown className="w-4 h-4" />}
                   </Link>
