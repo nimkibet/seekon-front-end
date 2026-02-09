@@ -160,31 +160,17 @@ export const registerUser = createAsyncThunk(
 
       const data = await response.json();
 
-             if (data.success) {
-                // Store token in localStorage
-                localStorage.setItem('token', data.token);
-                localStorage.setItem('adminToken', data.token);
-                
-                // Store profile photo in user-specific localStorage key
-                const userId = data.user.id || data.user._id;
-                if (data.user.profilePhoto) {
-                  setUserAvatar(userId, data.user.profilePhoto);
-                }
-                
-                return {
-                  id: data.user.id,
-                  _id: data.user.id,
-                  name: data.user.name,
-                  email: data.user.email,
-                  role: data.user.role || 'user',
-                  avatar: data.user.profilePhoto || getUserAvatar(userId) || null,
-                  phoneNumber: data.user.phoneNumber || '',
-                  address: data.user.address || '',
-                  createdAt: data.user.createdAt
-                };
-              } else {
-                return rejectWithValue(data.message || 'Registration failed');
-              }
+      if (data.success) {
+        // OTP flow: Return success with email for OTP verification
+        // Do NOT auto-login - user must verify OTP first
+        return {
+          message: data.message,
+          email: data.email,
+          requiresVerification: true
+        };
+      } else {
+        return rejectWithValue(data.message || 'Registration failed');
+      }
     } catch (error) {
       console.error('Registration error:', error);
       
@@ -194,6 +180,84 @@ export const registerUser = createAsyncThunk(
       }
       
       return rejectWithValue(error.message || 'Network error. Please try again.');
+    }
+  }
+);
+
+// Verify OTP and complete registration
+export const verifyOTP = createAsyncThunk(
+  'user/verifyOTP',
+  async ({ email, otp }, { rejectWithValue }) => {
+    try {
+      const response = await fetch(`${API_URL}/api/auth/verify-otp`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, otp }),
+      });
+
+      if (!response.ok) {
+        let errorMessage = 'OTP verification failed';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorMessage;
+        } catch (e) {
+          errorMessage = response.statusText || `Server error (${response.status})`;
+        }
+        return rejectWithValue(errorMessage);
+      }
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Store token in localStorage
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('adminToken', data.token);
+        
+        return {
+          user: data.user,
+          token: data.token
+        };
+      } else {
+        return rejectWithValue(data.message || 'OTP verification failed');
+      }
+    } catch (error) {
+      console.error('OTP verification error:', error);
+      return rejectWithValue(error.message || 'Network error. Please try again.');
+    }
+  }
+);
+
+// Resend OTP
+export const resendOTP = createAsyncThunk(
+  'user/resendOTP',
+  async (email, { rejectWithValue }) => {
+    try {
+      const response = await fetch(`${API_URL}/api/auth/resend-verification`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
+      });
+
+      if (!response.ok) {
+        let errorMessage = 'Failed to resend OTP';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorMessage;
+        } catch (e) {
+          errorMessage = response.statusText || `Server error (${response.status})`;
+        }
+        return rejectWithValue(errorMessage);
+      }
+
+      const data = await response.json();
+      return data;
+    } catch (error) {
+      console.error('Resend OTP error:', error);
+      return rejectWithValue(error.message || 'Failed to resend OTP');
     }
   }
 );
@@ -311,6 +375,8 @@ const initialState = {
   isLoading: false,
   error: null,
   theme: 'light', // 'light' or 'dark'
+  registrationSuccess: false, // OTP flow: true after successful registration
+  registrationEmail: '', // OTP flow: email to verify
 };
 
 const userSlice = createSlice({
@@ -386,25 +452,24 @@ const userSlice = createSlice({
         state.isLoading = false;
         state.error = action.payload;
       })
-      // Register
+      // Register (OTP flow - no auto-login)
       .addCase(registerUser.pending, (state) => {
         state.isLoading = true;
         state.error = null;
+        state.registrationSuccess = false;
+        state.registrationEmail = '';
       })
       .addCase(registerUser.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.user = action.payload;
-        state.isAuthenticated = true;
+        // OTP flow: Don't set user or isAuthenticated - user must verify OTP first
+        state.registrationSuccess = true;
+        state.registrationEmail = action.payload?.email || '';
         state.error = null;
-        // Save profile photo to user-specific localStorage when user registers
-        const userId = action.payload?.id || action.payload?._id;
-        if (action.payload?.avatar || action.payload?.profilePhoto) {
-          setUserAvatar(userId, action.payload.avatar || action.payload.profilePhoto);
-        }
       })
       .addCase(registerUser.rejected, (state, action) => {
         state.isLoading = false;
-        state.error = action.payload;
+        state.error = action.payload || 'Registration failed';
+        state.registrationSuccess = false;
       })
       // Forgot Password
       .addCase(forgotPassword.pending, (state) => {
@@ -455,6 +520,41 @@ const userSlice = createSlice({
         state.error = null;
       })
       .addCase(resendVerificationEmail.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload;
+      })
+      // Verify OTP
+      .addCase(verifyOTP.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(verifyOTP.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.user = action.payload.user;
+        state.isAuthenticated = true;
+        state.error = null;
+        state.registrationSuccess = false;
+        state.registrationEmail = '';
+        // Save profile photo to user-specific localStorage
+        const userId = action.payload.user?.id || action.payload.user?._id;
+        if (action.payload.user?.avatar || action.payload.user?.profilePhoto) {
+          setUserAvatar(userId, action.payload.user?.avatar || action.payload.user?.profilePhoto);
+        }
+      })
+      .addCase(verifyOTP.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload;
+      })
+      // Resend OTP
+      .addCase(resendOTP.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(resendOTP.fulfilled, (state) => {
+        state.isLoading = false;
+        state.error = null;
+      })
+      .addCase(resendOTP.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload;
       });

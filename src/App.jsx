@@ -13,6 +13,7 @@ import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import VerifyEmail from './pages/VerifyEmail';
+import VerifyOtp from './pages/auth/VerifyOtp';
 import Collection from './pages/Collection';
 import ProductDetail from './pages/ProductDetail';
 import Cart from './pages/Cart';
@@ -161,6 +162,8 @@ const App = () => {
               } />
 
               <Route path="/verify-email/:token" element={<VerifyEmail />} />
+              
+              <Route path="/verify-otp" element={<VerifyOtp />} />
               
               {/* Protected Routes */}
               <Route path="/" element={

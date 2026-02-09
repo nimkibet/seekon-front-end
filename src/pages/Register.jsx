@@ -164,17 +164,21 @@ const Register = () => {
 
     try {
       toast.loading('Creating your account...', { id: 'register-submit' });
-      const result = await dispatch(registerUser({
+      
+      await dispatch(registerUser({
         name: formData.name.trim(),
         email: formData.email,
         password: formData.password,
       })).unwrap();
       
-      // Registration successful - user must verify email before logging in
-      toast.success('Account created! Please check your email and verify your account before logging in.', { id: 'register-submit' });
+      // Registration successful - OTP sent to email, user must verify OTP
+      toast.success('Account created! Please check your email and enter the OTP to verify your account.', { id: 'register-submit' });
       
-      // Redirect to verify email page with pre-filled email
-      navigate(`/verify-email?email=${encodeURIComponent(formData.email)}`, { replace: true });
+      // Store email in localStorage for persistence
+      localStorage.setItem('registrationEmail', formData.email);
+      
+      // Redirect to OTP verification page with pre-filled email
+      navigate(`/verify-otp?email=${encodeURIComponent(formData.email)}`, { replace: true });
     } catch (err) {
       console.error('Registration error:', err);
       // Show the actual error message from the backend
