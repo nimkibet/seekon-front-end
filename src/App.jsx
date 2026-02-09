@@ -29,6 +29,7 @@ import AdminReports from './pages/AdminReports';
 import AdminSettings from './pages/AdminSettings';
 import AdminCarts from './pages/AdminCarts';
 import AdminFlashSale from './pages/AdminFlashSale';
+import WebSettings from './pages/admin/WebSettings';
 import Contact from './pages/Contact';
 import Shipping from './pages/Shipping';
 import Returns from './pages/Returns';
@@ -296,6 +297,14 @@ const App = () => {
                 <ProtectedRoute requireAdmin={true}>
                   <AdminLayout>
                     <AdminFlashSale />
+                  </AdminLayout>
+                </ProtectedRoute>
+              } />
+              
+              <Route path="/admin/web-settings" element={
+                <ProtectedRoute requireAdmin={true}>
+                  <AdminLayout>
+                    <WebSettings />
                   </AdminLayout>
                 </ProtectedRoute>
               } />

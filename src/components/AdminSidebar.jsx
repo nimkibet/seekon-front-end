@@ -63,6 +63,7 @@ const AdminSidebar = ({ isFlashSaleActive = false }) => {
     { path: '/admin/shop', label: 'Shop View', icon: FiEye, external: true },
     { path: '/admin/products', label: 'Products', icon: FiPackage },
     { path: '/admin/flash-sale', label: 'Flash Sale', icon: FiZap },
+    { path: '/admin/web-settings', label: 'Website Settings', icon: FiLayout },
     { path: '/admin/inventory', label: 'Inventory', icon: FiBox },
     { path: '/admin/carts', label: 'Carts', icon: FiShoppingCart },
     { path: '/admin/orders', label: 'Orders', icon: FiShoppingBag },

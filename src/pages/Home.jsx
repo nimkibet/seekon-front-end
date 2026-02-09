@@ -9,10 +9,18 @@ const Home = () => {
   const [trendingProducts, setTrendingProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [endTime, setEndTime] = useState(null);
+  
+  // Hero settings from backend
+  const [heroSettings, setHeroSettings] = useState({
+    heroVideoUrl: "https://res.cloudinary.com/demo/video/upload/v1689264426/running_shoes_promo.mp4",
+    heroHeading: "STEP INTO THE FUTURE",
+    heroSubtitle: "Discover the latest drops from Nike, Adidas, Jordan, and more."
+  });
 
   // HARDCODED URLs (The ones that work)
   const SETTINGS_URL = 'https://seekoon-backend-production.up.railway.app/api/settings/flash-sale';
   const PRODUCTS_URL = 'https://seekoon-backend-production.up.railway.app/api/products';
+  const HOME_SETTINGS_URL = 'https://seekoon-backend-production.up.railway.app/api/settings/home';
 
   useEffect(() => {
     const fetchData = async () => {
@@ -27,7 +35,17 @@ const Home = () => {
           setEndTime(new Date(settingsData.endTime).getTime());
         }
 
-        // 2. Fetch Products
+        // 2. Fetch Hero Settings
+        try {
+          const homeRes = await axios.get(HOME_SETTINGS_URL);
+          if (homeRes.data) {
+            setHeroSettings(homeRes.data);
+          }
+        } catch (homeError) {
+          console.log("Using default hero settings");
+        }
+
+        // 3. Fetch Products
         const productsRes = await axios.get(PRODUCTS_URL);
         const allProducts = productsRes.data.products || productsRes.data || [];
         
@@ -127,15 +145,10 @@ const Home = () => {
                 <FiShoppingBag size={16} /> New Collection 2025
               </div>
               <h1 className="text-4xl md:text-6xl lg:text-7xl font-black mb-6 leading-tight">
-                STEP INTO
-                <br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400">
-                  THE FUTURE
-                </span>
+                {heroSettings.heroHeading}
               </h1>
               <p className="text-gray-400 text-lg md:text-xl mb-8 max-w-lg">
-                Discover the latest drops from Nike, Adidas, Jordan, and more. 
-                Premium footwear for those who lead the way.
+                {heroSettings.heroSubtitle}
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
                 <Link 
