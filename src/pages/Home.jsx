@@ -4,16 +4,17 @@ import { useSelector, useDispatch } from 'react-redux';
 import { useLocation, Link } from 'react-router-dom';
 import { FiArrowLeft, FiClock, FiZap } from 'react-icons/fi';
 import { fetchProducts } from '../store/slices/productSlice';
-import HeroBanner from '../components/HeroBanner';
 import ProductCard from '../components/ProductCard';
 import PromotionalBanner from '../components/PromotionalBanner';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import { useSettings } from '../context/SettingsContext';
 
 const Home = () => {
   const dispatch = useDispatch();
   const location = useLocation();
   const { products, isLoading, error } = useSelector(state => state.products);
+  const { flashSaleSettings } = useSettings();
   const [email, setEmail] = useState('');
   const [endTime, setEndTime] = useState(null);
   const [isFlashSaleActive, setIsFlashSaleActive] = useState(false);
@@ -65,6 +66,16 @@ const Home = () => {
     };
   }, [dispatch, products.length]);
 
+  // Sync with SettingsContext for flash sale state
+  useEffect(() => {
+    if (flashSaleSettings) {
+      setIsFlashSaleActive(flashSaleSettings.isActive === true);
+      if (flashSaleSettings.endTime) {
+        setEndTime(new Date(flashSaleSettings.endTime).getTime());
+      }
+    }
+  }, [flashSaleSettings]);
+
   // Fetch hero and flash sale settings
   useEffect(() => {
     const fetchSettings = async () => {
@@ -72,22 +83,28 @@ const Home = () => {
         // Fetch hero settings
         try {
           const homeRes = await axios.get(HOME_SETTINGS_URL);
+          console.log("Hero settings response:", homeRes.data);
           if (homeRes.data) {
             setHeroSettings(prev => ({ ...prev, ...homeRes.data }));
           }
         } catch (e) {
-          console.log("Using default hero settings");
+          console.log("Using default hero settings", e.message);
         }
 
-        // Fetch flash sale settings
+        // Fetch flash sale settings - direct access without .value wrapper
         const settingsRes = await axios.get(SETTINGS_URL);
-        const settingsData = settingsRes.data.value || settingsRes.data;
-        setIsFlashSaleActive(settingsData?.isActive === true);
-        if (settingsData && settingsData.endTime) {
-          setEndTime(new Date(settingsData.endTime).getTime());
+        console.log("Flash sale settings response:", settingsRes.data);
+        const settingsData = settingsRes.data;
+        
+        // Also try SettingsContext if available
+        if (settingsData && typeof settingsData === 'object') {
+          setIsFlashSaleActive(settingsData.isActive === true);
+          if (settingsData.endTime) {
+            setEndTime(new Date(settingsData.endTime).getTime());
+          }
         }
       } catch (error) {
-        console.error("Error fetching settings:", error);
+        console.error("Error fetching settings:", error.message);
       }
     };
     fetchSettings();

@@ -283,21 +283,14 @@ const Navbar = () => {
         )}
       </AnimatePresence>
 
-      <motion.nav
+      <nav
         className={`sticky top-0 left-0 right-0 z-[9999] transition-all duration-300 ${
           isScrolled 
-            ? 'bg-white/10 backdrop-blur-xl border border-white/20 shadow-lg rounded-2xl mx-2 my-2' 
-            : 'bg-white shadow-sm rounded-none mx-0 my-0'
+            ? 'bg-white/10 backdrop-blur-xl border border-white/20 shadow-lg'
+            : 'bg-white shadow-sm'
         }`}
-        initial={{ borderRadius: '0rem', marginTop: '0rem', marginBottom: '0rem' }}
-        animate={{ 
-          borderRadius: isScrolled ? '1rem' : '0rem',
-          marginTop: isScrolled ? '0.5rem' : '0rem',
-          marginBottom: isScrolled ? '0.5rem' : '0rem',
-        }}
-        transition={{ duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] }}
       >
-        <div className={`max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 ${isScrolled ? 'py-2 w-[60%]' : 'py-4 w-full'}`}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 w-full">
           <div className="flex justify-between items-center">
             
             {/* Logo */}
@@ -609,7 +602,7 @@ const Navbar = () => {
             </motion.div>
           )}
         </AnimatePresence>
-      </motion.nav>
+      </nav>
 
       {/* Search Modal */}
       <SearchModal 
