@@ -9,6 +9,7 @@ const Home = () => {
   const [trendingProducts, setTrendingProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [endTime, setEndTime] = useState(null);
+  const [isFlashSaleActive, setIsFlashSaleActive] = useState(false);
 
   // DYNAMIC HERO SETTINGS WITH NEW FIELDS
   const [heroSettings, setHeroSettings] = useState({
@@ -53,6 +54,8 @@ const Home = () => {
         // 2. Fetch Timer Settings
         const settingsRes = await axios.get(SETTINGS_URL);
         const settingsData = settingsRes.data.value || settingsRes.data;
+        // STRICT CHECK: Only true if explicitly active
+        setIsFlashSaleActive(settingsData?.isActive === true);
         if (settingsData && settingsData.endTime) {
           setEndTime(new Date(settingsData.endTime).getTime());
         }
@@ -199,17 +202,20 @@ const Home = () => {
                 >
                   Shop Now <FiArrowRight size={20} />
                 </Link>
-                <Link 
-                  to="/flash-sale" 
-                  className="inline-flex items-center justify-center gap-2 bg-red-600 text-white px-8 py-4 rounded-full font-bold hover:bg-red-700 transition-all hover:scale-105 shadow-xl shadow-red-600/20"
-                >
-                  🔥 Flash Sale
-                </Link>
+                {/* Flash Sale Button - Only show when active */}
+                {isFlashSaleActive && (
+                  <Link 
+                    to="/flash-sale" 
+                    className="inline-flex items-center justify-center gap-2 bg-red-600 text-white px-8 py-4 rounded-full font-bold hover:bg-red-700 transition-all hover:scale-105 shadow-xl shadow-red-600/20"
+                  >
+                    🔥 Flash Sale
+                  </Link>
+                )}
               </div>
             </div>
             
-            {/* Timer Card - Hidden on short heights */}
-            {heroSettings.heroHeight > 60 && (
+            {/* Timer Card - Only show when flash sale is active */}
+            {isFlashSaleActive && heroSettings.heroHeight > 60 && (
               <div className="bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/20 shadow-xl">
                 <div className="flex items-center gap-2 mb-4 text-sm font-bold uppercase tracking-widest opacity-80">
                   <FiClock size={16} /> Ending In
@@ -233,8 +239,31 @@ const Home = () => {
         </div>
       </div>
 
-      {/* FLASH SALE SECTION */}
-      {flashProducts.length > 0 && (
+      {/* SHOP BY CATEGORY */}
+      <div className="container mx-auto px-4 mt-16 max-w-7xl">
+        <h2 className="text-2xl font-bold mb-6 text-gray-900">Shop by Category</h2>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {['Footwear', 'Apparel', 'Accessories', 'Exclusive'].map((cat) => (
+            <Link 
+              to={`/products?category=${cat}`} 
+              key={cat} 
+              className="group relative h-40 rounded-xl overflow-hidden bg-gray-100 flex items-center justify-center"
+            >
+              <div className="absolute inset-0 bg-black/40 group-hover:bg-black/50 transition-colors z-10" />
+              <img 
+                src={`https://images.unsplash.com/photo-${cat === 'Footwear' ? '1549298916-b41d501d3772' : cat === 'Apparel' ? '1523381210434-273730d3f501' : '1523293188086-b589b9b'}`} 
+                alt={cat}
+                className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                onError={(e) => { e.target.src = 'https://via.placeholder.com/400x400?text=' + cat }}
+              />
+              <span className="relative z-20 text-white font-bold text-xl uppercase tracking-wider">{cat}</span>
+            </Link>
+          ))}
+        </div>
+      </div>
+
+      {/* FLASH SALE SECTION - Only show when active */}
+      {isFlashSaleActive && flashProducts.length > 0 && (
         <div className="container mx-auto px-4 mt-16 max-w-7xl">
           <div className="flex items-center justify-between mb-8">
             <h2 className="text-2xl md:text-3xl font-bold flex items-center gap-2">
@@ -252,17 +281,30 @@ const Home = () => {
         </div>
       )}
 
-      {/* TRENDING SECTION */}
+      {/* NEW ARRIVALS */}
       <div className="container mx-auto px-4 mt-20 max-w-7xl">
         <div className="flex items-center justify-between mb-8">
-          <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
-            Trending Now
-          </h2>
-          <Link to="/products" className="text-gray-600 hover:text-black font-semibold">
-            View All
+          <h2 className="text-3xl font-black text-gray-900">New Arrivals</h2>
+          <Link to="/products?sort=newest" className="font-bold text-gray-900 hover:text-blue-600">
+            View All →
           </Link>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
+          {trendingProducts.slice(0, 4).map(product => (
+            <ProductCard key={product._id} product={product} badgeColor="bg-green-600" badgeText="FRESH DROP" />
+          ))}
+        </div>
+      </div>
+
+      {/* TRENDING SECTION */}
+      <div className="container mx-auto px-4 mt-20 max-w-7xl mb-20">
+        <div className="flex items-center justify-between mb-8">
+          <h2 className="text-3xl font-black text-gray-900">Trending Now</h2>
+          <Link to="/products" className="font-bold text-gray-900 hover:text-blue-600">
+            View All →
+          </Link>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8">
           {trendingProducts.map(product => (
             <ProductCard key={product._id} product={product} badgeColor="bg-blue-600" />
           ))}
