@@ -123,16 +123,15 @@ const ImageUpload = ({
         // Multiple files uploaded - add as new images instead of replacing
         console.log('[DEBUG] Calling onAddImages with:', imageDataArray);
         onAddImages(imageDataArray);
-        // Clear previews after adding
-        setPreviews(initialImage ? [initialImage] : []);
       } else if (onImageUpload) {
         // Single file or no onAddImages callback
-        if (multiple) {
-          onImageUpload(imageDataArray);
-        } else {
-          onImageUpload(imageDataArray[0]);
-        }
+        // Always add as new images when multiple=true
+        console.log('[DEBUG] Calling onImageUpload with:', imageDataArray);
+        onImageUpload(imageDataArray); // Pass entire array to add as new images
       }
+      
+      // Clear previews after all uploads complete
+      setPreviews(initialImage ? [initialImage] : []);
 
       toast.success(imageDataArray.length > 1 ? `${imageDataArray.length} images uploaded successfully!` : 'Image uploaded successfully!');
     } catch (error) {
