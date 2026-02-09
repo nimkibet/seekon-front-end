@@ -2,11 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useSelector, useDispatch } from 'react-redux';
 import { useLocation, Link } from 'react-router-dom';
-import { FiArrowLeft } from 'react-icons/fi';
+import { FiArrowLeft, FiClock, FiZap } from 'react-icons/fi';
 import { fetchProducts } from '../store/slices/productSlice';
 import HeroBanner from '../components/HeroBanner';
 import ProductCard from '../components/ProductCard';
 import PromotionalBanner from '../components/PromotionalBanner';
+import axios from 'axios';
 import toast from 'react-hot-toast';
 
 const Home = () => {
@@ -14,7 +15,31 @@ const Home = () => {
   const location = useLocation();
   const { products, isLoading, error } = useSelector(state => state.products);
   const [email, setEmail] = useState('');
+  const [endTime, setEndTime] = useState(null);
+  const [isFlashSaleActive, setIsFlashSaleActive] = useState(false);
   const isAdminView = new URLSearchParams(location.search).get('admin') === 'true';
+
+  // Dynamic hero settings from backend
+  const [heroSettings, setHeroSettings] = useState({
+    heroVideoUrl: "https://res.cloudinary.com/demo/video/upload/v1689264426/running_shoes_promo.mp4",
+    heroHeading: "STEP INTO THE FUTURE",
+    heroSubtitle: "Discover the latest drops from Nike, Adidas, Jordan, and more.",
+    heroOverlayOpacity: 50,
+    heroHeight: 85,
+    heroHeadingSize: 'large',
+    showHeroBadge: true
+  });
+
+  const SETTINGS_URL = 'https://seekoon-backend-production.up.railway.app/api/settings/flash-sale';
+  const HOME_SETTINGS_URL = 'https://seekoon-backend-production.up.railway.app/api/settings/home';
+
+  const isVideo = (url) => url && (url.includes('/video/') || url.endsWith('.mp4') || url.endsWith('.webm'));
+  const fontSizeClasses = {
+    small: 'text-3xl md:text-5xl',
+    medium: 'text-4xl md:text-6xl',
+    large: 'text-5xl md:text-7xl',
+    xlarge: 'text-6xl md:text-8xl'
+  };
 
   useEffect(() => {
     dispatch(fetchProducts())
@@ -40,18 +65,59 @@ const Home = () => {
     };
   }, [dispatch, products.length]);
 
+  // Fetch hero and flash sale settings
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        // Fetch hero settings
+        try {
+          const homeRes = await axios.get(HOME_SETTINGS_URL);
+          if (homeRes.data) {
+            setHeroSettings(prev => ({ ...prev, ...homeRes.data }));
+          }
+        } catch (e) {
+          console.log("Using default hero settings");
+        }
+
+        // Fetch flash sale settings
+        const settingsRes = await axios.get(SETTINGS_URL);
+        const settingsData = settingsRes.data.value || settingsRes.data;
+        setIsFlashSaleActive(settingsData?.isActive === true);
+        if (settingsData && settingsData.endTime) {
+          setEndTime(new Date(settingsData.endTime).getTime());
+        }
+      } catch (error) {
+        console.error("Error fetching settings:", error);
+      }
+    };
+    fetchSettings();
+  }, []);
+
+  // Timer logic
+  useEffect(() => {
+    if (!endTime || !isFlashSaleActive) return;
+    const timer = setInterval(() => {
+      const now = new Date().getTime();
+      const distance = endTime - now;
+      if (distance < 0) {
+        clearInterval(timer);
+        setEndTime(null);
+        setIsFlashSaleActive(false);
+      }
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [endTime, isFlashSaleActive]);
+
   const handleNewsletterSubscribe = (e) => {
     e.preventDefault();
     if (!email) {
       toast.error('Please enter your email address');
       return;
     }
-    
     if (!/\S+@\S+\.\S+/.test(email)) {
       toast.error('Please enter a valid email address');
       return;
     }
-    
     toast.success('Successfully subscribed to newsletter!');
     setEmail('');
   };
@@ -60,19 +126,15 @@ const Home = () => {
   const trendingProducts = products.filter(product => product.isFeatured).slice(0, 8);
   const newProducts = products.filter(product => product.newProduct).slice(0, 8);
   const saleProducts = products.filter(product => product.discount > 0).slice(0, 8);
-  
-  // Case-insensitive category filtering
   const sneakers = products.filter(product => product.category?.toLowerCase() === 'sneakers').slice(0, 4);
   const apparel = products.filter(product => product.category?.toLowerCase() === 'apparel').slice(0, 4);
+  const flashSaleProducts = products.filter(p => 
+    p.onFlashSale === true || (p.flashSalePrice && p.flashSalePrice > 0)
+  ).slice(0, 8);
 
   const containerVariants = {
     hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1
-      }
-    }
+    visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
   };
 
   const itemVariants = {
@@ -80,13 +142,101 @@ const Home = () => {
     visible: { opacity: 1, y: 0 }
   };
 
+  // Custom Hero Section with dynamic settings
+  const CustomHeroSection = () => (
+    <div 
+      className="relative bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white overflow-hidden"
+      style={{ minHeight: `${heroSettings.heroHeight}vh` }}
+    >
+      {/* Dynamic Background Media */}
+      <div className="absolute inset-0 z-0">
+        {isVideo(heroSettings.heroVideoUrl) ? (
+          <video 
+            autoPlay 
+            loop 
+            muted 
+            playsInline 
+            className="w-full h-full object-cover opacity-50"
+          >
+            <source src={heroSettings.heroVideoUrl} type="video/mp4" />
+          </video>
+        ) : (
+          <img 
+            src={heroSettings.heroVideoUrl} 
+            alt="Hero Background"
+            className="w-full h-full object-cover opacity-50"
+          />
+        )}
+      </div>
+      
+      {/* Dynamic Overlay */}
+      <div 
+        className="absolute inset-0 z-1"
+        style={{ backgroundColor: `rgba(0,0,0,${heroSettings.heroOverlayOpacity / 100})` }}
+      ></div>
+      
+      <div className="container mx-auto px-4 py-20 relative z-10" style={{ paddingTop: `${heroSettings.heroHeight * 0.15}px`, paddingBottom: `${heroSettings.heroHeight * 0.15}px` }}>
+        <div className="flex flex-col md:flex-row items-center justify-between gap-12">
+          <div className="flex-1 text-center md:text-left">
+            {heroSettings.showHeroBadge && (
+              <div className="inline-flex items-center gap-2 bg-red-500/20 text-red-400 px-4 py-2 rounded-full text-sm font-bold mb-6">
+                <FiZap size={16} /> New Collection 2025
+              </div>
+            )}
+            <h1 className={`${fontSizeClasses[heroSettings.heroHeadingSize]} font-black mb-6 leading-tight tracking-tighter uppercase drop-shadow-lg transition-all duration-500`}>
+              {heroSettings.heroHeading}
+            </h1>
+            <p className="text-gray-300 text-lg md:text-xl mb-8 max-w-lg">
+              {heroSettings.heroSubtitle}
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
+              <Link 
+                to="/collection" 
+                className="inline-flex items-center justify-center gap-2 bg-white text-black px-8 py-4 rounded-full font-bold hover:bg-gray-100 transition-all hover:scale-105 shadow-xl"
+              >
+                Shop Now
+              </Link>
+              {isFlashSaleActive && (
+                <Link 
+                  to="/flash-sale" 
+                  className="inline-flex items-center justify-center gap-2 bg-red-600 text-white px-8 py-4 rounded-full font-bold hover:bg-red-700 transition-all hover:scale-105 shadow-xl"
+                >
+                  🔥 Flash Sale
+                </Link>
+              )}
+            </div>
+          </div>
+          
+          {/* Timer Card - Only show when flash sale is active */}
+          {isFlashSaleActive && heroSettings.heroHeight > 60 && (
+            <div className="bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/20 shadow-xl">
+              <div className="flex items-center gap-2 mb-4 text-sm font-bold uppercase tracking-widest opacity-80">
+                <FiClock size={16} /> Ending In
+              </div>
+              <div className="flex gap-3">
+                {['Days', 'Hours', 'Mins', 'Secs'].map((label) => {
+                  const values = { Days: Math.floor((endTime - new Date().getTime()) / (1000 * 60 * 60 * 24)), Hours: Math.floor(((endTime - new Date().getTime()) % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)), Mins: Math.floor(((endTime - new Date().getTime()) % (1000 * 60 * 60)) / (1000 * 60)), Secs: Math.floor(((endTime - new Date().getTime()) % (1000 * 60)) / 1000) };
+                  return (
+                    <div key={label} className="bg-white text-red-600 rounded-lg p-3 min-w-[70px] text-center">
+                      <div className="text-2xl md:text-3xl font-black">{String(Math.max(0, values[label] || 0)).padStart(2, '0')}</div>
+                      <div className="text-[10px] font-bold uppercase text-gray-500">{label}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#00A676] mx-auto mb-4"></div>
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Loading Seekon Apparel...</h2>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">Please wait while we load the latest products</p>
+          <h2 className="text-xl font-semibold text-gray-900">Loading Seekon Apparel...</h2>
         </div>
       </div>
     );
@@ -100,13 +250,9 @@ const Home = () => {
           <div className="flex items-center space-x-3">
             <FiArrowLeft className="w-5 h-5" />
             <span className="font-semibold">Admin Shop View Mode</span>
-            <span className="text-xs bg-white/20 px-2 py-1 rounded">You're viewing as admin</span>
           </div>
-          <Link 
-            to="/admin/dashboard"
-            className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors font-medium"
-          >
-            Back to Admin Dashboard
+          <Link to="/admin/dashboard" className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors font-medium">
+            Back to Dashboard
           </Link>
         </div>
       )}
@@ -121,11 +267,40 @@ const Home = () => {
         scrollSpeed="slow"
       />
       
-      {/* Hero Banner */}
-      <HeroBanner />
+      {/* Custom Hero Section with dynamic settings */}
+      <CustomHeroSection />
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-2 sm:px-4 md:px-6 lg:px-8 py-8">
+        {/* Flash Sale Section - Only when active */}
+        {isFlashSaleActive && flashSaleProducts.length > 0 && (
+          <motion.section
+            initial="hidden"
+            animate="visible"
+            variants={containerVariants}
+            className="mb-16"
+          >
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center gap-2">
+                <span className="text-4xl">🔥</span>
+                <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
+                  Flash Sale
+                </h2>
+              </div>
+              <Link to="/flash-sale" className="text-red-600 font-semibold hover:underline">
+                See All →
+              </Link>
+            </div>
+            <motion.div variants={containerVariants} className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+              {flashSaleProducts.map((product) => (
+                <motion.div key={product._id || product.id} variants={itemVariants}>
+                  <ProductCard product={product} />
+                </motion.div>
+              ))}
+            </motion.div>
+          </motion.section>
+        )}
+
         {/* Trending Now Section */}
         <motion.section
           initial="hidden"
@@ -135,31 +310,18 @@ const Home = () => {
         >
           <div className="flex items-center justify-between mb-8">
             <div className="text-center flex-1">
-              <motion.h2
-                variants={itemVariants}
-                className="text-3xl md:text-4xl font-bold text-gray-900 mb-4"
-              >
+              <motion.h2 variants={itemVariants} className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
                 Trending Now
               </motion.h2>
-              <motion.p
-                variants={itemVariants}
-                className="text-lg text-gray-600 max-w-2xl mx-auto"
-              >
-                Discover the most popular sneakers and apparel that everyone's talking about
+              <motion.p variants={itemVariants} className="text-lg text-gray-600 max-w-2xl mx-auto">
+                Discover the most popular sneakers and apparel
               </motion.p>
             </div>
-            <Link
-              to="/collection?filter=featured"
-              className="text-[#00A676] hover:text-[#008A5E] font-medium whitespace-nowrap ml-4"
-            >
+            <Link to="/collection?filter=featured" className="text-[#00A676] hover:text-[#008A5E] font-medium ml-4">
               See All →
             </Link>
           </div>
-
-          <motion.div
-            variants={containerVariants}
-            className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-4"
-          >
+          <motion.div variants={containerVariants} className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
             {trendingProducts.map((product) => (
               <motion.div key={product._id || product.id} variants={itemVariants}>
                 <ProductCard product={product} />
@@ -168,7 +330,7 @@ const Home = () => {
           </motion.div>
         </motion.section>
 
-        {/* Categories Section */}
+        {/* Shop by Category */}
         <motion.section
           initial="hidden"
           animate="visible"
@@ -176,31 +338,18 @@ const Home = () => {
           className="mb-16"
         >
           <div className="text-center mb-8">
-            <motion.h2
-              variants={itemVariants}
-              className="text-3xl md:text-4xl font-bold text-gray-900 mb-4"
-            >
+            <motion.h2 variants={itemVariants} className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
               Shop by Category
             </motion.h2>
-            <motion.p
-              variants={itemVariants}
-              className="text-lg text-gray-600"
-            >
+            <motion.p variants={itemVariants} className="text-lg text-gray-600">
               Find exactly what you're looking for
             </motion.p>
           </div>
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Sneakers */}
             <motion.div variants={itemVariants} className="bg-white rounded-xl p-6 shadow-lg">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-semibold text-gray-900">
-                  Sneakers
-                </h3>
-                <Link
-                  to="/collection/sneakers"
-                  className="text-[#00A676] hover:text-[#008A5E] text-sm font-medium"
-                >
+                <h3 className="text-xl font-semibold text-gray-900">Sneakers</h3>
+                <Link to="/collection/sneakers" className="text-[#00A676] hover:text-[#008A5E] text-sm font-medium">
                   See All →
                 </Link>
               </div>
@@ -210,17 +359,10 @@ const Home = () => {
                 ))}
               </div>
             </motion.div>
-
-            {/* Apparel */}
             <motion.div variants={itemVariants} className="bg-white rounded-xl p-6 shadow-lg">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-semibold text-gray-900">
-                  Apparel
-                </h3>
-                <Link
-                  to="/collection/apparel"
-                  className="text-[#00A676] hover:text-[#008A5E] text-sm font-medium"
-                >
+                <h3 className="text-xl font-semibold text-gray-900">Apparel</h3>
+                <Link to="/collection/apparel" className="text-[#00A676] hover:text-[#008A5E] text-sm font-medium">
                   See All →
                 </Link>
               </div>
@@ -233,7 +375,7 @@ const Home = () => {
           </div>
         </motion.section>
 
-        {/* New Arrivals Section */}
+        {/* New Arrivals */}
         <motion.section
           initial="hidden"
           animate="visible"
@@ -241,32 +383,12 @@ const Home = () => {
           className="mb-16"
         >
           <div className="flex items-center justify-between mb-8">
-            <div className="text-center flex-1">
-              <motion.h2
-                variants={itemVariants}
-                className="text-3xl md:text-4xl font-bold text-gray-900 mb-4"
-              >
-                New Arrivals
-              </motion.h2>
-              <motion.p
-                variants={itemVariants}
-                className="text-lg text-gray-600"
-              >
-                Be the first to get your hands on the latest drops
-              </motion.p>
-            </div>
-            <Link
-              to="/collection?filter=new"
-              className="text-[#00A676] hover:text-[#008A5E] font-medium whitespace-nowrap ml-4"
-            >
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900">New Arrivals</h2>
+            <Link to="/collection?filter=new" className="text-[#00A676] hover:text-[#008A5E] font-medium">
               See All →
             </Link>
           </div>
-
-          <motion.div
-            variants={containerVariants}
-            className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4"
-          >
+          <motion.div variants={containerVariants} className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
             {newProducts.map((product) => (
               <motion.div key={product._id || product.id} variants={itemVariants}>
                 <ProductCard product={product} />
@@ -283,32 +405,12 @@ const Home = () => {
           className="mb-16"
         >
           <div className="flex items-center justify-between mb-8">
-            <div className="text-center flex-1">
-              <motion.h2
-                variants={itemVariants}
-                className="text-3xl md:text-4xl font-bold text-gray-900 mb-4"
-              >
-                Limited Time Offers
-              </motion.h2>
-              <motion.p
-                variants={itemVariants}
-                className="text-lg text-gray-600"
-              >
-                Don't miss out on these amazing deals
-              </motion.p>
-            </div>
-            <Link
-              to="/collection?filter=sale"
-              className="text-[#00A676] hover:text-[#008A5E] font-medium whitespace-nowrap ml-4"
-            >
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900">Limited Time Offers</h2>
+            <Link to="/collection?filter=sale" className="text-[#00A676] hover:text-[#008A5E] font-medium">
               See All →
             </Link>
           </div>
-
-          <motion.div
-            variants={containerVariants}
-            className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4"
-          >
+          <motion.div variants={containerVariants} className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
             {saleProducts.map((product) => (
               <motion.div key={product._id || product.id} variants={itemVariants}>
                 <ProductCard product={product} />
@@ -317,7 +419,7 @@ const Home = () => {
           </motion.div>
         </motion.section>
 
-        {/* Newsletter Section */}
+        {/* Newsletter */}
         <motion.section
           initial="hidden"
           animate="visible"
@@ -325,11 +427,9 @@ const Home = () => {
           className="rounded-2xl p-6 md:p-12 text-center bg-gradient-to-r from-gray-900 to-gray-800 text-white"
         >
           <motion.div variants={itemVariants}>
-            <h2 className="text-2xl md:text-4xl font-bold mb-4">
-              Stay in the Loop
-            </h2>
+            <h2 className="text-2xl md:text-4xl font-bold mb-4">Stay in the Loop</h2>
             <p className="text-lg text-gray-300 mb-8 max-w-2xl mx-auto">
-              Get exclusive access to new drops, special offers, and style tips delivered straight to your inbox.
+              Get exclusive access to new drops, special offers, and style tips.
             </p>
             <div className="max-w-md mx-auto flex flex-col sm:flex-row gap-2">
               <input
@@ -337,13 +437,13 @@ const Home = () => {
                 placeholder="Enter your email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="flex-1 px-4 py-3 rounded-lg text-gray-900 bg-white border-2 border-[#00A676] focus:outline-none focus:ring-2 focus:ring-[#00A676]/50"
+                className="flex-1 px-4 py-3 rounded-lg text-gray-900 bg-white border-2 border-[#00A676] focus:outline-none"
               />
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={handleNewsletterSubscribe}
-                className="px-6 py-3 bg-[#00A676] text-white font-semibold rounded-lg hover:bg-[#008A5E] transition-colors duration-200"
+                className="px-6 py-3 bg-[#00A676] text-white font-semibold rounded-lg hover:bg-[#008A5E] transition-colors"
               >
                 Subscribe
               </motion.button>
