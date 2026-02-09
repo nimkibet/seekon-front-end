@@ -36,6 +36,10 @@ const Navbar = () => {
   
   const { user, isAuthenticated, logout } = useAuth();
   
+  // Get cart total from Redux
+  const cartItems = useSelector((state) => state.cart.items);
+  const totalQuantity = cartItems.reduce((total, item) => total + item.quantity, 0);
+  
   // Use SettingsContext for global flash sale state - eliminates triple-fetch
   const { flashSaleSettings } = useSettings();
   const isFlashSaleActive = flashSaleSettings?.isActive || false;
