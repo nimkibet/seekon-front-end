@@ -124,7 +124,7 @@ const Home = () => {
           <div className="flex flex-col md:flex-row items-center justify-between gap-12">
             <div className="flex-1 text-center md:text-left">
               <div className="inline-flex items-center gap-2 bg-red-500/20 text-red-400 px-4 py-2 rounded-full text-sm font-bold mb-6">
-                <ShoppingBag size={16} /> New Collection 2025
+                <FiShoppingBag size={16} /> New Collection 2025
               </div>
               <h1 className="text-4xl md:text-6xl lg:text-7xl font-black mb-6 leading-tight">
                 STEP INTO
@@ -142,7 +142,7 @@ const Home = () => {
                   to="/collection" 
                   className="inline-flex items-center justify-center gap-2 bg-white text-black px-8 py-4 rounded-full font-bold hover:bg-gray-100 transition-all hover:scale-105 shadow-xl shadow-white/10"
                 >
-                  Shop Now <ArrowRight size={20} />
+                  Shop Now <FiArrowRight size={20} />
                 </Link>
                 <Link 
                   to="/flash-sale" 
@@ -156,7 +156,7 @@ const Home = () => {
             {/* TIMER CARD */}
             <div className="bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/20 shadow-xl">
               <div className="flex items-center gap-2 mb-4 text-sm font-bold uppercase tracking-widest opacity-80">
-                <Clock size={16} /> Ending In
+                <FiClock size={16} /> Ending In
               </div>
               <div className="flex gap-3">
                 {[
