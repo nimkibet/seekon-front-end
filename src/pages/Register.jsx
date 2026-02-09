@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { FiEye, FiEyeOff, FiMail, FiLock, FiUser, FiArrowRight, FiMenu, FiX } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import { useDispatch, useSelector } from 'react-redux';
-import { registerUser } from '../store/slices/userSlice';
+import { registerUser, resetRegistration } from '../store/slices/userSlice';
 import toast from 'react-hot-toast';
 import Logo3D from '../components/Logo3D';
 
@@ -51,21 +51,19 @@ const Register = () => {
     return { valid: true, requirements };
   };
 
-  const { isAuthenticated, user } = useAuth();
+  const { } = useAuth();
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const { isLoading, error } = useSelector((state) => state.user);
+  const { isLoading, error, registrationSuccess } = useSelector((state) => state.user);
 
   useEffect(() => {
-    if (isAuthenticated && user) {
-      // Redirect based on role
-      if (user.role === 'admin' || user.role === 'superadmin') {
-        navigate('/admin/dashboard', { replace: true });
-      } else {
-        navigate('/', { replace: true });
-      }
+    // STRICT CHECK: Only navigate if registrationSuccess is true
+    if (registrationSuccess) {
+      const emailToVerify = formData.email;
+      dispatch(resetRegistration());
+      navigate('/verify-otp', { state: { email: emailToVerify }, replace: true });
     }
-  }, [isAuthenticated, user, navigate]);
+  }, [registrationSuccess, formData.email, navigate, dispatch]);
 
   // Close menu when clicking outside
   useEffect(() => {

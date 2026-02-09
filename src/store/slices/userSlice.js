@@ -404,6 +404,10 @@ const userSlice = createSlice({
         state.user.avatar = action.payload;
       }
     },
+    resetRegistration: (state) => {
+      state.registrationSuccess = false;
+      state.registrationEmail = '';
+    },
   },
   extraReducers: (builder) => {
     builder
@@ -561,6 +565,6 @@ const userSlice = createSlice({
   },
 });
 
-export const { logout, clearError, toggleTheme, setTheme } = userSlice.actions;
+export const { logout, clearError, toggleTheme, setTheme, resetRegistration } = userSlice.actions;
 // validateToken is already exported above as export const validateToken
 export default userSlice.reducer;
