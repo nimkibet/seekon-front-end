@@ -150,11 +150,24 @@ const Home = () => {
   
   // Flash sale products - filter from Redux products
   // Check for: onFlashSale, isFlashSale, flashSalePrice
-  const flashSaleProducts = products.filter(p => 
+  const realFlashSaleProducts = products.filter(p => 
     p.onFlashSale === true || 
     p.isFlashSale === true || 
     (p.flashSalePrice && p.flashSalePrice > 0 && p.flashSalePrice < p.price)
   ).slice(0, 6);
+  
+  // Demo products for testing when DEBUG mode is on and no real products exist
+  const demoFlashSaleProducts = [
+    { _id: 'demo1', name: 'Nike Air Max', price: 15000, flashSalePrice: 9999, images: [{ url: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400' }], saleEndTime: new Date(Date.now() + 86400000).toISOString() },
+    { _id: 'demo2', name: 'Adidas Ultraboost', price: 18000, flashSalePrice: 12999, images: [{ url: 'https://images.unsplash.com/photo-1520256862855-398228c41684?w=400' }], saleEndTime: new Date(Date.now() + 86400000).toISOString() },
+    { _id: 'demo3', name: 'Nike Air Jordan 1', price: 25000, flashSalePrice: 19999, images: [{ url: 'https://images.unsplash.com/photo-1556906781-9a412961c28c?w=400' }], saleEndTime: new Date(Date.now() + 86400000).toISOString() },
+    { _id: 'demo4', name: 'Puma RS-X', price: 12000, flashSalePrice: 7999, images: [{ url: 'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=400' }], saleEndTime: new Date(Date.now() + 86400000).toISOString() },
+    { _id: 'demo5', name: 'New Balance 574', price: 14000, flashSalePrice: 9999, images: [{ url: 'https://images.unsplash.com/photo-1539185441755-769473a23570?w=400' }], saleEndTime: new Date(Date.now() + 86400000).toISOString() },
+    { _id: 'demo6', name: 'Reebok Classic', price: 10000, flashSalePrice: 6999, images: [{ url: 'https://images.unsplash.com/photo-1552346154-21d32cc4bc09?w=400' }], saleEndTime: new Date(Date.now() + 86400000).toISOString() }
+  ];
+  
+  // Use demo products when DEBUG mode and no real products
+  const flashSaleProducts = realFlashSaleProducts.length > 0 ? realFlashSaleProducts : demoFlashSaleProducts;
 
   const containerVariants = {
     hidden: { opacity: 0 },
