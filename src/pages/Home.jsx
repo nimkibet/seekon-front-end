@@ -130,7 +130,7 @@ const Home = () => {
   const apparel = products.filter(product => product.category?.toLowerCase() === 'apparel').slice(0, 4);
   const flashSaleProducts = products.filter(p => 
     p.onFlashSale === true || (p.flashSalePrice && p.flashSalePrice > 0)
-  ).slice(0, 8);
+  ).slice(0, 6);
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -280,24 +280,53 @@ const Home = () => {
             variants={containerVariants}
             className="mb-16"
           >
-            <div className="flex items-center justify-between mb-8">
-              <div className="flex items-center gap-2">
-                <span className="text-4xl">🔥</span>
-                <h2 className="text-3xl md:text-4xl font-bold text-gray-900">
-                  Flash Sale
-                </h2>
+            {/* Flash Sale Banner */}
+            <div className="bg-gradient-to-r from-red-600 via-red-500 to-orange-500 rounded-2xl p-6 mb-6 text-white flex flex-col md:flex-row items-center justify-between gap-4 shadow-xl">
+              <div className="flex items-center gap-4">
+                <div className="bg-white/20 p-3 rounded-full animate-pulse">
+                  <FiZap size={32} />
+                </div>
+                <div>
+                  <h2 className="text-2xl md:text-3xl font-bold">Flash Sale</h2>
+                  <p className="text-white/80">Limited time offers - up to 70% OFF!</p>
+                </div>
               </div>
-              <Link to="/flash-sale" className="text-red-600 font-semibold hover:underline">
-                See All →
-              </Link>
+              {endTime && (
+                <div className="flex items-center gap-2 bg-black/20 px-4 py-2 rounded-lg">
+                  <FiClock size={20} />
+                  <span className="font-semibold">Ends in:</span>
+                  <div className="flex gap-2">
+                    {['Days', 'Hours', 'Mins', 'Secs'].map((label) => {
+                      const values = { 
+                        Days: Math.floor((endTime - new Date().getTime()) / (1000 * 60 * 60 * 24)), 
+                        Hours: Math.floor(((endTime - new Date().getTime()) % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)), 
+                        Mins: Math.floor(((endTime - new Date().getTime()) % (1000 * 60 * 60)) / (1000 * 60)), 
+                        Secs: Math.floor(((endTime - new Date().getTime()) % (1000 * 60)) / 1000) 
+                      };
+                      return (
+                        <div key={label} className="bg-white text-red-600 rounded px-2 py-1 text-center min-w-[50px]">
+                          <div className="text-xl font-black">{String(Math.max(0, values[label] || 0)).padStart(2, '0')}</div>
+                          <div className="text-[10px] font-bold uppercase">{label}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
-            <motion.div variants={containerVariants} className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            {/* Flash Sale Products */}
+            <motion.div variants={containerVariants} className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
               {flashSaleProducts.map((product) => (
                 <motion.div key={product._id || product.id} variants={itemVariants}>
                   <ProductCard product={product} />
                 </motion.div>
               ))}
             </motion.div>
+            <div className="text-center mt-6">
+              <Link to="/flash-sale" className="inline-flex items-center gap-2 bg-red-600 text-white px-6 py-3 rounded-full font-bold hover:bg-red-700 transition-colors shadow-lg">
+                See All Flash Sale Items →
+              </Link>
+            </div>
           </motion.section>
         )}
 
