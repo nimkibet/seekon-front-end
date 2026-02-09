@@ -6,6 +6,7 @@ import { FiArrowLeft, FiClock, FiZap } from 'react-icons/fi';
 import { fetchProducts } from '../store/slices/productSlice';
 import ProductCard from '../components/ProductCard';
 import PromotionalBanner from '../components/PromotionalBanner';
+import FlashSaleCountdown from '../components/FlashSaleCountdown';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useSettings } from '../context/SettingsContext';
@@ -147,23 +148,13 @@ const Home = () => {
   const sneakers = products.filter(product => product.category?.toLowerCase() === 'sneakers').slice(0, 4);
   const apparel = products.filter(product => product.category?.toLowerCase() === 'apparel').slice(0, 4);
   
-  // Flash sale products - use demo products if none found
-  const rawFlashSaleProducts = products.filter(p => 
-    p.onFlashSale === true || (p.flashSalePrice && p.flashSalePrice > 0)
+  // Flash sale products - filter from Redux products
+  // Check for: onFlashSale, isFlashSale, flashSalePrice
+  const flashSaleProducts = products.filter(p => 
+    p.onFlashSale === true || 
+    p.isFlashSale === true || 
+    (p.flashSalePrice && p.flashSalePrice > 0 && p.flashSalePrice < p.price)
   ).slice(0, 6);
-  
-  // Demo products for testing when no flash sale products exist
-  const demoFlashSaleProducts = [
-    { _id: 'demo1', name: 'Nike Air Max', price: 15000, flashSalePrice: 9999, images: [{ url: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400' }] },
-    { _id: 'demo2', name: 'Adidas Ultraboost', price: 18000, flashSalePrice: 12999, images: [{ url: 'https://images.unsplash.com/photo-1520256862855-398228c41684?w=400' }] },
-    { _id: 'demo3', name: 'Nike Air Jordan 1', price: 25000, flashSalePrice: 19999, images: [{ url: 'https://images.unsplash.com/photo-1556906781-9a412961c28c?w=400' }] },
-    { _id: 'demo4', name: 'Puma RS-X', price: 12000, flashSalePrice: 7999, images: [{ url: 'https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=400' }] },
-    { _id: 'demo5', name: 'New Balance 574', price: 14000, flashSalePrice: 9999, images: [{ url: 'https://images.unsplash.com/photo-1539185441755-769473a23570?w=400' }] },
-    { _id: 'demo6', name: 'Reebok Classic', price: 10000, flashSalePrice: 6999, images: [{ url: 'https://images.unsplash.com/photo-1552346154-21d32cc4bc09?w=400' }] }
-  ];
-  
-  // Use real products if available, otherwise demo products
-  const flashSaleProducts = rawFlashSaleProducts.length > 0 ? rawFlashSaleProducts : demoFlashSaleProducts;
 
   const containerVariants = {
     hidden: { opacity: 0 },
@@ -348,12 +339,51 @@ const Home = () => {
               )}
             </div>
             {/* Flash Sale Products */}
-            <motion.div variants={containerVariants} className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
-              {flashSaleProducts.map((product) => (
-                <motion.div key={product._id || product.id} variants={itemVariants}>
-                  <ProductCard product={product} />
-                </motion.div>
-              ))}
+            <motion.div variants={containerVariants} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+              {flashSaleProducts.map((product) => {
+                const discount = product.price > product.flashSalePrice 
+                  ? Math.round((1 - product.flashSalePrice / product.price) * 100)
+                  : 0;
+                return (
+                  <motion.div 
+                    key={product._id || product.id} 
+                    variants={itemVariants}
+                    className="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all overflow-hidden group border border-gray-100"
+                  >
+                    <div className="relative aspect-square bg-gray-100">
+                      <img 
+                        src={product.images?.[0]?.url || product.image || 'https://via.placeholder.com/400'} 
+                        alt={product.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      {/* Flash Sale Badge */}
+                      <div className="absolute top-2 left-2 flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-orange-500 to-red-500 rounded-full text-white text-xs font-bold">
+                        <FiZap className="w-3 h-3 animate-pulse" />
+                        FLASH SALE
+                      </div>
+                      {/* Discount Badge */}
+                      <div className="absolute top-2 right-2 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded">
+                        {discount}% OFF
+                      </div>
+                      {/* Individual Product Timer */}
+                      {product.saleEndTime && (
+                        <div className="absolute bottom-2 right-2 bg-black/70 backdrop-blur rounded-lg px-2 py-1">
+                          <FlashSaleCountdown endTime={product.saleEndTime} />
+                        </div>
+                      )}
+                    </div>
+                    <div className="p-4">
+                      <h3 className="font-bold text-gray-900 text-sm truncate mb-1">{product.name}</h3>
+                      <div className="flex items-center gap-2">
+                        <span className="text-red-600 font-bold text-lg">KSh {product.flashSalePrice?.toLocaleString()}</span>
+                        {product.price > product.flashSalePrice && (
+                          <span className="text-gray-400 line-through text-sm">KSh {product.price?.toLocaleString()}</span>
+                        )}
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
             </motion.div>
             <div className="text-center mt-6">
               <Link to="/flash-sale" className="inline-flex items-center gap-2 bg-red-600 text-white px-6 py-3 rounded-full font-bold hover:bg-red-700 transition-colors shadow-lg">

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
+import { FiZap, FiClock } from 'react-icons/fi';
+import FlashSaleCountdown from '../components/FlashSaleCountdown';
 
 const FlashSale = () => {
   const [loading, setLoading] = useState(true);
@@ -101,29 +103,50 @@ const FlashSale = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {products.map((product) => (
-              <Link to={`/product/${product._id}`} key={product._id} className="bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow overflow-hidden group">
-                <div className="relative aspect-square bg-gray-100">
-                  <img 
-                    src={product.images?.[0]?.url || product.image || 'https://via.placeholder.com/400'} 
-                    alt={product.name}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                  <div className="absolute top-2 right-2 bg-red-500 text-white text-xs font-bold px-2 py-1 rounded">
-                    {Math.round(((product.price - (product.flashSalePrice || product.price)) / product.price) * 100)}% OFF
-                  </div>
-                </div>
-                <div className="p-4">
-                  <h3 className="font-bold text-gray-900 truncate">{product.name}</h3>
-                  <div className="flex items-center gap-2 mt-2">
-                    <span className="text-red-600 font-bold text-lg">KSh {product.flashSalePrice || product.price}</span>
-                    {product.price > (product.flashSalePrice || 0) && (
-                      <span className="text-gray-400 line-through text-sm">KSh {product.price}</span>
+            {products.map((product) => {
+              const discount = product.price > product.flashSalePrice 
+                ? Math.round((1 - product.flashSalePrice / product.price) * 100)
+                : 0;
+              return (
+                <Link 
+                  to={`/product/${product._id}`} 
+                  key={product._id} 
+                  className="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all overflow-hidden group border border-gray-100"
+                >
+                  <div className="relative aspect-square bg-gray-100">
+                    <img 
+                      src={product.images?.[0]?.url || product.image || 'https://via.placeholder.com/400'} 
+                      alt={product.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    {/* Flash Sale Badge */}
+                    <div className="absolute top-2 left-2 flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-orange-500 to-red-500 rounded-full text-white text-xs font-bold">
+                      <FiZap className="w-3 h-3 animate-pulse" />
+                      FLASH SALE
+                    </div>
+                    {/* Discount Badge */}
+                    <div className="absolute top-2 right-2 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded">
+                      {discount}% OFF
+                    </div>
+                    {/* Individual Product Timer */}
+                    {product.saleEndTime && (
+                      <div className="absolute bottom-2 right-2 bg-black/70 backdrop-blur rounded-lg px-2 py-1">
+                        <FlashSaleCountdown endTime={product.saleEndTime} />
+                      </div>
                     )}
                   </div>
-                </div>
-              </Link>
-            ))}
+                  <div className="p-4">
+                    <h3 className="font-bold text-gray-900 truncate">{product.name}</h3>
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className="text-red-600 font-bold text-lg">KSh {product.flashSalePrice?.toLocaleString()}</span>
+                      {product.price > product.flashSalePrice && (
+                        <span className="text-gray-400 line-through text-sm">KSh {product.price?.toLocaleString()}</span>
+                      )}
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         )}
       </div>
