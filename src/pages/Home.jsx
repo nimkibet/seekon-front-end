@@ -16,9 +16,9 @@ const Home = () => {
   const { products, isLoading, error } = useSelector(state => state.products);
   const { flashSaleSettings } = useSettings();
   const [email, setEmail] = useState('');
-  const [endTime, setEndTime] = useState(null);
-  const [isFlashSaleActive, setIsFlashSaleActive] = useState(false);
-  const isAdminView = new URLSearchParams(location.search).get('admin') === 'true';
+  // Force flash sale for testing - set to true to always show
+  const [endTime, setEndTime] = useState(Date.now() + 86400000); // DEBUG: 24 hours from now
+  const [isFlashSaleActive, setIsFlashSaleActive] = useState(true); // DEBUG: Force true for testing
 
   // Dynamic hero settings from backend
   const [heroSettings, setHeroSettings] = useState({
