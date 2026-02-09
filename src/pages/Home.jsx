@@ -1,469 +1,218 @@
-import React, { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
-import { useSelector, useDispatch } from 'react-redux';
-import { useLocation, Link } from 'react-router-dom';
-import { FiArrowLeft, FiClock, FiExternalLink } from 'react-icons/fi';
-import { fetchProducts } from '../store/slices/productSlice';
-import HeroBanner from '../components/HeroBanner';
-import ProductCard from '../components/ProductCard';
-import FilterBar from '../components/FilterBar';
-import PromotionalBanner from '../components/PromotionalBanner';
-import FlashSaleCountdown from '../components/FlashSaleCountdown';
-import { SectionFallback, ProductCardSkeleton, EmptyState } from '../components/Fallbacks';
-import toast from 'react-hot-toast';
-import { useSettings } from '../context/SettingsContext';
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import axios from 'axios';
+import { ArrowRight, Clock, ShoppingBag } from 'lucide-react';
 
 const Home = () => {
-  const dispatch = useDispatch();
-  const location = useLocation();
-  const { products, isLoading, error } = useSelector(state => state.products);
-  const [email, setEmail] = useState('');
-  
-  // Use SettingsContext for global flash sale state - eliminates triple-fetch
-  const { flashSaleSettings } = useSettings();
-  const globalFlashSaleActive = flashSaleSettings?.isActive || false;
-  
-  const isAdminView = new URLSearchParams(location.search).get('admin') === 'true';
+  const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+  const [flashProducts, setFlashProducts] = useState([]);
+  const [trendingProducts, setTrendingProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [endTime, setEndTime] = useState(null);
+
+  // HARDCODED URLs (The ones that work)
+  const SETTINGS_URL = 'https://seekoon-backend-production.up.railway.app/api/settings/flash-sale';
+  const PRODUCTS_URL = 'https://seekoon-backend-production.up.railway.app/api/products';
 
   useEffect(() => {
-    dispatch(fetchProducts())
-      .unwrap()
-      .then(() => {
-        // Only show toast on initial load, not on updates
-        if (products.length === 0) {
-          toast.success('Products loaded successfully!');
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+
+        // 1. Fetch Timer Settings
+        const settingsRes = await axios.get(SETTINGS_URL);
+        const settingsData = settingsRes.data.value || settingsRes.data;
+        
+        if (settingsData && settingsData.endTime) {
+          setEndTime(new Date(settingsData.endTime).getTime());
         }
-      })
-      .catch((error) => {
-        console.error('Error fetching products:', error);
-        toast.error('Failed to load products. Please try again.');
-      });
-    
-    // Listen for product updates from admin
-    const handleProductsUpdated = () => {
-      dispatch(fetchProducts());
-    };
-    
-    window.addEventListener('productsUpdated', handleProductsUpdated);
-    
-    return () => {
-      window.removeEventListener('productsUpdated', handleProductsUpdated);
-    };
-  }, [dispatch, products.length]);
 
-  const handleNewsletterSubscribe = (e) => {
-    e.preventDefault();
-    if (!email) {
-      toast.error('Please enter your email address');
-      return;
-    }
-    
-    if (!/\S+@\S+\.\S+/.test(email)) {
-      toast.error('Please enter a valid email address');
-      return;
-    }
-    
-    // Simulate newsletter subscription
-    toast.success('Successfully subscribed to newsletter!');
-    setEmail('');
-  };
+        // 2. Fetch Products
+        const productsRes = await axios.get(PRODUCTS_URL);
+        const allProducts = productsRes.data.products || productsRes.data || [];
+        
+        // Filter for Flash Sale (Client Side)
+        const saleItems = allProducts.filter(p => 
+          p.onFlashSale === true || 
+          (p.flashSalePrice && p.flashSalePrice > 0)
+        );
+        setFlashProducts(saleItems.slice(0, 4)); // Show top 4
+        
+        // Trending (Just take the first 4 regular items for now)
+        setTrendingProducts(allProducts.slice(0, 4));
+      } catch (error) {
+        console.error("Home fetch error:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
-  // Simple test render first
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary-600 mx-auto mb-4"></div>
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Loading Seekon Apparel...</h2>
-          <p className="text-gray-600 dark:text-gray-400 mt-2">Please wait while we load the latest products</p>
+  // Timer Logic
+  useEffect(() => {
+    if (!endTime) return;
+    const timer = setInterval(() => {
+      const now = new Date().getTime();
+      const distance = endTime - now;
+      if (distance < 0) {
+        clearInterval(timer);
+        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+      } else {
+        setTimeLeft({
+          days: Math.floor(distance / (1000 * 60 * 60 * 24)),
+          hours: Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+          minutes: Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60)),
+          seconds: Math.floor((distance % (1000 * 60)) / 1000),
+        });
+      }
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [endTime]);
+
+  const ProductCard = ({ product, badgeColor = "bg-red-500" }) => (
+    <Link to={`/product/${product._id}`} className="group bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300">
+      <div className="relative aspect-square bg-gray-100 overflow-hidden">
+        <img 
+          src={product.images?.[0]?.url || product.image || 'https://via.placeholder.com/400'}
+          alt={product.name}
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+        />
+        {product.flashSalePrice && (
+          <div className={`absolute top-3 right-3 ${badgeColor} text-white text-xs font-bold px-2 py-1 rounded shadow-md`}>
+            {Math.round(((product.price - product.flashSalePrice) / product.price) * 100)}% OFF
+          </div>
+        )}
+      </div>
+      <div className="p-4">
+        <h3 className="font-semibold text-gray-900 truncate group-hover:text-blue-600 transition-colors">
+          {product.name}
+        </h3>
+        <p className="text-sm text-gray-500 mt-1">{product.brand}</p>
+        <div className="flex items-center gap-2 mt-3">
+          <span className="text-lg font-bold text-gray-900">
+            KSh {product.flashSalePrice || product.price}
+          </span>
+          {product.flashSalePrice && (
+            <span className="text-sm text-gray-400 line-through">
+              KSh {product.price}
+            </span>
+          )}
         </div>
+      </div>
+    </Link>
+  );
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black"></div>
       </div>
     );
   }
 
-  // Get different product categories for sections - limit to 6 each
-  const trendingProducts = products.filter(product => product.isFeatured).slice(0, 6);
-  const newProducts = products.filter(product => product.newProduct).slice(0, 6);
-  const saleProducts = products.filter(product => product.discount > 0).slice(0, 6);
-  
-  // Flash Sale products - only active ones
-  const now = new Date();
-  const flashSaleProducts = products.filter(product => 
-    product.isFlashSale && 
-    product.flashSalePrice && 
-    product.saleEndTime &&
-    new Date(product.saleEndTime) > now
-  ).slice(0, 8);
-  
-  // Check if flash sale is currently active (Global setting OR if products are on sale)
-  const isFlashSaleActive = globalFlashSaleActive || flashSaleProducts.length > 0;
-  
-  // FIXED: Use case-insensitive category filtering - limit to 6 each
-  const sneakers = products.filter(product => product.category?.toLowerCase() === 'sneakers').slice(0, 6);
-  const apparel = products.filter(product => product.category?.toLowerCase() === 'apparel').slice(0, 6);
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1
-      }
-    }
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0 }
-  };
-
   return (
-    <div className="min-h-screen bg-seekon-platinumSilver">
-      {/* Admin Mode Banner */}
-      {isAdminView && (
-        <div className="bg-gradient-to-r from-[#00A676] to-[#008A5E] text-white p-3 flex items-center justify-between shadow-lg sticky top-0 z-50">
-          <div className="flex items-center space-x-3">
-            <FiArrowLeft className="w-5 h-5" />
-            <span className="font-semibold">Admin Shop View Mode</span>
-            <span className="text-xs bg-white/20 px-2 py-1 rounded">You're viewing as admin</span>
+    <div className="bg-gray-50 min-h-screen">
+      {/* HERO SECTION */}
+      <div className="relative bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white overflow-hidden">
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-0 left-0 w-96 h-96 bg-white rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
+          <div className="absolute bottom-0 right-0 w-96 h-96 bg-gray-400 rounded-full blur-3xl translate-x-1/2 translate-y-1/2"></div>
+        </div>
+        
+        <div className="container mx-auto px-4 py-20 md:py-32 relative z-10">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-12">
+            <div className="flex-1 text-center md:text-left">
+              <div className="inline-flex items-center gap-2 bg-red-500/20 text-red-400 px-4 py-2 rounded-full text-sm font-bold mb-6">
+                <ShoppingBag size={16} /> New Collection 2025
+              </div>
+              <h1 className="text-4xl md:text-6xl lg:text-7xl font-black mb-6 leading-tight">
+                STEP INTO
+                <br />
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400">
+                  THE FUTURE
+                </span>
+              </h1>
+              <p className="text-gray-400 text-lg md:text-xl mb-8 max-w-lg">
+                Discover the latest drops from Nike, Adidas, Jordan, and more. 
+                Premium footwear for those who lead the way.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
+                <Link 
+                  to="/collection" 
+                  className="inline-flex items-center justify-center gap-2 bg-white text-black px-8 py-4 rounded-full font-bold hover:bg-gray-100 transition-all hover:scale-105 shadow-xl shadow-white/10"
+                >
+                  Shop Now <ArrowRight size={20} />
+                </Link>
+                <Link 
+                  to="/flash-sale" 
+                  className="inline-flex items-center justify-center gap-2 bg-red-600 text-white px-8 py-4 rounded-full font-bold hover:bg-red-700 transition-all hover:scale-105 shadow-xl shadow-red-600/20"
+                >
+                  🔥 Flash Sale
+                </Link>
+              </div>
+            </div>
+            
+            {/* TIMER CARD */}
+            <div className="bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/20 shadow-xl">
+              <div className="flex items-center gap-2 mb-4 text-sm font-bold uppercase tracking-widest opacity-80">
+                <Clock size={16} /> Ending In
+              </div>
+              <div className="flex gap-3">
+                {[
+                  { label: 'Days', val: timeLeft.days },
+                  { label: 'Hours', val: timeLeft.hours },
+                  { label: 'Mins', val: timeLeft.minutes },
+                  { label: 'Secs', val: timeLeft.seconds }
+                ].map((item) => (
+                  <div key={item.label} className="bg-white text-red-600 rounded-lg p-3 min-w-[70px] text-center">
+                    <div className="text-2xl md:text-3xl font-black">{String(item.val).padStart(2, '0')}</div>
+                    <div className="text-[10px] font-bold uppercase text-gray-500">{item.label}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
-          <Link 
-            to="/admin/dashboard"
-            className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors font-medium"
-          >
-            Back to Admin Dashboard
-          </Link>
+        </div>
+      </div>
+
+      {/* NEW SECTION: FLASH SALE PREVIEW */}
+      {flashProducts.length > 0 && (
+        <div className="container mx-auto px-4 mt-16 max-w-6xl">
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-2xl md:text-3xl font-bold flex items-center gap-2">
+              🔥 Flash Sale Deals
+            </h2>
+            <Link to="/flash-sale" className="text-red-600 font-semibold hover:underline">
+              See All →
+            </Link>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+            {flashProducts.map(product => (
+              <ProductCard key={product._id} product={product} badgeColor="bg-red-600" />
+            ))}
+          </div>
         </div>
       )}
 
-      {/* Promotional Banner */}
-      <PromotionalBanner 
-        message="Seekon Apparel — Live bold. Dress sharper. Walk your story. • NEW ARRIVALS: LIMITED TIME OFFER - UPTO 30% OFF ON SELECTED ITEMS!"
-        backgroundColor="bg-gradient-primary"
-        textColor="text-seekon-pureWhite"
-        showIcons={true}
-        animated={true}
-        scrollSpeed="slow"
-      />
-      
-      {/* Hero Banner */}
-      <HeroBanner />
-
-      {/* Flash Sale Section - Shows when admin activates flash sale */}
-      {isFlashSaleActive && (
-        <motion.section
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-r from-red-600 via-red-500 to-orange-500 relative overflow-hidden"
-        >
-          {/* Animated background particles */}
-          <div className="absolute inset-0 overflow-hidden">
-            <div className="absolute -top-24 -right-24 w-96 h-96 bg-white/10 rounded-full blur-3xl animate-pulse"></div>
-            <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-yellow-400/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
-          </div>
-          
-          <div className="relative max-w-7xl mx-auto px-2 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6">
-            {/* Flash Sale Header */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-4">
-              <div className="flex items-center gap-3">
-                <div className="bg-white text-red-600 px-4 py-2 rounded-xl font-bold text-lg shadow-lg animate-bounce">
-                  🔥 FLASH SALE
-                </div>
-                <div className="text-white">
-                  <h2 className="text-2xl sm:text-3xl font-bold">HUGE DISCOUNTS!</h2>
-                  <p className="text-red-100 text-sm">Limited time offers on premium items</p>
-                </div>
-              </div>
-              
-              {/* Countdown Timer */}
-              <div className="flex items-center gap-2">
-                <FiClock className="text-white w-5 h-5" />
-                <FlashSaleCountdown products={flashSaleProducts} />
-              </div>
-              
-              {/* View All Link */}
-              <Link
-                to="/flash-sale"
-                className="bg-white text-red-600 px-6 py-2 rounded-full font-bold hover:bg-red-50 transition-colors flex items-center gap-2 shadow-lg"
-              >
-                View All Deals
-                <FiExternalLink className="w-4 h-4" />
-              </Link>
-            </div>
-            
-            {/* Flash Sale Products Grid */}
-            {isLoading ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-4">
-                {[...Array(5)].map((_, index) => (
-                  <div key={index} className="bg-white/20 rounded-xl h-48 animate-pulse"></div>
-                ))}
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 sm:gap-4">
-                {flashSaleProducts.map((product) => (
-                  <motion.div
-                    key={product.id}
-                    whileHover={{ scale: 1.02 }}
-                    className="bg-white rounded-xl p-2 shadow-lg"
-                  >
-                    <ProductCard product={product} />
-                  </motion.div>
-                ))}
-              </div>
-            )}
-          </div>
-        </motion.section>
-      )}
-
-      {/* Main Content */}
-        <div className="max-w-7xl mx-auto px-2 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8 lg:py-12 bg-seekon-platinumSilver">
-        {/* Trending Now Section */}
-        <motion.section
-          initial="hidden"
-          animate="visible"
-          variants={containerVariants}
-          className="mb-16"
-        >
-          <div className="flex items-center justify-between mb-8">
-            <div className="text-center flex-1">
-              <motion.h2
-                variants={itemVariants}
-                className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4"
-              >
-                Trending Now
-              </motion.h2>
-              <motion.p
-                variants={itemVariants}
-                className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto"
-              >
-                Discover the most popular sneakers and apparel that everyone's talking about
-              </motion.p>
-            </div>
-            <Link
-              to="/collection?filter=featured"
-              className="text-[#00A676] hover:text-[#008A5E] font-medium whitespace-nowrap ml-4"
-            >
-              See All →
-            </Link>
-          </div>
-
-          {isLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-              {[...Array(8)].map((_, index) => (
-                <div key={index} className="animate-pulse">
-                  <div className="bg-gray-300 dark:bg-gray-700 rounded-xl h-64 mb-4"></div>
-                  <div className="space-y-2">
-                    <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-3/4"></div>
-                    <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-1/2"></div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <motion.div
-              variants={containerVariants}
-              className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-4 md:gap-6"
-            >
-              {trendingProducts.map((product) => (
-                <motion.div key={product.id} variants={itemVariants}>
-                  <ProductCard product={product} />
-                </motion.div>
-              ))}
-            </motion.div>
-          )}
-        </motion.section>
-
-        {/* Categories Section */}
-        <motion.section
-          initial="hidden"
-          animate="visible"
-          variants={containerVariants}
-          className="mb-16"
-        >
-          <div className="text-center mb-8">
-            <motion.h2
-              variants={itemVariants}
-              className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4"
-            >
-              Shop by Category
-            </motion.h2>
-            <motion.p
-              variants={itemVariants}
-              className="text-lg text-gray-600 dark:text-gray-400"
-            >
-              Find exactly what you're looking for
-            </motion.p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Sneakers */}
-            <motion.div variants={itemVariants} className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                  Sneakers
-                </h3>
-                <Link
-                  to="/collection/sneakers"
-                  className="text-[#00A676] hover:text-[#008A5E] text-sm font-medium"
-                >
-                  See All →
-                </Link>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                {sneakers.map((product) => (
-                  <ProductCard key={product.id} product={product} />
-                ))}
-              </div>
-            </motion.div>
-
-            {/* Apparel */}
-            <motion.div variants={itemVariants} className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-lg">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                  Apparel
-                </h3>
-                <Link
-                  to="/collection/apparel"
-                  className="text-[#00A676] hover:text-[#008A5E] text-sm font-medium"
-                >
-                  See All →
-                </Link>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                {apparel.map((product) => (
-                  <ProductCard key={product.id} product={product} />
-                ))}
-              </div>
-            </motion.div>
-          </div>
-        </motion.section>
-
-        {/* New Arrivals Section */}
-        <motion.section
-          initial="hidden"
-          animate="visible"
-          variants={containerVariants}
-          className="mb-16"
-        >
-          <div className="flex items-center justify-between mb-8">
-            <div className="text-center flex-1">
-              <motion.h2
-                variants={itemVariants}
-                className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4"
-              >
-                New Arrivals
-              </motion.h2>
-              <motion.p
-                variants={itemVariants}
-                className="text-lg text-gray-600 dark:text-gray-400"
-              >
-                Be the first to get your hands on the latest drops
-              </motion.p>
-            </div>
-            <Link
-              to="/collection?filter=new"
-              className="text-[#00A676] hover:text-[#008A5E] font-medium whitespace-nowrap ml-4"
-            >
-              See All →
-            </Link>
-          </div>
-
-          <motion.div
-            variants={containerVariants}
-            className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-2 sm:gap-4 md:gap-6"
-          >
-            {newProducts.map((product) => (
-              <motion.div key={product.id} variants={itemVariants}>
-                <ProductCard product={product} />
-              </motion.div>
-            ))}
-          </motion.div>
-        </motion.section>
-
-        {/* Sale Section */}
-        <motion.section
-          initial="hidden"
-          animate="visible"
-          variants={containerVariants}
-          className="mb-16"
-        >
-          <div className="flex items-center justify-between mb-8">
-            <div className="text-center flex-1">
-              <motion.h2
-                variants={itemVariants}
-                className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-100 mb-4"
-              >
-                Limited Time Offers
-              </motion.h2>
-              <motion.p
-                variants={itemVariants}
-                className="text-lg text-gray-600 dark:text-gray-400"
-              >
-                Don't miss out on these amazing deals
-              </motion.p>
-            </div>
-            <Link
-              to="/collection?filter=sale"
-              className="text-[#00A676] hover:text-[#008A5E] font-medium whitespace-nowrap ml-4"
-            >
-              See All →
-            </Link>
-          </div>
-
-          <motion.div
-            variants={containerVariants}
-            className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 gap-2 sm:gap-4 md:gap-6"
-          >
-            {saleProducts.map((product) => (
-              <motion.div key={product.id} variants={itemVariants}>
-                <ProductCard product={product} />
-              </motion.div>
-            ))}
-          </motion.div>
-        </motion.section>
-
-        {/* Newsletter Section */}
-        <motion.section
-          initial="hidden"
-          animate="visible"
-          variants={containerVariants}
-          className="rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8 lg:p-12 text-center"
-          style={{
-            background: 'linear-gradient(135deg, #FAFAFA 0%, #1F1F1F 100%)'
-          }}
-        >
-          <motion.div variants={itemVariants}>
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4 text-[#FAFAFA]"
-                style={{ textShadow: '0 2px 4px rgba(31,31,31,0.5)' }}>
-              Stay in the Loop
-            </h2>
-            <p className="text-base sm:text-lg mb-6 sm:mb-8 max-w-2xl mx-auto text-[#FAFAFA]"
-               style={{ textShadow: '0 2px 4px rgba(31,31,31,0.5)' }}>
-              Get exclusive access to new drops, special offers, and style tips delivered straight to your inbox.
-            </p>
-            <div className="max-w-sm sm:max-w-md mx-auto flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
-              <input
-                type="email"
-                placeholder="Enter your email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="flex-1 px-4 py-3 rounded-lg text-[#1F1F1F] bg-[#FAFAFA] border-2 border-[#00A676] focus:outline-none focus:ring-2 focus:ring-[#00A676]/50 placeholder:text-gray-600"
-              />
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={handleNewsletterSubscribe}
-                className="px-6 py-3 bg-[#00A676] text-[#FAFAFA] font-semibold rounded-lg hover:bg-[#008A5E] transition-colors duration-200"
-              >
-                Subscribe
-              </motion.button>
-            </div>
-          </motion.div>
-        </motion.section>
+      {/* TRENDING SECTION */}
+      <div className="container mx-auto px-4 mt-20 max-w-6xl">
+        <div className="flex items-center justify-between mb-8">
+          <h2 className="text-2xl md:text-3xl font-bold text-gray-900">
+            Trending Now
+          </h2>
+          <Link to="/products" className="text-gray-600 hover:text-black font-semibold">
+            View All
+          </Link>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+          {trendingProducts.map(product => (
+            <ProductCard key={product._id} product={product} badgeColor="bg-blue-600" />
+          ))}
+        </div>
       </div>
     </div>
   );
 };
 
 export default Home;
-
