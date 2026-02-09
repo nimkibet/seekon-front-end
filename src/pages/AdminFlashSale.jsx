@@ -108,6 +108,21 @@ const AdminFlashSale = () => {
     }
   };
 
+  // Save global settings
+  const handleSaveGlobalSettings = async () => {
+    try {
+      setIsSavingSettings(true);
+      await adminApi.updateFlashSaleSettings(globalSettings);
+      updateFlashSaleSettings(globalSettings);
+      toast.success('Global flash sale settings updated!');
+    } catch (error) {
+      console.error('Error saving global settings:', error);
+      toast.error('Failed to save global settings');
+    } finally {
+      setIsSavingSettings(false);
+    }
+  };
+
   const quickToggleFlashSale = async (product) => {
     try {
       const newFlashSaleStatus = !product.isFlashSale;
