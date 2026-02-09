@@ -39,6 +39,39 @@ export const uploadToCloudinary = async (file, folder = 'seekon-products') => {
   }
 };
 
+// Upload video to Cloudinary
+export const uploadVideoToCloudinary = async (file, folder = 'seekon-videos') => {
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('upload_preset', cloudinaryConfig.uploadPreset);
+    formData.append('folder', folder);
+    formData.append('resource_type', 'video');
+
+    const response = await fetch(
+      `https://api.cloudinary.com/v1_1/${cloudinaryConfig.cloudName}/video/upload`,
+      {
+        method: 'POST',
+        body: formData,
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error('Video upload failed');
+    }
+
+    const data = await response.json();
+    return {
+      url: data.secure_url,
+      publicId: data.public_id,
+      duration: data.duration,
+    };
+  } catch (error) {
+    console.error('Cloudinary video upload error:', error);
+    throw error;
+  }
+};
+
 // Upload avatar to Cloudinary
 export const uploadAvatarToCloudinary = async (file) => {
   return uploadToCloudinary(file, 'seekon-avatars');
