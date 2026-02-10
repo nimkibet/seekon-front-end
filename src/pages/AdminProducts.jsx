@@ -36,13 +36,31 @@ const AdminProducts = () => {
     }
   };
 
-  // Sorting and filtering logic
+  // DEBUG: Log what we are trying to filter
+  // console.log("Filtering by:", selectedCategory, "Search:", searchTerm);
   const filteredAndSortedProducts = products
     .filter(product => {
+      // 1. Normalize Search Term
+      const searchLower = searchTerm ? searchTerm.toLowerCase() : '';
+
+      // 2. Normalize Category Selection (Handle 'All Categories' and 'All')
+      const categoryFilter = (filterCategory === 'all' || filterCategory === 'All Categories') 
+        ? null 
+        : filterCategory.toLowerCase();
+      // 3. Normalize Product Data (Safe Check)
+      const prodName = product.name ? product.name.toLowerCase() : '';
+      const prodBrand = product.brand ? product.brand.toLowerCase() : '';
+      const prodCategory = product.category ? product.category.toLowerCase() : '';
+      // 4. CHECK 1: Search Match
       const matchesSearch = 
-        product.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.brand?.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesCategory = filterCategory === 'all' || product.category === filterCategory;
+        prodName.includes(searchLower) ||
+        prodBrand.includes(searchLower) ||
+        prodCategory.includes(searchLower);
+      // 5. CHECK 2: Category Match
+      // If filter is null ('all'), it passes. Otherwise, exact match required.
+      const matchesCategory = categoryFilter 
+        ? prodCategory === categoryFilter 
+        : true;
       return matchesSearch && matchesCategory;
     })
     .sort((a, b) => {
