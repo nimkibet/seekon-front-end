@@ -64,6 +64,19 @@ const ProductModal = ({ isOpen, onClose, product, onSave }) => {
 
   useEffect(() => {
     if (product) {
+      console.log('[DEBUG] ProductModal - product data:', JSON.stringify(product, null, 2));
+      
+      // Safe date parsing with validation
+      const parseDate = (dateStr) => {
+        if (!dateStr) return '';
+        const date = new Date(dateStr);
+        if (isNaN(date.getTime())) {
+          console.warn('[DEBUG] Invalid date:', dateStr);
+          return '';
+        }
+        return date.toISOString().slice(0, 16);
+      };
+      
       const imagesArray = product.images || (product.image ? [product.image] : []);
       setFormData({
         name: product.name || '',
@@ -81,11 +94,11 @@ const ProductModal = ({ isOpen, onClose, product, onSave }) => {
         isFeatured: product.isFeatured || false,
         isNew: product.isNew || false,
         isBestSeller: product.isBestSeller || false,
-        // Flash Sale fields
+        // Flash Sale fields - use safe date parsing
         isFlashSale: product.isFlashSale || false,
         flashSalePrice: product.flashSalePrice || '',
-        saleStartTime: product.saleStartTime ? new Date(product.saleStartTime).toISOString().slice(0, 16) : '',
-        saleEndTime: product.saleEndTime ? new Date(product.saleEndTime).toISOString().slice(0, 16) : ''
+        saleStartTime: parseDate(product.saleStartTime),
+        saleEndTime: parseDate(product.saleEndTime)
       });
       setCurrentImages(imagesArray);
     } else {
@@ -128,39 +141,22 @@ const ProductModal = ({ isOpen, onClose, product, onSave }) => {
     setErrors(prev => ({ ...prev, [name]: '' }));
   };
 
-  const handleImageUpload = (imageInfo, index = 0) => {
-    console.log('[DEBUG] handleImageUpload called with:', imageInfo, 'at index:', index);
+  const handleImageUpload = (imageInfo) => {
+    console.log('[DEBUG] handleImageUpload called with:', imageInfo);
     
-    // Handle multiple images (array) - add as new slots
+    // Handle multiple images (array) - ALWAYS APPEND to the end of the array
     if (Array.isArray(imageInfo)) {
       console.log('[DEBUG] Multiple images uploaded:', imageInfo.length);
       const newUrls = imageInfo.map(img => img.url || img);
       
-      setCurrentImages(prev => {
-        const newImages = [...prev];
-        // Replace from index onwards with new images
-        newUrls.forEach((url, i) => {
-          const targetIndex = index + i;
-          if (targetIndex < newImages.length) {
-            newImages[targetIndex] = url;
-          } else {
-            newImages.push(url);
-          }
-        });
-        console.log('[DEBUG] newImages after update:', newImages);
-        return newImages;
+      // APPEND to the existing list instead of overwriting specific indices
+      setCurrentImages(prevImages => {
+        const validImages = prevImages.filter(img => img !== null);
+        return [...validImages, ...newUrls];
       });
       
       setFormData(prev => {
-        const newImages = [...(prev.images || [])];
-        newUrls.forEach((url, i) => {
-          const targetIndex = index + i;
-          if (targetIndex < newImages.length) {
-            newImages[targetIndex] = url;
-          } else {
-            newImages.push(url);
-          }
-        });
+        const newImages = [...(prev.images || []), ...newUrls];
         return {
           ...prev,
           images: newImages,
@@ -170,25 +166,18 @@ const ProductModal = ({ isOpen, onClose, product, onSave }) => {
       return;
     }
     
-    // Handle single image (backward compatibility)
+    // Handle single image (backward compatibility) - also APPEND
     const imageUrl = imageInfo.url || imageInfo;
     console.log('[DEBUG] Single image uploaded:', imageUrl);
-    console.log('[DEBUG] currentImages before update:', currentImages);
     
-    setCurrentImages(prev => {
-      const newImages = [...prev];
-      // Ensure we have enough slots
-      while (newImages.length <= index) {
-        newImages.push(null);
-      }
-      newImages[index] = imageUrl;
-      console.log('[DEBUG] newImages after update:', newImages);
-      return newImages;
+    setCurrentImages(prevImages => {
+      const validImages = prevImages.filter(img => img !== null);
+      return [...validImages, imageUrl];
     });
     setFormData(prev => ({
       ...prev,
-      image: index === 0 ? imageUrl : prev.image,
-      images: [...(prev.images || [])].map((img, i) => i === index ? imageUrl : img)
+      image: prev.image || imageUrl,
+      images: [...(prev.images || []), imageUrl]
     }));
   };
 
@@ -342,7 +331,7 @@ const ProductModal = ({ isOpen, onClose, product, onSave }) => {
                       <div className="flex items-center space-x-2">
                         <div className="flex-1">
                           <ImageUpload
-                            onImageUpload={(imageInfo) => handleImageUpload(imageInfo, 0)}
+                            onImageUpload={(imageInfo) => handleImageUpload(imageInfo)}
                             onAddImages={handleAddImages}
                             onImageRemove={() => handleImageRemove(0)}
                             initialImage={currentImages[0]}
@@ -360,7 +349,7 @@ const ProductModal = ({ isOpen, onClose, product, onSave }) => {
                       <div className="flex items-center space-x-2">
                         <div className="flex-1">
                           <ImageUpload
-                            onImageUpload={(imageInfo) => handleImageUpload(imageInfo, idx + 1)}
+                            onImageUpload={(imageInfo) => handleImageUpload(imageInfo)}
                             onImageRemove={() => handleImageRemove(idx + 1)}
                             initialImage={img}
                             label={`Additional Image ${idx + 1}`}

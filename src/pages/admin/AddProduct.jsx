@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { FiArrowLeft, FiUpload, FiX, FiPlus, FiTrash2 } from 'react-icons/fi';
 import { Link, useNavigate } from 'react-router-dom';
@@ -39,6 +39,8 @@ const AddProduct = () => {
   const [images, setImages] = useState([]);
   const [imagesPreview, setImagesPreview] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
+  const singleImageInputRef = useRef(null);
+  const multipleImageInputRef = useRef(null);
 
   // Category data
   const categoryData = {
@@ -81,30 +83,56 @@ const AddProduct = () => {
     }));
   };
 
-  // Handle image selection - APPEND not overwrite
-  const handleImageChange = (e) => {
+  // Handle single image upload - uses separate input to allow adding one at a time
+  const handleSingleImageUpload = () => {
+    singleImageInputRef.current?.click();
+  };
+
+  // Handle multiple images upload
+  const handleMultipleImageUpload = () => {
+    multipleImageInputRef.current?.click();
+  };
+
+  // Handle single image selection
+  const handleSingleImageChange = (e) => {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
 
-    console.log('[DEBUG] New files selected:', files.length);
+    console.log('[DEBUG] Single image selected:', files[0].name);
 
-    // 1. Append new files to the existing array (Don't overwrite!)
-    setImages((prevImages) => {
-      const updated = [...prevImages, ...files];
-      console.log('[DEBUG] Total images after append:', updated.length);
-      return updated;
-    });
+    // Add single file to existing array
+    setImages((prevImages) => [...prevImages, files[0]]);
 
-    // 2. Generate and append new previews
-    const newPreviews = files.map((file) => URL.createObjectURL(file));
-    setImagesPreview((prevPreviews) => {
-      const updated = [...prevPreviews, ...newPreviews];
-      console.log('[DEBUG] Total previews after append:', updated.length);
-      return updated;
-    });
+    // Generate preview
+    const newPreview = URL.createObjectURL(files[0]);
+    setImagesPreview((prevPreviews) => [...prevPreviews, newPreview]);
 
-    // Clear input
+    // Clear input and reset ref
     e.target.value = '';
+    if (singleImageInputRef.current) {
+      singleImageInputRef.current.value = '';
+    }
+  };
+
+  // Handle multiple images selection
+  const handleMultipleImageChange = (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
+
+    console.log('[DEBUG] Multiple images selected:', files.length);
+
+    // Add all files to existing array
+    setImages((prevImages) => [...prevImages, ...files]);
+
+    // Generate previews
+    const newPreviews = files.map((file) => URL.createObjectURL(file));
+    setImagesPreview((prevPreviews) => [...prevPreviews, ...newPreviews]);
+
+    // Clear input and reset ref
+    e.target.value = '';
+    if (multipleImageInputRef.current) {
+      multipleImageInputRef.current.value = '';
+    }
   };
 
   // Remove image at specific index
@@ -260,7 +288,7 @@ const AddProduct = () => {
           
           <div className="mb-4">
             <p className="text-gray-400 text-sm mb-2">
-              Upload multiple images. Select files one at a time to add them all.
+              Click the buttons below to add images one at a time or select multiple at once. All images will be stacked.
             </p>
           </div>
 
@@ -291,30 +319,55 @@ const AddProduct = () => {
             </div>
           )}
 
-          {/* Upload Button */}
-          <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-white/20 rounded-xl cursor-pointer hover:border-[#00A676] transition-colors">
-            <div className="flex flex-col items-center justify-center pt-5 pb-6">
-              <FiUpload className="w-8 h-8 text-gray-400 mb-2" />
-              <p className="text-sm text-gray-400">
-                <span className="font-semibold text-[#00A676]">Click to upload</span> or drag and drop
-              </p>
-              <p className="text-xs text-gray-500 mt-1">PNG, JPG, GIF up to 5MB each</p>
-            </div>
-            <input
-              type="file"
-              accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
-              multiple
-              onChange={handleImageChange}
-              className="hidden"
+          {/* Upload Buttons */}
+          <div className="flex gap-4 mb-4">
+            {/* Single Image Upload Button */}
+            <button
+              type="button"
+              onClick={handleSingleImageUpload}
               disabled={isUploading}
-            />
-          </label>
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-white/5 border border-white/20 rounded-lg text-gray-300 hover:border-[#00A676] hover:text-[#00A676] transition-colors"
+            >
+              <FiPlus className="w-5 h-5" />
+              <span>Add Single Image</span>
+            </button>
+
+            {/* Multiple Images Upload Button */}
+            <button
+              type="button"
+              onClick={handleMultipleImageUpload}
+              disabled={isUploading}
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-white/5 border border-white/20 rounded-lg text-gray-300 hover:border-[#00A676] hover:text-[#00A676] transition-colors"
+            >
+              <FiUpload className="w-5 h-5" />
+              <span>Add Multiple Images</span>
+            </button>
+          </div>
+
+          {/* Hidden Inputs */}
+          <input
+            ref={singleImageInputRef}
+            type="file"
+            accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+            onChange={handleSingleImageChange}
+            className="hidden"
+            disabled={isUploading}
+          />
+          <input
+            ref={multipleImageInputRef}
+            type="file"
+            accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
+            multiple
+            onChange={handleMultipleImageChange}
+            className="hidden"
+            disabled={isUploading}
+          />
 
           {isUploading && (
             <div className="mt-4 text-center">
               <div className="inline-flex items-center gap-2 text-[#00A676]">
                 <FiPlus className="w-5 h-5 animate-spin" />
-                <span>Uploading images...</span>
+                <span>Processing images...</span>
               </div>
             </div>
           )}
