@@ -49,7 +49,7 @@ const ProductCard = ({ product, viewMode = 'grid' }) => {
     if (!isAuthenticated) {
       const currentPath = window.location.pathname;
       localStorage.setItem('redirectAfterLogin', currentPath);
-      toast.info('Please login to add items to your cart', { icon: '🔐' });
+      toast('Please login to add items to your cart', { icon: '🔐' });
       navigate('/login');
       return;
     }
@@ -99,7 +99,7 @@ const ProductCard = ({ product, viewMode = 'grid' }) => {
     if (!isAuthenticated) {
       const currentPath = window.location.pathname;
       localStorage.setItem('redirectAfterLogin', currentPath);
-      toast.info('Please login to add items to your wishlist', { icon: '🔐' });
+      toast('Please login to add items to your wishlist', { icon: '🔐' });
       navigate('/login');
       return;
     }
