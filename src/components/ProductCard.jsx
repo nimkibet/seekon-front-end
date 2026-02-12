@@ -36,7 +36,7 @@ const ProductCard = ({ product, viewMode = 'grid' }) => {
   // Check wishlist status
   useEffect(() => {
     if (product?.id) {
-      const inWishlist = wishlist.some(item => item.id === product.id);
+      const inWishlist = wishlist.some(item => item.id === productId);
       setIsWishlisted(inWishlist);
     }
   }, [wishlist, product]);
@@ -87,7 +87,7 @@ const ProductCard = ({ product, viewMode = 'grid' }) => {
     e.stopPropagation();
     
     if (isWishlisted) {
-      dispatch(removeFromWishlistLocal({ id: product.id })); // Use 'id' to match slice
+      dispatch(removeFromWishlistLocal({ id: productId })); // Use 'id' to match slice
       toast.success('Removed from wishlist');
     } else {
       dispatch(addToWishlistLocal(product));
@@ -110,12 +110,18 @@ const ProductCard = ({ product, viewMode = 'grid' }) => {
   // If product is empty/loading, return nothing (or skeleton if you prefer)
   if (!product) return null;
 
+  // SAFETY CHECK: Get the ID, trying multiple common formats
+  const productId = product._id || product.id || product.productId;
+
+  // If no ID exists, don't render a broken link
+  if (!productId) return null;
+
   return (
     <motion.div
       whileHover={{ y: -4 }}
       className="bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden group"
     >
-      <Link to={`/product/${product.id}`} className="block">
+      <Link to={`/product/${productId}`} className="block">
         {/* Image Container */}
         <div className="relative aspect-square overflow-hidden bg-gray-100">
           <img
@@ -209,7 +215,7 @@ const ProductCard = ({ product, viewMode = 'grid' }) => {
             <div className="flex space-x-1">
               {safeColors.slice(0, 3).map((color, idx) => (
                 <button
-                  key={`${product.id}-${color}-${idx}`}
+                  key={`${productId}-${color}-${idx}`}
                   onClick={(e) => handleColorSelect(e, color)}
                   className={`w-4 h-4 rounded-full border border-gray-300 ${
                     selectedColor === color ? 'ring-2 ring-green-500 ring-offset-1' : ''
