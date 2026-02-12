@@ -37,6 +37,9 @@ export const addToWishlistAPI = createAsyncThunk(
   'wishlist/addToWishlistAPI',
   async ({ userId, product }, { rejectWithValue }) => {
     try {
+      // Handle both _id and id formats
+      const productId = product._id || product.id || product.productId;
+      
       const token = localStorage.getItem('token');
       const response = await fetch(`${API_URL}/api/wishlist/${userId}/add`, {
         method: 'POST',
@@ -45,7 +48,7 @@ export const addToWishlistAPI = createAsyncThunk(
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          productId: product.id,
+          productId: productId,
           name: product.name,
           brand: product.brand,
           price: product.price,
@@ -133,11 +136,13 @@ const wishlistSlice = createSlice({
   reducers: {
     addToWishlist: (state, action) => {
       const { product } = action.payload;
-      const existingItem = state.items.find(item => item.id === product.id);
+      // Handle both _id and id formats
+      const productId = product._id || product.id || product.productId;
+      const existingItem = state.items.find(item => item.id === productId);
       
       if (!existingItem) {
         state.items.push({
-          id: product.id,
+          id: productId,
           name: product.name,
           brand: product.brand,
           price: product.price,
@@ -148,7 +153,9 @@ const wishlistSlice = createSlice({
 
     removeFromWishlist: (state, action) => {
       const { productId } = action.payload;
-      state.items = state.items.filter(item => item.id !== productId);
+      // Handle both _id and id formats
+      const targetId = productId._id || productId.id || productId.productId || productId;
+      state.items = state.items.filter(item => item.id !== targetId);
     },
 
     clearWishlist: (state) => {
