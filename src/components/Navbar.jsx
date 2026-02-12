@@ -272,12 +272,12 @@ const Navbar = () => {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 text-white overflow-hidden"
+            className="w-full bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 text-white overflow-hidden relative z-50"
           >
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+            <div className="w-full px-4 py-3 flex justify-center items-center">
               <Link to="/flash-sale" className="flex items-center justify-center gap-2 hover:opacity-90 transition-opacity">
                 <FiZap className="w-5 h-5 animate-pulse" />
-                <span className="font-bold text-sm">FLASH SALE! Up to 70% OFF - Limited Time Only!</span>
+                <span className="font-bold text-sm md:text-base tracking-wide">FLASH SALE! Up to 70% OFF - Limited Time Only!</span>
                 <FiExternalLink className="w-4 h-4" />
               </Link>
             </div>

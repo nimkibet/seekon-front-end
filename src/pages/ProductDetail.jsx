@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FiStar, FiHeart, FiShare2, FiMinus, FiPlus, FiShoppingCart, FiArrowLeft } from 'react-icons/fi';
+import { FiStar, FiHeart, FiShare2, FiMinus, FiPlus, FiShoppingCart, FiArrowLeft, FiX } from 'react-icons/fi';
 import { useSelector, useDispatch } from 'react-redux';
 import { addToCart } from '../store/slices/cartSlice';
 import { fetchProducts } from '../store/slices/productSlice';
@@ -9,6 +9,7 @@ import { addToWishlistLocal, removeFromWishlistLocal } from '../store/slices/wis
 import { useAuth } from '../context/AuthContext';
 import ProductCard from '../components/ProductCard';
 import { formatPrice, calculateDiscount, getRatingStars } from '../utils/formatPrice';
+import { api } from '../utils/api';
 import toast from 'react-hot-toast';
 
 const ProductDetail = () => {
@@ -17,15 +18,49 @@ const ProductDetail = () => {
   const dispatch = useDispatch();
   const { isAuthenticated } = useAuth();
   
-  const { products, isLoading } = useSelector(state => state.products);
+  const { products, isLoading: isProductsLoading } = useSelector(state => state.products);
   const wishlist = useSelector(state => state.wishlist.items);
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedSize, setSelectedSize] = useState('');
   const [selectedColor, setSelectedColor] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [isWishlisted, setIsWishlisted] = useState(false);
+  const [showSizeGuide, setShowSizeGuide] = useState(false);
+  const [apiProduct, setApiProduct] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(false);
 
-  const product = products.find(p => p.id === id);
+  // Fetch product directly from API for robust handling
+  useEffect(() => {
+    const fetchProductFromApi = async () => {
+      if (!id) return;
+      
+      setIsLoading(true);
+      setError(false);
+      
+      try {
+        const response = await api.getProduct(id);
+        // ROBUST DATA HANDLING: Check both response.data.product and response.data
+        const fetchedProduct = response.product || response;
+        
+        if (fetchedProduct) {
+          setApiProduct(fetchedProduct);
+        } else {
+          setError(true);
+        }
+      } catch (err) {
+        console.error('Error fetching product:', err);
+        setError(true);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProductFromApi();
+  }, [id]);
+
+  // Use API fetched product, fallback to Redux product
+  const product = apiProduct || products.find(p => p.id === id);
 
   useEffect(() => {
     if (products.length === 0) {
@@ -48,7 +83,7 @@ const ProductDetail = () => {
     }
   }, [product, wishlist]);
 
-  if (isLoading) {
+  if (isLoading || isProductsLoading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary-600"></div>
@@ -56,7 +91,7 @@ const ProductDetail = () => {
     );
   }
 
-  if (!product) {
+  if (error || (!product && products.length > 0)) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
@@ -288,11 +323,19 @@ const ProductDetail = () => {
 
             {/* Size Selection */}
             <div>
-              <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2 sm:mb-3">
-                Size
-              </h3>
+              <div className="flex justify-between items-center mb-2 sm:mb-3">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">
+                  Size
+                </h3>
+                <button 
+                  onClick={() => setShowSizeGuide(true)} 
+                  className="text-sm text-gray-500 underline hover:text-black flex items-center gap-1"
+                >
+                  Size Guide
+                </button>
+              </div>
               <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2">
-                {product.sizes.map((size) => (
+                {product.sizes?.map((size) => (
                   <button
                     key={size}
                     onClick={() => setSelectedSize(size)}
@@ -439,6 +482,53 @@ const ProductDetail = () => {
             </div>
           </motion.div>
         </div>
+
+        {/* Size Guide Modal */}
+        {showSizeGuide && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={() => setShowSizeGuide(false)}>
+            <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+              <div className="p-6 border-b flex justify-between items-center sticky top-0 bg-white">
+                <h3 className="text-xl font-bold">Sizing Chart</h3>
+                <button onClick={() => setShowSizeGuide(false)} className="p-2 hover:bg-gray-100 rounded-full"><FiX size={20} /></button>
+              </div>
+              <div className="p-6">
+                <p className="text-sm text-gray-600 mb-6">Use the chart below to determine your size. If you are between sizes, we recommend sizing up.</p>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm text-left border-collapse">
+                    <thead>
+                      <tr className="bg-gray-50 text-gray-700 uppercase tracking-wider">
+                        <th className="p-3 border">US</th>
+                        <th className="p-3 border">UK</th>
+                        <th className="p-3 border">EU</th>
+                        <th className="p-3 border">CM</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {[
+                        { us: '5.5', uk: '3', eu: '36', cm: '22.5' },
+                        { us: '6.5', uk: '4', eu: '37.5', cm: '23.5' },
+                        { us: '7', uk: '4.5', eu: '38', cm: '24' },
+                        { us: '8', uk: '5.5', eu: '39', cm: '25' },
+                        { us: '8.5', uk: '6', eu: '40', cm: '25.5' },
+                        { us: '9.5', uk: '7', eu: '41', cm: '26.5' },
+                        { us: '10', uk: '7.5', eu: '42', cm: '27' },
+                        { us: '11', uk: '8.5', eu: '43', cm: '28' },
+                        { us: '12', uk: '9.5', eu: '44', cm: '28.5' },
+                      ].map((row, i) => (
+                        <tr key={i} className="hover:bg-gray-50">
+                          <td className="p-3 border font-bold">{row.us}</td>
+                          <td className="p-3 border">{row.uk}</td>
+                          <td className="p-3 border">{row.eu}</td>
+                          <td className="p-3 border">{row.cm}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Related Products */}
         {relatedProducts.length > 0 && (
