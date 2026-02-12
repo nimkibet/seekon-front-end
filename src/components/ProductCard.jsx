@@ -45,6 +45,15 @@ const ProductCard = ({ product, viewMode = 'grid' }) => {
     e.preventDefault();
     e.stopPropagation();
     
+    // Check authentication first
+    if (!isAuthenticated) {
+      const currentPath = window.location.pathname;
+      localStorage.setItem('redirectAfterLogin', currentPath);
+      toast.info('Please login to add items to your cart', { icon: '🔐' });
+      navigate('/login');
+      return;
+    }
+    
     /**
      * SECURITY FIX: Updated to match new secure API structure
      * The backend now only needs productId - it fetches all other data
@@ -52,8 +61,8 @@ const ProductCard = ({ product, viewMode = 'grid' }) => {
      */
     const cartItem = {
       product: {
-        id: product.id,
-        _id: product.id, // Support both id formats
+        id: productId,
+        _id: productId, // Support both id formats
         name: product.name,
         price: isOnFlashSale ? activePrice : product.price,
         image: safeImage,
@@ -79,12 +88,21 @@ const ProductCard = ({ product, viewMode = 'grid' }) => {
   const handleQuickView = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    navigate(`/product/${product.id}`);
+    navigate(`/product/${productId}`);
   };
 
   const handleAddToWishlist = (e) => {
     e.preventDefault();
     e.stopPropagation();
+    
+    // Check authentication first
+    if (!isAuthenticated) {
+      const currentPath = window.location.pathname;
+      localStorage.setItem('redirectAfterLogin', currentPath);
+      toast.info('Please login to add items to your wishlist', { icon: '🔐' });
+      navigate('/login');
+      return;
+    }
     
     if (isWishlisted) {
       dispatch(removeFromWishlistLocal({ id: productId })); // Use 'id' to match slice
