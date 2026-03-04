@@ -184,6 +184,16 @@ const Checkout = () => {
       console.log("📡 Order response status:", orderResponse.status);
       console.log("📡 Order response headers:", [...orderResponse.headers.entries()]);
 
+      // Handle 401 Unauthorized - clear tokens and redirect to login
+      if (orderResponse.status === 401) {
+        console.error('🚨 401 Unauthorized - Clearing tokens and redirecting to login');
+        localStorage.removeItem('token');
+        localStorage.removeItem('adminToken');
+        toast.error('Session expired. Please log in again.');
+        navigate('/login', { state: { from: { pathname: '/checkout' } } });
+        return;
+      }
+
       const orderResult = await orderResponse.json();
       
       if (!orderResult.success) {

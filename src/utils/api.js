@@ -31,6 +31,25 @@ client.interceptors.request.use(
   }
 );
 
+// Response interceptor to handle 401 errors (token expiration/invalid)
+client.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      console.warn('🚨 401 Unauthorized - Clearing tokens and redirecting to login');
+      // Clear all auth tokens
+      localStorage.removeItem('token');
+      localStorage.removeItem('adminToken');
+      localStorage.removeItem('user');
+      sessionStorage.removeItem('token');
+      
+      // Redirect to login
+      window.location.href = '/login';
+    }
+    return Promise.reject(error);
+  }
+);
+
 // Helper to standardise error responses
 const handleApiError = (error, context) => {
   console.error(`API Error (${context}):`, error.response?.data || error.message);

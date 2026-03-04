@@ -158,8 +158,13 @@ const Logo3D = ({ width = '100%', height = '100%' }) => {
       canvas.removeEventListener('webglcontextlost', handleContextLost);
       canvas.removeEventListener('webglcontextrestored', handleContextRestored);
       
-      // Dispose the renderer properly
+      // Force context loss and dispose renderer properly to prevent 'Canvas has an existing context' errors
       if (rendererRef.current) {
+        try {
+          rendererRef.current.forceContextLoss();
+        } catch (e) {
+          console.warn('Could not force WebGL context loss:', e);
+        }
         rendererRef.current.dispose();
         rendererRef.current = null;
       }
