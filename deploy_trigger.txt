@@ -1,0 +1,5 @@
+Forcing Vercel Build - Cart Update Route Fixed
+- Backend: Verified PATCH /api/cart/update route exists in cartRoutes.js
+- Backend: updateCartItemQuantity controller verified in cartController.js  
+- Frontend: CartPage.jsx correctly calls PATCH /api/cart/update
+- Both codebases aligned - pushed to GitHub
