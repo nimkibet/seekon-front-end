@@ -102,6 +102,13 @@ const Checkout = () => {
 
   const handlePayment = async () => {
     try {
+      // CRITICAL: Validate cart is not empty before making API call
+      if (!items || items.length === 0) {
+        toast.error('Cart is empty! Please add items to your cart before checkout.');
+        navigate('/cart');
+        return;
+      }
+      
       setPaymentStatus('loading');
       
       // FIX: Get token from multiple sources for reliability
