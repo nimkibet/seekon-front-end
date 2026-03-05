@@ -186,7 +186,11 @@ const Checkout = () => {
 
       // Handle 401 Unauthorized - clear tokens and redirect to login
       if (orderResponse.status === 401) {
-        console.error('🚨 401 Unauthorized - Clearing tokens and redirecting to login');
+        const errorData = await orderResponse.json();
+        console.error('🚨 401 Unauthorized from order API:', errorData);
+        console.error('🚨 Token being used:', token ? `${token.substring(0, 20)}...` : 'NO TOKEN');
+        console.error('🚨 User from Redux:', user);
+        
         localStorage.removeItem('token');
         localStorage.removeItem('adminToken');
         toast.error('Session expired. Please log in again.');

@@ -36,15 +36,28 @@ client.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      console.warn('🚨 401 Unauthorized - Clearing tokens and redirecting to login');
+      console.warn('🚨 401 Unauthorized - Clearing tokens');
       // Clear all auth tokens
       localStorage.removeItem('token');
       localStorage.removeItem('adminToken');
       localStorage.removeItem('user');
       sessionStorage.removeItem('token');
       
-      // Redirect to login
-      window.location.href = '/login';
+      // Only redirect if user is authenticated (has user state in Redux)
+      // This prevents accidental logouts during app initialization
+      const userState = localStorage.getItem('persist:root');
+      if (userState) {
+        try {
+          const parsed = JSON.parse(userState);
+          const user = JSON.parse(parsed.user || '{}');
+          if (user.isAuthenticated) {
+            console.warn('🚨 User was authenticated, redirecting to login');
+            window.location.href = '/login';
+          }
+        } catch (e) {
+          console.warn('Could not parse user state:', e);
+        }
+      }
     }
     return Promise.reject(error);
   }
