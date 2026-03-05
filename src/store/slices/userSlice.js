@@ -46,7 +46,12 @@ export const loginUser = createAsyncThunk(
              if (data.success) {
                 // Store token in localStorage
                 localStorage.setItem('token', data.token);
-                localStorage.setItem('adminToken', data.token); // For admin compatibility
+                // Only set adminToken if user has admin role, otherwise clear it to prevent conflicts
+                if (data.user.role === 'admin' || data.user.role === 'superadmin') {
+                  localStorage.setItem('adminToken', data.token);
+                } else {
+                  localStorage.removeItem('adminToken');
+                }
                 
                 // Store profile photo in user-specific localStorage key
                 const userId = data.user.id || data.user._id;
@@ -214,7 +219,12 @@ export const verifyOTP = createAsyncThunk(
       if (data.success) {
         // Store token in localStorage
         localStorage.setItem('token', data.token);
-        localStorage.setItem('adminToken', data.token);
+        // Only set adminToken if user has admin role, otherwise clear it to prevent conflicts
+        if (data.user.role === 'admin' || data.user.role === 'superadmin') {
+          localStorage.setItem('adminToken', data.token);
+        } else {
+          localStorage.removeItem('adminToken');
+        }
         
         return {
           user: data.user,
