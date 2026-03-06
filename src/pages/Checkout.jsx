@@ -111,6 +111,10 @@ const Checkout = () => {
       
       setPaymentStatus('loading');
       
+      // Set flag to hide 3D background during payment processing to prevent WebGL issues
+      sessionStorage.setItem('isPaymentProcessing', 'true');
+      window.dispatchEvent(new Event('paymentStateChange'));
+      
       // FIX: Get token from multiple sources for reliability
       // Priority: 1. Redux state user object (user?.token) 2. localStorage 3. sessionStorage
       // The user variable is already selected from Redux at component level (line 38)
@@ -269,15 +273,16 @@ const Checkout = () => {
     } catch (error) {
       setPaymentStatus('failed');
       stopPolling();
+      clearPaymentFlag(); // Clear the 3D background flag
       toast.error(error.message || 'Payment failed. Please try again.');
     }
   };
 
-  // STRICT POLLING: Check every 4 seconds until payment is confirmed - timeout after 2 minutes
+  // STRICT POLLING: Check every 3 seconds until payment is confirmed - timeout after 2 minutes
   const startStrictPolling = async (orderId, token) => {
     setIsPolling(true);
     let attempts = 0;
-    const maxAttempts = 30; // Check for ~2 minutes (30 * 4 seconds = 120 seconds)
+    const maxAttempts = 40; // Check for ~2 minutes (40 * 3 seconds = 120 seconds)
     
     // Clear any existing polling
     stopPolling();
@@ -289,11 +294,26 @@ const Checkout = () => {
           headers: { Authorization: `Bearer ${token}` }
         });
         
-        // CRITICAL: Only redirect when order.isPaid becomes true
-        if (data.order && data.order.isPaid) {
+        const order = data.order;
+        
+        // Check for cancelled status first (payment failed)
+        if (order && order.status === 'cancelled') {
+          stopPolling();
+          setPaymentStatus('failed');
+          clearPaymentFlag(); // Clear the 3D background flag
+          // Show the specific error message from M-Pesa callback
+          toast.error('Payment Failed: Invalid Initiator Information. Please check your M-Pesa PIN and try again.');
+          return; // Exit the polling loop
+        }
+        
+        // Check if payment is completed (isPaid is true)
+        // Note: Backend uses 'isPaid' flag, not status === 'completed'
+        if (order && order.isPaid) {
           stopPolling();
           setPaymentStatus('success');
+          clearPaymentFlag(); // Clear the 3D background flag
           toast.success('Payment Received Successfully!');
+          // Move to confirmation step (which acts as success page)
           setTimeout(() => {
             setCurrentStep(3); // Move to confirmation
           }, 1500);
@@ -308,10 +328,11 @@ const Checkout = () => {
       if (attempts >= maxAttempts) {
         stopPolling();
         setPaymentStatus('failed');
+        clearPaymentFlag(); // Clear the 3D background flag
         toast.error('Payment timed out. Please check your phone and try again, or use a different number.');
         // User stays on this page to retry with different phone number
       }
-    }, 4000); // Check every 4 seconds
+    }, 3000); // Check every 3 seconds
   };
 
   // Manual M-Pesa Payment Verification - Fallback when callbacks fail
@@ -379,10 +400,17 @@ const Checkout = () => {
     }
     setIsPolling(false);
   };
+  
+  // Clear payment processing flag from session storage
+  const clearPaymentFlag = () => {
+    sessionStorage.removeItem('isPaymentProcessing');
+    window.dispatchEvent(new Event('paymentStateChange'));
+  };
 
   // Manual cancel - user wants to stop waiting for M-Pesa
   const handleManualCancel = () => {
     stopPolling();
+    clearPaymentFlag(); // Clear the 3D background flag
     setCheckoutRequestId(null);
     setPaymentStatus('idle');
     toast.info("Payment verification stopped. You can try again.", { duration: 3000 });

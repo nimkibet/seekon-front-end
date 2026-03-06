@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { FiMenu, FiX } from "react-icons/fi";
 import Logo3D from "./Logo3D";
@@ -7,6 +7,44 @@ import Logo3D from "./Logo3D";
 const Layout = ({ children }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef(null);
+  const location = useLocation();
+  
+  // Check if payment is processing (set by checkout page)
+  const [isPaymentProcessing, setIsPaymentProcessing] = useState(() => {
+    return sessionStorage.getItem('isPaymentProcessing') === 'true';
+  });
+
+  // Listen for payment processing state changes
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const processing = sessionStorage.getItem('isPaymentProcessing') === 'true';
+      setIsPaymentProcessing(processing);
+    };
+    
+    // Check on mount and when storage changes
+    handleStorageChange();
+    
+    // Listen for custom event from checkout
+    const handlePaymentStateChange = () => {
+      handleStorageChange();
+    };
+    window.addEventListener('paymentStateChange', handlePaymentStateChange);
+    
+    // Also poll for changes every 500ms when on checkout
+    const interval = setInterval(() => {
+      if (location.pathname === '/checkout') {
+        handleStorageChange();
+      }
+    }, 500);
+    
+    return () => {
+      window.removeEventListener('paymentStateChange', handlePaymentStateChange);
+      clearInterval(interval);
+    };
+  }, [location]);
+  
+  // Check if we're on checkout page
+  const isCheckout = location.pathname === '/checkout';
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -27,12 +65,14 @@ const Layout = ({ children }) => {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900 relative">
-      {/* Full-page background 3D Logo */}
-      <div className="absolute inset-0 flex items-center justify-center opacity-20 dark:opacity-30 pointer-events-none z-0">
-        <div className="w-full h-full max-w-4xl max-h-96">
-          <Logo3D width="100%" height="100%" />
+      {/* Full-page background 3D Logo - Hide when payment is processing to prevent WebGL context issues */}
+      {(!isPaymentProcessing || !isCheckout) && (
+        <div className="absolute inset-0 flex items-center justify-center opacity-20 dark:opacity-30 pointer-events-none z-0">
+          <div className="w-full h-full max-w-4xl max-h-96">
+            <Logo3D width="100%" height="100%" />
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Content Wrapper to ensure it's above the background */}
       <div className="relative z-10 flex flex-col flex-grow">

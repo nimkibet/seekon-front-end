@@ -121,6 +121,7 @@ const Logo3D = ({ width = '100%', height = '100%' }) => {
   const canvasRef = useRef(null);
   const rendererRef = useRef(null);
   const isInitializedRef = useRef(false);
+  const contextLostRef = useRef(false);
   
   // Cleanup function to prevent WebGL memory leaks and multiple contexts
   useEffect(() => {
@@ -137,11 +138,13 @@ const Logo3D = ({ width = '100%', height = '100%' }) => {
     const handleContextLost = (event) => {
       event.preventDefault();
       console.warn('WebGL context lost. Cleaning up...');
+      contextLostRef.current = true;
       isInitializedRef.current = false;
     };
     
     const handleContextRestored = () => {
       console.log('WebGL context restored.');
+      contextLostRef.current = false;
       isInitializedRef.current = true;
     };
     
@@ -153,7 +156,7 @@ const Logo3D = ({ width = '100%', height = '100%' }) => {
     
     return () => {
       // Only cleanup if we're actually initialized
-      if (!isInitializedRef.current) return;
+      if (!isInitializedRef.current && !contextLostRef.current) return;
       
       canvas.removeEventListener('webglcontextlost', handleContextLost);
       canvas.removeEventListener('webglcontextrestored', handleContextRestored);
@@ -161,31 +164,34 @@ const Logo3D = ({ width = '100%', height = '100%' }) => {
       // Force context loss and dispose renderer properly to prevent 'Canvas has an existing context' errors
       if (rendererRef.current) {
         try {
-          rendererRef.current.forceContextLoss();
+          // Dispose all resources
+          rendererRef.current.dispose();
         } catch (e) {
-          console.warn('Could not force WebGL context loss:', e);
+          console.warn('Could not dispose WebGL renderer:', e);
         }
-        rendererRef.current.dispose();
         rendererRef.current = null;
       }
       
-      // Clear the canvas reference
-      if (canvas) {
-        const gl = canvas.getContext('webgl') || canvas.getContext('webgl2');
-        if (gl) {
-          // Try to lose context gracefully
-          const ext = gl.getExtension('WEBGL_lose_context');
-          if (ext) {
-            try {
+      // Clear the canvas reference and force context loss
+      if (canvas && !contextLostRef.current) {
+        try {
+          const gl = canvas.getContext('webgl') || canvas.getContext('webgl2');
+          if (gl) {
+            // Try to lose context gracefully
+            const ext = gl.getExtension('WEBGL_lose_context');
+            if (ext) {
               ext.loseContext();
-            } catch (e) {
-              console.warn('Could not lose WebGL context:', e);
             }
           }
+          // Clear the context by setting it to null
+          canvas.getContext && canvas.getContext('webgl') && canvas.getContext('webgl2') && (canvas.width = 0) && (canvas.height = 0);
+        } catch (e) {
+          console.warn('Could not lose WebGL context:', e);
         }
       }
       
       isInitializedRef.current = false;
+      contextLostRef.current = false;
     };
   }, []);
   
