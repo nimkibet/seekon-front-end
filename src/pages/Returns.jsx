@@ -147,36 +147,7 @@ const Returns = () => {
             </div>
           </motion.div>
 
-          {/* FAQ */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.8 }}
-          >
-            <h2 className="text-2xl font-semibold text-seekon-midnight mb-6">Frequently Asked Questions</h2>
-            
-            <div className="space-y-4">
-              <div className="bg-seekon-pureWhite p-6 rounded-lg shadow-lg">
-                <h3 className="font-semibold text-seekon-midnight mb-2">What items can I return?</h3>
-                <p className="text-seekon-charcoalGray">Most items can be returned within 30 days, but some items like underwear, swimwear, and personalized items cannot be returned for hygiene reasons.</p>
-              </div>
 
-              <div className="bg-seekon-pureWhite p-6 rounded-lg shadow-lg">
-                <h3 className="font-semibold text-seekon-midnight mb-2">How long do refunds take?</h3>
-                <p className="text-seekon-charcoalGray">Refunds are processed within 3-5 business days after we receive your return. The refund will appear on your original payment method within 5-10 business days.</p>
-              </div>
-
-              <div className="bg-seekon-pureWhite p-6 rounded-lg shadow-lg">
-                <h3 className="font-semibold text-seekon-midnight mb-2">Can I return items to a store?</h3>
-                <p className="text-seekon-charcoalGray">Yes, you can return online purchases to any of our physical store locations. Bring your order confirmation and the items you want to return.</p>
-              </div>
-
-              <div className="bg-seekon-pureWhite p-6 rounded-lg shadow-lg">
-                <h3 className="font-semibold text-seekon-midnight mb-2">What if I lost my return label?</h3>
-                <p className="text-seekon-charcoalGray">No problem! Contact our customer service team and we'll send you a new return label. You can also print a new one from your account.</p>
-              </div>
-            </div>
-          </motion.div>
         </div>
       </div>
     </div>

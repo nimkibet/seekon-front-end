@@ -37,6 +37,7 @@ import AddProduct from './pages/admin/AddProduct';
 import Contact from './pages/Contact';
 import Shipping from './pages/Shipping';
 import Returns from './pages/Returns';
+import FAQ from './pages/FAQ';
 import CorporatePage from './pages/CorporatePage';
 import Logo3DPage from './pages/Logo3DPage';
 import Profile from './pages/Profile';
@@ -395,6 +396,12 @@ const App = () => {
               <Route path="/returns" element={
                 <AppLayout>
                   <Returns />
+                </AppLayout>
+              } />
+
+              <Route path="/faq" element={
+                <AppLayout>
+                  <FAQ />
                 </AppLayout>
               } />
 
