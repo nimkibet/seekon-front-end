@@ -137,7 +137,6 @@ const Footer = () => {
               <h3 className="text-seekon-pureWhite font-bold text-lg mb-4">Support</h3>
               <ul className="space-y-3">
                 {[
-                  { name: 'Size Guide', path: '/size-guide' },
                   { name: 'Shipping Info', path: '/shipping' },
                   { name: 'Returns', path: '/returns' },
                   { name: 'Contact Us', path: '/contact' },
