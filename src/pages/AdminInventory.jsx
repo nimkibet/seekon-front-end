@@ -29,9 +29,9 @@ const AdminInventory = () => {
         brand: product.brand,
         size: product.size || 'N/A',
         color: product.color || 'N/A',
-        stock: product.stock || 0,
+        stock: product.countInStock || product.stock || 0,
         threshold: product.threshold || 10,
-        status: getStockStatus(product.stock || 0)
+        status: getStockStatus(product.countInStock || product.stock || 0)
       }));
       
       setInventory(inventoryData);
@@ -44,8 +44,8 @@ const AdminInventory = () => {
   };
 
   const getStockStatus = (stock) => {
-    if (stock === 0) return 'out_of_stock';
-    if (stock <= 5) return 'low_stock';
+    if (stock <= 0) return 'out_of_stock';
+    if (stock < 10) return 'low_stock';
     return 'in_stock';
   };
 

@@ -196,8 +196,15 @@ const ProductDetail = () => {
     }
     
     try {
-      if (!selectedSize || !selectedColor) {
-        toast.error('Please select size and color');
+      // Only validate size if the product actually has sizes configured
+      if (product.sizes && product.sizes.length > 0 && !selectedSize) {
+        toast.error('Please select a size');
+        return;
+      }
+      
+      // Only validate color if the product actually has colors configured
+      if (product.colors && product.colors.length > 0 && !selectedColor) {
+        toast.error('Please select a color');
         return;
       }
 
