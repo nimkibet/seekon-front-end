@@ -4,7 +4,7 @@ import { FiArrowLeft, FiCalendar, FiClock, FiTrash2, FiMinus, FiPlus, FiMapPin, 
 import { useSelector, useDispatch } from 'react-redux';
 import { formatPrice } from '../utils/formatPrice';
 import { useCurrency } from '../context/CurrencyContext';
-import { clearCartAPI } from '../store/slices/cartSlice';
+import { clearCartAPI, updateQuantityAPI, removeFromCartAPI } from '../store/slices/cartSlice';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -90,6 +90,46 @@ const Checkout = () => {
       setPhoneNumber(user.phoneNumber);
     }
   }, [user]);
+
+  // Handle quantity change in checkout
+  const handleQuantityChange = async (item, newQuantity) => {
+    if (newQuantity <= 0 || newQuantity > 99) return;
+    
+    // Extract ID safely based on how the cart stores it
+    const productId = item.productId?._id || item.productId || item.product?._id || item.id || item._id;
+    
+    try {
+      await dispatch(updateQuantityAPI({ 
+        productId, 
+        size: item.size, 
+        color: item.color, 
+        quantity: newQuantity 
+      })).unwrap();
+    } catch(err) {
+      toast.error(err.message || 'Failed to update quantity');
+    }
+  };
+
+  // Handle item removal from checkout
+  const handleRemoveItem = async (item) => {
+    const productId = item.productId?._id || item.productId || item.product?._id || item.id || item._id;
+
+    try {
+      await dispatch(removeFromCartAPI({
+        productId,
+        size: item.size,
+        color: item.color
+      })).unwrap();
+
+      toast.success('Item removed from checkout');
+      // If this was the last item, kick them back to the empty cart page
+      if (items.length <= 1) {
+        navigate('/cart');
+      }
+    } catch(err) {
+      toast.error(err.message || 'Failed to remove item');
+    }
+  };
 
   const handleProceedToPayment = (e) => {
     e.preventDefault();
@@ -703,11 +743,17 @@ const Checkout = () => {
                           <div className="flex items-center space-x-2">
                             <span className="text-xs text-gray-600 dark:text-gray-400">Qty:</span>
                             <div className="flex items-center space-x-2">
-                              <button className="w-6 h-6 rounded border border-gray-300 dark:border-gray-600 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700">
+                              <button 
+                                onClick={() => handleQuantityChange(item, item.quantity - 1)}
+                                className="w-6 h-6 rounded border border-gray-300 dark:border-gray-600 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700"
+                              >
                                 <FiMinus className="w-3 h-3" />
                               </button>
                               <span className="text-sm font-medium w-8 text-center">{item.quantity}</span>
-                              <button className="w-6 h-6 rounded border border-gray-300 dark:border-gray-600 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700">
+                              <button 
+                                onClick={() => handleQuantityChange(item, item.quantity + 1)}
+                                className="w-6 h-6 rounded border border-gray-300 dark:border-gray-600 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700"
+                              >
                                 <FiPlus className="w-3 h-3" />
                               </button>
                             </div>
@@ -723,7 +769,10 @@ const Checkout = () => {
                         </div>
                       </div>
                       <div className="flex flex-col items-end space-y-2">
-                        <button className="text-red-500 hover:text-red-600 transition-colors">
+                        <button 
+                          onClick={() => handleRemoveItem(item)}
+                          className="text-red-500 hover:text-red-600 transition-colors"
+                        >
                           <FiTrash2 className="w-4 h-4" />
                         </button>
                         <p className="font-bold text-gray-900 dark:text-white">
