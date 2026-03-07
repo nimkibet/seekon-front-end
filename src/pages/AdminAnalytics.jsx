@@ -18,7 +18,7 @@ const AdminAnalytics = () => {
       setIsLoading(true);
       try {
         // Fetch from the dedicated analytics endpoint
-        const data = await adminApi.getAnalytics();
+        const data = await adminApi.getAnalytics(selectedPeriod);
         console.log("Analytics Data:", data);
         if (data && data.success) {
           setAnalytics(data);

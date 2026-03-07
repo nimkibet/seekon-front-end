@@ -64,7 +64,7 @@ const SearchModal = ({ isOpen, onClose }) => {
       setIsSearching(true);
       setShowSuggestions(true);
       
-      // Debounce search to avoid too many updates
+      // Debounce search to avoid too many updates (500ms per requirements)
       searchTimeoutRef.current = setTimeout(() => {
         const query = searchQuery.toLowerCase();
         const filtered = products
@@ -76,7 +76,7 @@ const SearchModal = ({ isOpen, onClose }) => {
           .slice(0, 8); // Limit to 8 suggestions
         setSuggestions(filtered);
         setIsSearching(false);
-      }, 200); // 200ms debounce
+      }, 500); // 500ms debounce per requirements
     } else {
       setSuggestions([]);
       setShowSuggestions(false);

@@ -10,6 +10,7 @@ import { useAuth } from '../context/AuthContext';
 import { useCurrency } from '../context/CurrencyContext';
 import toast from 'react-hot-toast';
 import FlashSaleCountdown from './FlashSaleCountdown';
+import { getOptimizedImageUrl } from '../utils/cloudinary';
 
 const ProductCard = ({ product, viewMode = 'grid' }) => {
   const dispatch = useDispatch();
@@ -155,7 +156,7 @@ const ProductCard = ({ product, viewMode = 'grid' }) => {
         {/* Image Container */}
         <div className="relative aspect-square overflow-hidden bg-gray-100">
           <img
-            src={safeImage}
+            src={getOptimizedImageUrl(safeImage, { width: 400, height: 400, quality: 'auto' })}
             alt={product.name}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />

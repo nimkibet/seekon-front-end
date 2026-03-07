@@ -13,6 +13,7 @@ import { formatPrice, calculateDiscount, getRatingStars } from '../utils/formatP
 import { api } from '../utils/api';
 import toast from 'react-hot-toast';
 import FlashSaleCountdown from '../components/FlashSaleCountdown';
+import { getOptimizedImageUrl } from '../utils/cloudinary';
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -320,7 +321,7 @@ const ProductDetail = () => {
             {/* Main Image */}
             <div className="aspect-square bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-lg">
               <img
-                src={product.images?.[selectedImage] || product.image}
+                src={getOptimizedImageUrl(product.images?.[selectedImage] || product.image, { width: 800, height: 800, quality: 'auto' })}
                 alt={product.name}
                 className="w-full h-full object-cover"
                 onError={(e) => {
@@ -342,7 +343,7 @@ const ProductDetail = () => {
                   }`}
                 >
                   <img
-                    src={image}
+                    src={getOptimizedImageUrl(image, { width: 200, height: 200, quality: 'auto' })}
                     alt={`${product.name} ${index + 1}`}
                     className="w-full h-full object-cover"
                   />

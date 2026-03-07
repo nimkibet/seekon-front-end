@@ -42,13 +42,7 @@ export const adminApi = {
   getStats: () => apiCall('/stats'),
   
   // Analytics - Dedicated endpoint for real analytics data
-  getAnalytics: () => apiCall('/analytics'),
-  
-  // Dashboard with Analytics Data (weekly revenue, etc.)
-  getDashboard: () => apiCall('/dashboard'),
-  
-  // Analytics - uses dashboard endpoint for real data
-  getAnalytics: (period = 'month') => apiCall('/dashboard'),
+  getAnalytics: (period = 'month') => apiCall('/analytics?period=' + period),
 
   // Transactions
   getTransactions: (params = {}) => {
