@@ -1,9 +1,56 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { FiArrowLeft, FiMail, FiPhone, FiMapPin, FiClock } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
 const Contact = () => {
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    subject: 'General Inquiry',
+    message: ''
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!formData.firstName || !formData.email || !formData.message) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+
+    setIsSubmitting(true);
+    const loadingToast = toast.loading('Sending message...');
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://seekonbackend-production.up.railway.app'}/api/settings/contact`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+      
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
+        toast.success('Message sent successfully! We will get back to you soon.', { id: loadingToast });
+        setFormData({ firstName: '', lastName: '', email: '', subject: 'General Inquiry', message: '' });
+      } else {
+        toast.error(data.message || 'Failed to send message', { id: loadingToast });
+      }
+    } catch (error) {
+      toast.error('Network error. Please try again later.', { id: loadingToast });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-seekon-platinumSilver">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
@@ -46,7 +93,7 @@ const Contact = () => {
                 </div>
                 <div>
                   <h3 className="font-semibold text-seekon-midnight mb-1">Email Support</h3>
-                  <p className="text-seekon-charcoalGray mb-2">support@seekon-apparel.com</p>
+                  <p className="text-seekon-charcoalGray mb-2">seekonapparel77@gmail.com</p>
                   <p className="text-sm text-seekon-charcoalGray">We typically respond within 24 hours</p>
                 </div>
               </div>
@@ -57,8 +104,8 @@ const Contact = () => {
                 </div>
                 <div>
                   <h3 className="font-semibold text-seekon-midnight mb-1">Phone Support</h3>
-                  <p className="text-seekon-charcoalGray mb-2">+1 (555) 123-4567</p>
-                  <p className="text-sm text-seekon-charcoalGray">Mon-Fri: 9AM-6PM EST</p>
+                  <p className="text-seekon-charcoalGray mb-2">+254 727 672 772</p>
+                  <p className="text-sm text-seekon-charcoalGray">Mon-Sat: 8AM-8PM EAT</p>
                 </div>
               </div>
 
@@ -67,9 +114,9 @@ const Contact = () => {
                   <FiMapPin className="w-6 h-6 text-seekon-pureWhite" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-seekon-midnight mb-1">Visit Our Store</h3>
-                  <p className="text-seekon-charcoalGray mb-2">123 Fashion St, NY 10001</p>
-                  <p className="text-sm text-seekon-charcoalGray">Open 7 days a week</p>
+                  <h3 className="font-semibold text-seekon-midnight mb-1">Our Locations</h3>
+                  <p className="text-seekon-charcoalGray mb-2">Thika Rd Kahawa Sukari, Kilimani,</p>
+                  <p className="text-sm text-seekon-charcoalGray">Runda Mall and Ngong Rd</p>
                 </div>
               </div>
 
@@ -79,8 +126,8 @@ const Contact = () => {
                 </div>
                 <div>
                   <h3 className="font-semibold text-seekon-midnight mb-1">Business Hours</h3>
-                  <p className="text-seekon-charcoalGray mb-2">Monday - Friday: 9:00 AM - 6:00 PM</p>
-                  <p className="text-sm text-seekon-charcoalGray">Saturday - Sunday: 10:00 AM - 5:00 PM</p>
+                  <p className="text-seekon-charcoalGray mb-2">Monday - Saturday: 8:00 AM - 8:00 PM</p>
+                  <p className="text-sm text-seekon-charcoalGray">Sunday: 10:00 AM - 5:00 PM</p>
                 </div>
               </div>
             </div>
@@ -95,70 +142,77 @@ const Contact = () => {
           >
             <h2 className="text-2xl font-semibold text-seekon-midnight mb-6">Send us a Message</h2>
             
-            <form className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-seekon-midnight mb-2">
-                    First Name
-                  </label>
+                  <label className="block text-sm font-medium text-seekon-midnight mb-2">First Name *</label>
                   <input
                     type="text"
+                    name="firstName"
+                    value={formData.firstName}
+                    onChange={handleChange}
+                    required
                     className="w-full px-4 py-3 border border-seekon-platinumSilver rounded-lg focus:outline-none focus:ring-2 focus:ring-seekon-electricRed focus:border-transparent"
-                    placeholder="Enter your first name"
+                    placeholder="First name"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-seekon-midnight mb-2">
-                    Last Name
-                  </label>
+                  <label className="block text-sm font-medium text-seekon-midnight mb-2">Last Name</label>
                   <input
                     type="text"
+                    name="lastName"
+                    value={formData.lastName}
+                    onChange={handleChange}
                     className="w-full px-4 py-3 border border-seekon-platinumSilver rounded-lg focus:outline-none focus:ring-2 focus:ring-seekon-electricRed focus:border-transparent"
-                    placeholder="Enter your last name"
+                    placeholder="Last name"
                   />
                 </div>
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-seekon-midnight mb-2">
-                  Email Address
-                </label>
+                <label className="block text-sm font-medium text-seekon-midnight mb-2">Email Address *</label>
                 <input
                   type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  required
                   className="w-full px-4 py-3 border border-seekon-platinumSilver rounded-lg focus:outline-none focus:ring-2 focus:ring-seekon-electricRed focus:border-transparent"
                   placeholder="Enter your email"
                 />
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-seekon-midnight mb-2">
-                  Subject
-                </label>
-                <select className="w-full px-4 py-3 border border-seekon-platinumSilver rounded-lg focus:outline-none focus:ring-2 focus:ring-seekon-electricRed focus:border-transparent">
-                  <option>General Inquiry</option>
-                  <option>Order Support</option>
-                  <option>Returns & Exchanges</option>
-                  <option>Size Guide</option>
-                  <option>Technical Support</option>
+                <label className="block text-sm font-medium text-seekon-midnight mb-2">Subject</label>
+                <select 
+                  name="subject"
+                  value={formData.subject}
+                  onChange={handleChange}
+                  className="w-full px-4 py-3 border border-seekon-platinumSilver rounded-lg focus:outline-none focus:ring-2 focus:ring-seekon-electricRed focus:border-transparent"
+                >
+                  <option value="General Inquiry">General Inquiry</option>
+                  <option value="Order Support">Order Support</option>
+                  <option value="Returns & Exchanges">Returns & Exchanges</option>
+                  <option value="Size Guide">Size Guide</option>
+                  <option value="Technical Support">Technical Support</option>
                 </select>
               </div>
-
               <div>
-                <label className="block text-sm font-medium text-seekon-midnight mb-2">
-                  Message
-                </label>
+                <label className="block text-sm font-medium text-seekon-midnight mb-2">Message *</label>
                 <textarea
+                  name="message"
+                  value={formData.message}
+                  onChange={handleChange}
+                  required
                   rows={4}
                   className="w-full px-4 py-3 border border-seekon-platinumSilver rounded-lg focus:outline-none focus:ring-2 focus:ring-seekon-electricRed focus:border-transparent"
                   placeholder="Tell us how we can help..."
                 ></textarea>
               </div>
-
               <button
                 type="submit"
-                className="w-full bg-seekon-electricRed text-seekon-pureWhite py-3 px-6 rounded-lg font-semibold hover:bg-seekon-electricRed/90 transition-colors duration-200"
+                disabled={isSubmitting}
+                className="w-full bg-seekon-electricRed text-seekon-pureWhite py-3 px-6 rounded-lg font-semibold hover:bg-seekon-electricRed/90 transition-colors duration-200 disabled:opacity-50"
               >
-                Send Message
+                {isSubmitting ? 'Sending...' : 'Send Message'}
               </button>
             </form>
           </motion.div>
