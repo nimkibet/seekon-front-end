@@ -167,9 +167,15 @@ const Collection = () => {
         } else {
           filtered = filtered.filter(p => {
             const prodCategory = p.category?.toLowerCase();
-            return prodCategory === categoryFilter.toLowerCase() ||
-                   prodCategory === 'sneakers' ||
-                   prodCategory === 'footwear';
+            const targetCategory = categoryFilter.toLowerCase();
+            
+            // If looking for footwear/sneakers, match both aliases
+            if (targetCategory === 'sneakers' || targetCategory === 'footwear') {
+              return prodCategory === 'sneakers' || prodCategory === 'footwear';
+            }
+            
+            // Otherwise, STRICTLY match the requested category (Apparel, Accessories, etc.)
+            return prodCategory === targetCategory;
           });
         }
       }
