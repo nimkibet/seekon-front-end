@@ -1,15 +1,12 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiMinus, FiPlus, FiTrash2, FiShoppingBag, FiArrowRight, FiAlertCircle, FiRefreshCw } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import { useCurrency } from '../context/CurrencyContext';
 import { useDispatch, useSelector } from 'react-redux';
-import { fetchCart } from '../store/slices/cartSlice';
+import { fetchCart, removeFromCartAPI, updateQuantityAPI, clearCartAPI } from '../store/slices/cartSlice';
 import toast from 'react-hot-toast';
-
-// API configuration
-const API_URL = import.meta.env.VITE_API_URL || 'https://seekonbackend-production.up.railway.app';
 
 // Color mapping helper
 const getColorHex = (colorName) => {
@@ -51,35 +48,18 @@ const CartPage = () => {
   const { formatPrice } = useCurrency();
   
   // Get cart from Redux store (single source of truth)
-  const reduxCart = useSelector((state) => state.cart);
-  
-  // Local state for cart
-  const [cart, setCart] = useState({ items: [], totalItems: 0, totalPrice: 0 });
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [isUpdating, setIsUpdating] = useState(false);
-  
-  // Sync with Redux store
-  useEffect(() => {
-    setCart({
-      items: reduxCart.items || [],
-      totalItems: reduxCart.totalItems || 0,
-      totalPrice: reduxCart.totalPrice || 0
-    });
-  }, [reduxCart]);
+  const { items, totalItems, totalPrice, isLoading, error } = useSelector((state) => state.cart);
   
   // Auth loading check - prevent false redirects during initial auth check
-  // This MUST come after all other hooks (React Rules of Hooks)
   const [isReady, setIsReady] = useState(false);
   
   useEffect(() => {
-    // Set ready state after auth check is done
     if (!authLoading) {
       setIsReady(true);
     }
   }, [authLoading]);
   
-  // Redirect to login if not authenticated (only after auth loading is complete)
+  // Redirect to login if not authenticated
   useEffect(() => {
     if (isReady && !isAuthenticated) {
       navigate('/login?redirect=cart');
@@ -91,239 +71,70 @@ const CartPage = () => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   }, []);
   
-  // Fetch cart directly from server - Single Source of Truth
-  const fetchCart = useCallback(async () => {
-    console.log('🛒 FETCH_CART: Starting...');
-    
-    // Don't fetch cart if not authenticated
-    if (!isAuthenticated) {
-      console.log('🛒 FETCH_CART: Not authenticated, skipping');
-      setIsLoading(false);
-      return;
-    }
-    
-    try {
-      // Get token from localStorage right before the API call
-      const userInfo = JSON.parse(localStorage.getItem('userInfo'));
-      const token = localStorage.getItem('token') || localStorage.getItem('adminToken') || userInfo?.token;
-      
-      console.log('🛒 FETCH_CART: Token exists:', !!token);
-      
-      if (!token) {
-        setError('Please log in to view your cart');
-        setIsLoading(false);
-        navigate('/login?redirect=cart');
-        return;
-      }
-      
-      const response = await fetch(`${API_URL}/api/cart`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      console.log('🛒 FETCH_CART: Response status:', response.status);
-      
-      const data = await response.json();
-      console.log('🛒 FETCH_CART: Response data:', data);
-      
-      // Handle 401 - redirect to login
-      if (response.status === 401) {
-        console.log('🛒 FETCH_CART: 401 Unauthorized!');
-        setError('Please log in to view your cart');
-        setIsLoading(false);
-        navigate('/login');
-        return;
-      }
-      
-      // Handle 500 - server error (could be DB corruption)
-      if (response.status >= 500) {
-        console.error('🛒 FETCH_CART: Server error:', data.message);
-        // Return empty cart instead of crashing
-        setCart({ items: [], totalItems: 0, totalPrice: 0 });
-        setError(null);
-        setIsLoading(false);
-        return;
-      }
-      
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to fetch cart');
-      }
-      
-      // Debug: log cart items
-      console.log('🛒 Current Cart Items:', data.cart?.items);
-       
-      // Sanity check: filter out any items with missing product references
-      const sanitizedItems = (data.cart?.items || []).filter(item => {
-        // Check item.productId, item.product, or item._id and also filter out null populated products
-        const hasProductRef = item.productId != null || item.product != null || item._id != null;
-        // Also filter out items where populated product is null (deleted product)
-        // Now uses productId since that's what backend populates
-        const hasPopulatedProduct = item.productId !== null && item.product !== null;
-        return hasProductRef && hasPopulatedProduct;
-      });
-      
-      setCart({
-        ...data.cart,
-        items: sanitizedItems
-      });
-      setError(null);
-    } catch (err) {
-      console.error('Fetch cart error:', err);
-      // On error, return empty cart instead of showing error
-      setCart({ items: [], totalItems: 0, totalPrice: 0 });
-      setError(null);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [isAuthenticated, navigate]);
-  
-  // Initial fetch on mount
+  // Fetch cart from Redux on mount
   useEffect(() => {
-    fetchCart();
-  }, [fetchCart]);
+    dispatch(fetchCart());
+  }, [dispatch]);
   
-  // Calculate totals from server data
-  const calculateTotals = (items) => {
-    const totalItems = items.reduce((sum, item) => sum + (item.quantity || 0), 0);
-    const totalPrice = items.reduce((sum, item) => sum + ((item.price || 0) * (item.quantity || 0)), 0);
-    return { totalItems, totalPrice };
-  };
+  // Use Redux totals directly
+  const cart = { items, totalItems, totalPrice };
   
-  // Handle quantity update with PATCH request
+  // Handle quantity update with Redux Thunk
   const handleQuantityChange = async (item, newQuantity) => {
-    if (newQuantity <= 0) {
+    if (newQuantity <= 0 || newQuantity > 99) return;
+    
+    // FIX: Safely extract productId - handle both populated object and string
+    const productId = item.productId?._id || item.productId || item.product?._id || item._id;
+    
+    if (!productId || typeof productId !== 'string') {
+      toast.error('Invalid product ID');
       return;
     }
-    
-    if (newQuantity > 99) {
-      toast.error('Quantity cannot exceed 99');
-      return;
-    }
-    
-    setIsUpdating(true);
-    
+
     try {
-      // Check both 'token' and 'adminToken' keys for compatibility
-      const token = localStorage.getItem('token') || localStorage.getItem('adminToken');
-      
-      // Surgical Delete: Get product ID from item.productId, item.product, or item._id
-      const productId = item.productId || item.product?._id || item.product || item._id;
-      
-      const response = await fetch(`${API_URL}/api/cart/update`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          productId: productId,
-          size: item.size,
-          color: item.color,
-          quantity: newQuantity
-        })
-      });
-      
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to update quantity');
-      }
-      
-      // Re-fetch cart to stay in sync with server (Single Source of Truth)
-      await fetchCart();
-      toast.success(`Quantity updated to ${newQuantity}`, { duration: 2000 });
-    } catch (err) {
-      console.error('Update quantity error:', err);
+      await dispatch(updateQuantityAPI({ 
+        productId, 
+        size: item.size, 
+        color: item.color, 
+        quantity: newQuantity 
+      })).unwrap();
+      toast.success(`Quantity updated to ${newQuantity}`);
+    } catch(err) {
       toast.error(err.message || 'Failed to update quantity');
-    } finally {
-      setIsUpdating(false);
     }
   };
   
-  // Handle item removal with Surgical Delete logic
+  // Handle item removal with Redux Thunk
   const handleRemoveItem = async (item) => {
-    setIsUpdating(true);
+    // FIX: Safely extract productId - handle both populated object and string
+    const productId = item.productId?._id || item.productId || item.product?._id || item._id;
     
+    if (!productId || typeof productId !== 'string') {
+      toast.error('Failed to remove item: invalid product ID');
+      return;
+    }
+
     try {
-      // Check both 'token' and 'adminToken' keys for compatibility
-      const token = localStorage.getItem('token') || localStorage.getItem('adminToken');
-      
-      // Surgical Delete: Get product ID from item.productId (object or string), item.product._id, or item._id
-      const productId = item.productId?._id || item.productId || item.product?._id || item._id;
-      
-      // Debug: Log the productId to ensure it's a valid string
-      console.log('🗑️ REMOVE_ITEM: Raw item.productId:', item.productId, 'Extracted productId:', productId);
-      
-      if (!productId || typeof productId !== 'string') {
-        console.error('❌ Invalid productId:', productId);
-        toast.error('Failed to remove item: invalid product ID');
-        setIsUpdating(false);
-        return;
-      }
-      
-      const response = await fetch(`${API_URL}/api/cart/remove/${productId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to remove item');
-      }
-      
-      // Re-fetch cart to stay in sync with server (Single Source of Truth)
-      await fetchCart();
-      toast.success(`${item.name || 'Item'} removed from cart`, { icon: '🗑️', duration: 2000 });
+      await dispatch(removeFromCartAPI({ productId, size: item.size, color: item.color })).unwrap();
+      toast.success(`${item.name || 'Item'} removed from cart`);
     } catch (err) {
-      console.error('Remove item error:', err);
       toast.error(err.message || 'Failed to remove item');
-    } finally {
-      setIsUpdating(false);
     }
   };
   
-  // Handle clear cart
+  // Handle clear cart with Redux Thunk
   const handleClearCart = async () => {
     if (!window.confirm('Are you sure you want to clear your cart?')) {
       return;
     }
     
-    setIsUpdating(true);
-    
     try {
-      // Check both 'token' and 'adminToken' keys for compatibility
-      const token = localStorage.getItem('token') || localStorage.getItem('adminToken');
-      
-      const response = await fetch(`${API_URL}/api/cart/clear`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      
-      const data = await response.json();
-      
-      if (!response.ok) {
-        throw new Error(data.message || 'Failed to clear cart');
-      }
-      
-      // Re-fetch cart to stay in sync
-      await fetchCart();
-      toast.success('Cart cleared successfully!', { icon: '✨', duration: 2000 });
+      await dispatch(clearCartAPI()).unwrap();
+      toast.success('Cart cleared successfully!');
     } catch (err) {
-      console.error('Clear cart error:', err);
       toast.error(err.message || 'Failed to clear cart');
-    } finally {
-      setIsUpdating(false);
     }
   };
-  
-  // Calculate totals
-  const { totalItems, totalPrice } = calculateTotals(cart.items);
   
   // Animation variants
   const containerVariants = {
@@ -366,7 +177,7 @@ const CartPage = () => {
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Error Loading Cart</h2>
           <p className="text-gray-600 dark:text-gray-300 mb-6">{error}</p>
           <button
-            onClick={fetchCart}
+            onClick={() => dispatch(fetchCart())}
             className="inline-flex items-center px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
           >
             <FiRefreshCw className="mr-2" />
@@ -418,8 +229,7 @@ const CartPage = () => {
           </div>
           <button
             onClick={handleClearCart}
-            disabled={isUpdating}
-            className="text-red-600 hover:text-red-700 text-sm font-medium disabled:opacity-50"
+            className="text-red-600 hover:text-red-700 text-sm font-medium"
           >
             Clear Cart
           </button>
@@ -436,7 +246,6 @@ const CartPage = () => {
             >
               <AnimatePresence>
                 {cart.items.map((item, index) => {
-                  // Cart uses productId, which gets populated to productId (as object)
                   const productId = item.productId?._id || item.productId || item._id;
                   const itemName = item.name || item.productId?.name || item.product?.name || 'Unknown Product';
                   const itemImage = item.image || item.productId?.image || item.product?.image || item.productId?.images?.[0];
@@ -518,7 +327,7 @@ const CartPage = () => {
                             <div className="flex items-center border border-gray-300 dark:border-gray-600 rounded-lg">
                               <button
                                 onClick={() => handleQuantityChange(item, itemQuantity - 1)}
-                                disabled={isUpdating || itemQuantity <= 1}
+                                disabled={itemQuantity <= 1}
                                 className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-l-lg"
                               >
                                 <FiMinus className="h-4 w-4" />
@@ -528,7 +337,7 @@ const CartPage = () => {
                               </span>
                               <button
                                 onClick={() => handleQuantityChange(item, itemQuantity + 1)}
-                                disabled={isUpdating || itemQuantity >= 99}
+                                disabled={itemQuantity >= 99}
                                 className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-r-lg"
                               >
                                 <FiPlus className="h-4 w-4" />
@@ -538,8 +347,7 @@ const CartPage = () => {
                             {/* Remove Button */}
                             <button
                               onClick={() => handleRemoveItem(item)}
-                              disabled={isUpdating}
-                              className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors disabled:opacity-50"
+                              className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                               title="Remove item"
                             >
                               <FiTrash2 className="h-5 w-5" />

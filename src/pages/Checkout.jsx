@@ -4,6 +4,7 @@ import { FiArrowLeft, FiCalendar, FiClock, FiTrash2, FiMinus, FiPlus, FiMapPin, 
 import { useSelector, useDispatch } from 'react-redux';
 import { formatPrice } from '../utils/formatPrice';
 import { useCurrency } from '../context/CurrencyContext';
+import { clearCartAPI } from '../store/slices/cartSlice';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -247,6 +248,8 @@ const Checkout = () => {
             // Mock mode - just show success
             setPaymentStatus('success');
             toast.success('Payment successful!');
+            // Auto-clear cart on successful payment
+            dispatch(clearCartAPI());
             setTimeout(() => {
               setCurrentStep(3); // Move to confirmation
             }, 2000);
@@ -266,6 +269,8 @@ const Checkout = () => {
         
         setPaymentStatus('success');
         toast.success('Payment successful!');
+        // Auto-clear cart on successful payment
+        dispatch(clearCartAPI());
         setTimeout(() => {
           setCurrentStep(3); // Move to confirmation
         }, 2000);
@@ -313,6 +318,8 @@ const Checkout = () => {
           setPaymentStatus('success');
           clearPaymentFlag(); // Clear the 3D background flag
           toast.success('Payment Received Successfully!');
+          // Auto-clear cart on successful payment
+          dispatch(clearCartAPI());
           // Move to confirmation step (which acts as success page)
           setTimeout(() => {
             setCurrentStep(3); // Move to confirmation
@@ -375,6 +382,8 @@ const Checkout = () => {
         stopPolling();
         setPaymentStatus('success');
         toast.success('Payment verified successfully!');
+        // Auto-clear cart on successful payment
+        dispatch(clearCartAPI());
         setTimeout(() => {
           setCurrentStep(3); // Move to confirmation
         }, 1500);
