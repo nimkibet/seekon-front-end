@@ -93,7 +93,7 @@ const Contact = () => {
                 </div>
                 <div>
                   <h3 className="font-semibold text-seekon-midnight mb-1">Email Support</h3>
-                  <p className="text-seekon-charcoalGray mb-2">nimrodkibet06@gmail.com</p>
+                  <p className="text-seekon-charcoalGray mb-2">seekonapparel77@gmail.com</p>
                   <p className="text-sm text-seekon-charcoalGray">We typically respond within 24 hours</p>
                 </div>
               </div>

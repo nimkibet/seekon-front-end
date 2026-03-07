@@ -61,11 +61,11 @@ const Footer = () => {
                 >
                   <FiMail className="w-4 h-4 text-seekon-neonCyan flex-shrink-0" />
                   <a 
-                    href="mailto:nimrodkibet06@gmail.com"
-                    onClick={() => handleExternalLink('mailto:nimrodkibet06@gmail.com')}
+                    href="mailto:seekonapparel77@gmail.com"
+                    onClick={() => handleExternalLink('mailto:seekonapparel77@gmail.com')}
                     className="text-seekon-platinumSilver text-sm hover:text-seekon-neonCyan transition-colors duration-200"
                   >
-                    nimrodkibet06@gmail.com
+                    seekonapparel77@gmail.com
                   </a>
                 </motion.div>
                 
