@@ -60,23 +60,28 @@ const AllApparel = () => {
   const placeholders = Array.from({ length: Math.max(0, neededPlaceholders) }, (_, i) => ({ id: `placeholder-${i}`, isPlaceholder: true }));
 
   const handleFilter = (filterType, filterValue) => {
-    let filtered = products.filter(p => p.category === 'Apparel' || p.category === 'apparel');
+    // First, isolate ONLY apparel and exclude flash sales
+    let baseFiltered = products.filter(p => 
+      (p.category === 'Apparel' || p.category === 'apparel') && 
+      !isFlashSaleProduct(p)
+    );
     
+    // Then, apply the specific sub-filter on top of that base
     if (filterType === 'brand') {
-      filtered = filtered.filter(p => p.brand?.toLowerCase() === filterValue.toLowerCase());
+      baseFiltered = baseFiltered.filter(p => p.brand?.toLowerCase() === filterValue.toLowerCase());
     } else if (filterType === 'gender') {
-      filtered = filtered.filter(p => p.gender?.toLowerCase() === filterValue.toLowerCase());
+      baseFiltered = baseFiltered.filter(p => p.gender?.toLowerCase() === filterValue.toLowerCase());
     } else if (filterType === 'type') {
       if (filterValue === 'tshirts') {
-        filtered = filtered.filter(p => p.name?.toLowerCase().includes('shirt') || p.name?.toLowerCase().includes('tee'));
+        baseFiltered = baseFiltered.filter(p => p.name?.toLowerCase().includes('shirt') || p.name?.toLowerCase().includes('tee'));
       } else if (filterValue === 'hoodies') {
-        filtered = filtered.filter(p => p.name?.toLowerCase().includes('hoodie'));
+        baseFiltered = baseFiltered.filter(p => p.name?.toLowerCase().includes('hoodie'));
       } else if (filterValue === 'jackets') {
-        filtered = filtered.filter(p => p.name?.toLowerCase().includes('jacket'));
+        baseFiltered = baseFiltered.filter(p => p.name?.toLowerCase().includes('jacket'));
       }
     }
     
-    setFilteredProducts(filtered);
+    setFilteredProducts(baseFiltered);
     setActiveFilter(filterValue);
   };
 
@@ -98,7 +103,10 @@ const AllApparel = () => {
   };
 
   const clearFilter = () => {
-    const apparel = products.filter(p => p.category === 'Apparel' || p.category === 'apparel');
+    const apparel = products.filter(p => 
+      (p.category === 'Apparel' || p.category === 'apparel') && 
+      !isFlashSaleProduct(p)
+    );
     setFilteredProducts(apparel);
     setActiveFilter('');
   };
