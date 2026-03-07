@@ -132,41 +132,41 @@ const Navbar = () => {
           type: 'column',
           title: 'BRAND',
           items: [
-            { name: 'Adidas', path: '/collection?brand=adidas' },
-            { name: 'Asics', path: '/collection?brand=asics' },
-            { name: 'Converse', path: '/collection?brand=converse' },
-            { name: 'Jordan', path: '/collection?brand=jordan' },
-            { name: 'Nike', path: '/collection?brand=nike' },
-            { name: 'New Balance', path: '/collection?brand=new-balance' },
-            { name: 'Puma', path: '/collection?brand=puma' },
-            { name: 'Vans', path: '/collection?brand=vans' }
+            { name: 'Adidas', path: '/collection?category=sneakers&brand=adidas' },
+            { name: 'Asics', path: '/collection?category=sneakers&brand=asics' },
+            { name: 'Converse', path: '/collection?category=sneakers&brand=converse' },
+            { name: 'Jordan', path: '/collection?category=sneakers&brand=jordan' },
+            { name: 'Nike', path: '/collection?category=sneakers&brand=nike' },
+            { name: 'New Balance', path: '/collection?category=sneakers&brand=new-balance' },
+            { name: 'Puma', path: '/collection?category=sneakers&brand=puma' },
+            { name: 'Vans', path: '/collection?category=sneakers&brand=vans' }
           ]
         },
         {
           type: 'column',
           title: 'GENDER',
           items: [
-            { name: 'Mens', path: '/collection?gender=men' },
-            { name: 'Womens', path: '/collection?gender=women' },
-            { name: 'Kids', path: '/collection?gender=kids' }
+            { name: 'Mens', path: '/collection?category=sneakers&gender=men' },
+            { name: 'Womens', path: '/collection?category=sneakers&gender=women' },
+            { name: 'Kids', path: '/collection?category=sneakers&gender=kids' }
           ]
         },
         {
           type: 'column',
           title: 'CATEGORIES',
           items: [
-            { name: 'Performance', path: '/collection?category=performance' },
-            { name: 'Lifestyle', path: '/collection?category=lifestyle' },
-            { name: 'Skateboarding', path: '/collection?category=skateboarding' }
+            { name: 'Performance', path: '/collection?category=sneakers&type=performance' },
+            { name: 'Lifestyle', path: '/collection?category=sneakers&type=lifestyle' },
+            { name: 'Skateboarding', path: '/collection?category=sneakers&type=skateboarding' }
           ]
         },
         {
           type: 'column',
           title: 'BESTSELLER',
           items: [
-            { name: 'Air Force 1', path: '/collection?search=air force 1' },
-            { name: 'Jordan 1 Travis', path: '/collection?search=travis' },
-            { name: 'Puma CA Pro', path: '/collection?search=puma ca pro' }
+            { name: 'Air Force 1', path: '/collection?category=sneakers&search=air force 1' },
+            { name: 'Jordan 1 Travis', path: '/collection?category=sneakers&search=travis' },
+            { name: 'Puma CA Pro', path: '/collection?category=sneakers&search=ca pro' }
           ]
         }
       ],
@@ -191,41 +191,41 @@ const Navbar = () => {
           type: 'column',
           title: 'CLOTHING',
           items: [
-            { name: 'Hoodies', path: '/collection?category=hoodies' },
-            { name: 'T-Shirts', path: '/collection?category=tshirts' },
-            { name: 'Jackets', path: '/collection?category=jackets' },
-            { name: 'Pants', path: '/collection?category=pants' },
-            { name: 'Shorts', path: '/collection?category=shorts' }
+            { name: 'Hoodies', path: '/collection?category=apparel&type=hoodies' },
+            { name: 'T-Shirts', path: '/collection?category=apparel&type=tshirts' },
+            { name: 'Jackets', path: '/collection?category=apparel&type=jackets' },
+            { name: 'Pants', path: '/collection?category=apparel&type=pants' },
+            { name: 'Shorts', path: '/collection?category=apparel&type=shorts' }
           ]
         },
         {
           type: 'column',
           title: 'BRAND',
           items: [
-            { name: 'Nike', path: '/collection?brand=nike' },
-            { name: 'Adidas', path: '/collection?brand=adidas' },
-            { name: 'The North Face', path: '/collection?brand=the-north-face' },
-            { name: 'Essentials', path: '/collection?brand=essentials' },
-            { name: 'Puma', path: '/collection?brand=puma' },
-            { name: 'Under Armour', path: '/collection?brand=under-armour' }
+            { name: 'Nike', path: '/collection?category=apparel&brand=nike' },
+            { name: 'Adidas', path: '/collection?category=apparel&brand=adidas' },
+            { name: 'The North Face', path: '/collection?category=apparel&brand=the-north-face' },
+            { name: 'Essentials', path: '/collection?category=apparel&brand=essentials' },
+            { name: 'Puma', path: '/collection?category=apparel&brand=puma' },
+            { name: 'Under Armour', path: '/collection?category=apparel&brand=under-armour' }
           ]
         },
         {
           type: 'column',
           title: 'GENDER',
           items: [
-            { name: 'Mens', path: '/collection?gender=men' },
-            { name: 'Womens', path: '/collection?gender=women' },
-            { name: 'Kids', path: '/collection?gender=kids' }
+            { name: 'Mens', path: '/collection?category=apparel&gender=men' },
+            { name: 'Womens', path: '/collection?category=apparel&gender=women' },
+            { name: 'Kids', path: '/collection?category=apparel&gender=kids' }
           ]
         },
         {
           type: 'column',
           title: 'BESTSELLER',
           items: [
-            { name: 'Essentials Hoodie', path: '/collection?search=essentials hoodie' },
-            { name: 'Nike Tech Fleece', path: '/collection?search=tech fleece' },
-            { name: 'Adidas Tracksuit', path: '/collection?search=tracksuit' }
+            { name: 'Essentials Hoodie', path: '/collection?category=apparel&search=essentials hoodie' },
+            { name: 'Nike Tech Fleece', path: '/collection?category=apparel&search=tech fleece' },
+            { name: 'Adidas Tracksuit', path: '/collection?category=apparel&search=tracksuit' }
           ]
         }
       ],
@@ -263,9 +263,9 @@ const Navbar = () => {
           type: 'column',
           title: 'BRAND',
           items: [
-            { name: 'Puma', path: '/collection?brand=puma' },
-            { name: 'Nike', path: '/collection?brand=nike' },
-            { name: 'Restyle', path: '/collection?brand=restyle' }
+            { name: 'Puma', path: '/collection?category=accessories&brand=puma' },
+            { name: 'Nike', path: '/collection?category=accessories&brand=nike' },
+            { name: 'Restyle', path: '/collection?category=accessories&brand=restyle' }
           ]
         }
       ],
