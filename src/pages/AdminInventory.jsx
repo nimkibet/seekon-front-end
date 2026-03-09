@@ -43,9 +43,12 @@ const AdminInventory = () => {
     }
   };
 
+  // Standardized Inventory Math - Consistent threshold across all admin pages
+  const LOW_STOCK_THRESHOLD = 5;
+
   const getStockStatus = (stock) => {
     if (stock <= 0) return 'out_of_stock';
-    if (stock < 10) return 'low_stock';
+    if (stock <= LOW_STOCK_THRESHOLD) return 'low_stock';
     return 'in_stock';
   };
 
@@ -72,11 +75,12 @@ const AdminInventory = () => {
     return matchesSearch && matchesStatus && matchesCategory;
   });
 
+  // Calculate stats using consistent threshold
   const stats = {
     total: inventory.length,
-    in_stock: inventory.filter(item => item.status === 'in_stock').length,
-    low_stock: inventory.filter(item => item.status === 'low_stock').length,
-    out_of_stock: inventory.filter(item => item.status === 'out_of_stock').length,
+    in_stock: inventory.filter(item => item.stock > LOW_STOCK_THRESHOLD).length,
+    low_stock: inventory.filter(item => item.stock > 0 && item.stock <= LOW_STOCK_THRESHOLD).length,
+    out_of_stock: inventory.filter(item => item.stock <= 0).length,
   };
 
   if (isLoading) {

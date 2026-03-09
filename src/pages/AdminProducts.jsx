@@ -129,28 +129,19 @@ const AdminProducts = () => {
       return sortOrder === 'asc' ? comparison : -comparison;
     });
 
-  // Automatically calculate stats from products array
+  // Standardized Inventory Math - Consistent across all admin pages
+  const LOW_STOCK_THRESHOLD = 5;
   const stats = React.useMemo(() => {
-    const inStockCount = products.filter(p => {
-      const status = p.status || (p.stock === 0 ? 'out_of_stock' : p.stock <= 5 ? 'low_stock' : 'active');
-      return (p.stock || 0) > 5 && status === 'active';
-    }).length;
-    const lowStockCount = products.filter(p => {
-      const stock = p.stock || 0;
-      const status = p.status || (stock === 0 ? 'out_of_stock' : stock <= 5 ? 'low_stock' : 'active');
-      return stock > 0 && stock <= 5 && status === 'active';
-    }).length;
-    const outOfStockCount = products.filter(p => {
-      const stock = p.stock || 0;
-      const status = p.status || (stock === 0 ? 'out_of_stock' : stock <= 5 ? 'low_stock' : 'active');
-      return stock === 0 || status === 'out_of_stock';
-    }).length;
+    const inStock = products.filter(p => p.stock > LOW_STOCK_THRESHOLD).length;
+    const lowStock = products.filter(p => p.stock > 0 && p.stock <= LOW_STOCK_THRESHOLD).length;
+    const outOfStock = products.filter(p => p.stock <= 0).length;
     return {
       total: products.length,
-      inStock: inStockCount,
-      lowStock: lowStockCount,
-      outOfStock: outOfStockCount,
-      totalValue: products.reduce((sum, p) => sum + ((p.price || 0) * (p.stock || 0)), 0)
+      inStock,
+      lowStock,
+      outOfStock,
+      // Calculate total value only for items actually in stock
+      totalValue: products.reduce((acc, curr) => acc + ((curr.price || 0) * (curr.stock > 0 ? curr.stock : 0)), 0)
     };
   }, [products]);
 
@@ -488,10 +479,17 @@ const AdminProducts = () => {
                   </span>
                 </div>
                 {/* Status Badge */}
-                {product.stock === 0 && (
+                {product.stock <= 0 && (
                   <div className="absolute top-2 right-2">
                     <span className="px-2 py-1 rounded text-xs font-medium bg-red-500/20 text-red-400">
                       Out of Stock
+                    </span>
+                  </div>
+                )}
+                {product.stock > 0 && product.stock <= 5 && (
+                  <div className="absolute top-2 right-2">
+                    <span className="px-2 py-1 rounded text-xs font-medium bg-yellow-500/20 text-yellow-400">
+                      Low Stock
                     </span>
                   </div>
                 )}
