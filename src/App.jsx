@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { store } from './store/store';
@@ -6,47 +6,47 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { SettingsProvider, useSettings } from './context/SettingsContext';
 import toast from 'react-hot-toast';
 
-// Pages
-import Home from './pages/Home';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import ForgotPassword from './pages/ForgotPassword';
-import ResetPassword from './pages/ResetPassword';
-import VerifyEmail from './pages/VerifyEmail';
-import VerifyOtp from './pages/auth/VerifyOtp';
-import Collection from './pages/Collection';
-import ProductDetail from './pages/ProductDetail';
-import Cart from './pages/Cart';
-import CartPage from './pages/CartPage';
-import Checkout from './pages/Checkout';
-import Orders from './pages/Orders';
-import OrderDetails from './pages/OrderDetails';
-import AdminDashboard from './pages/AdminDashboard';
-import AdminTransactions from './pages/AdminTransactions';
-import AdminOrders from './pages/AdminOrders';
-import AdminUsers from './pages/AdminUsers';
-import AdminProducts from './pages/AdminProducts';
-import AdminInventory from './pages/AdminInventory';
-import AdminAnalytics from './pages/AdminAnalytics';
-import AdminReports from './pages/AdminReports';
-import AdminSettings from './pages/AdminSettings';
-import AdminCarts from './pages/AdminCarts';
-import AdminFlashSale from './pages/AdminFlashSale';
-import WebSettings from './pages/admin/WebSettings';
-import AddProduct from './pages/admin/AddProduct';
-import Contact from './pages/Contact';
-import Shipping from './pages/Shipping';
-import Returns from './pages/Returns';
-import FAQ from './pages/FAQ';
-import CorporatePage from './pages/CorporatePage';
-import Logo3DPage from './pages/Logo3DPage';
-import Profile from './pages/Profile';
-import Wishlist from './pages/Wishlist';
-import AllFootwear from './pages/AllFootwear';
-import AllApparel from './pages/AllApparel';
-import AllAccessories from './pages/AllAccessories';
-import FlashSale from './pages/FlashSale';
-import MyOrders from './pages/MyOrders';
+// Pages - Lazy loaded for code splitting
+const Home = lazy(() => import('./pages/Home'));
+const Login = lazy(() => import('./pages/Login'));
+const Register = lazy(() => import('./pages/Register'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword'));
+const VerifyEmail = lazy(() => import('./pages/VerifyEmail'));
+const VerifyOtp = lazy(() => import('./pages/auth/VerifyOtp'));
+const Collection = lazy(() => import('./pages/Collection'));
+const ProductDetail = lazy(() => import('./pages/ProductDetail'));
+const Cart = lazy(() => import('./pages/Cart'));
+const CartPage = lazy(() => import('./pages/CartPage'));
+const Checkout = lazy(() => import('./pages/Checkout'));
+const Orders = lazy(() => import('./pages/Orders'));
+const OrderDetails = lazy(() => import('./pages/OrderDetails'));
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const AdminTransactions = lazy(() => import('./pages/AdminTransactions'));
+const AdminOrders = lazy(() => import('./pages/AdminOrders'));
+const AdminUsers = lazy(() => import('./pages/AdminUsers'));
+const AdminProducts = lazy(() => import('./pages/AdminProducts'));
+const AdminInventory = lazy(() => import('./pages/AdminInventory'));
+const AdminAnalytics = lazy(() => import('./pages/AdminAnalytics'));
+const AdminReports = lazy(() => import('./pages/AdminReports'));
+const AdminSettings = lazy(() => import('./pages/AdminSettings'));
+const AdminCarts = lazy(() => import('./pages/AdminCarts'));
+const AdminFlashSale = lazy(() => import('./pages/AdminFlashSale'));
+const WebSettings = lazy(() => import('./pages/admin/WebSettings'));
+const AddProduct = lazy(() => import('./pages/admin/AddProduct'));
+const Contact = lazy(() => import('./pages/Contact'));
+const Shipping = lazy(() => import('./pages/Shipping'));
+const Returns = lazy(() => import('./pages/Returns'));
+const FAQ = lazy(() => import('./pages/FAQ'));
+const CorporatePage = lazy(() => import('./pages/CorporatePage'));
+const Logo3DPage = lazy(() => import('./pages/Logo3DPage'));
+const Profile = lazy(() => import('./pages/Profile'));
+const Wishlist = lazy(() => import('./pages/Wishlist'));
+const AllFootwear = lazy(() => import('./pages/AllFootwear'));
+const AllApparel = lazy(() => import('./pages/AllApparel'));
+const AllAccessories = lazy(() => import('./pages/AllAccessories'));
+const FlashSale = lazy(() => import('./pages/FlashSale'));
+const MyOrders = lazy(() => import('./pages/MyOrders'));
 
 // Components
 import Layout from './components/Layout';
@@ -138,7 +138,15 @@ const App = () => {
           <SettingsProvider>
             <Router>
             <div className="App">
-              <Routes>
+              <Suspense fallback={
+                <div className="min-h-screen flex items-center justify-center bg-gray-50">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00A676] mx-auto mb-4"></div>
+                    <p className="text-gray-600">Loading...</p>
+                  </div>
+                </div>
+              }>
+                <Routes>
               {/* Public Routes */}
               <Route path="/login" element={
                 <PublicRoute>
@@ -458,6 +466,7 @@ const App = () => {
                 </AppLayout>
               } />
             </Routes>
+            </Suspense>
           </div>
         </Router>
         </SettingsProvider>

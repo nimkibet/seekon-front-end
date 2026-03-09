@@ -158,6 +158,8 @@ const ProductCard = ({ product, viewMode = 'grid' }) => {
           <img
             src={getOptimizedImageUrl(safeImage, { width: 400, height: 400, quality: 'auto' })}
             alt={product.name}
+            loading="lazy"
+            decoding="async"
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
           />
           

@@ -17,6 +17,7 @@ const Home = () => {
   const { formatPrice, currency, toggleCurrency } = useCurrency();
   const [email, setEmail] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubscribing, setIsSubscribing] = useState(false);
   const [endTime, setEndTime] = useState(null);
   const [isFlashSaleActive, setIsFlashSaleActive] = useState(false);
   const isAdminView = new URLSearchParams(location.search).get('admin') === 'true';
@@ -123,7 +124,7 @@ const Home = () => {
     return () => clearInterval(timer);
   }, [endTime, isFlashSaleActive]);
 
-  const handleNewsletterSubscribe = (e) => {
+  const handleNewsletterSubscribe = async (e) => {
     e.preventDefault();
     if (!email) {
       toast.error('Please enter your email address');
@@ -133,8 +134,26 @@ const Home = () => {
       toast.error('Please enter a valid email address');
       return;
     }
-    toast.success('Successfully subscribed to newsletter!');
-    setEmail('');
+    setIsSubscribing(true);
+    const toastId = toast.loading('Subscribing...');
+    try {
+      const response = await fetch(`${API_URL}/api/settings/subscribe`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      const data = await response.json();
+      if (response.ok && data.success) {
+        toast.success(data.message || 'Successfully subscribed!', { id: toastId });
+        setEmail('');
+      } else {
+        toast.error(data.message || 'Failed to subscribe', { id: toastId });
+      }
+    } catch (error) {
+      toast.error('Network error. Please try again later.', { id: toastId });
+    } finally {
+      setIsSubscribing(false);
+    }
   };
 
   const containerVariants = {
@@ -347,6 +366,8 @@ const Home = () => {
                         <img 
                           src={product.images?.[0]?.url || product.image || 'https://via.placeholder.com/400'} 
                           alt={product.name}
+                          loading="lazy"
+                          decoding="async"
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
                         <div className="absolute top-2 left-2 flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-orange-500 to-red-500 rounded-full text-white text-xs font-bold">
@@ -477,8 +498,14 @@ const Home = () => {
                 onChange={(e) => setEmail(e.target.value)}
                 className="flex-1 px-4 py-3 rounded-lg text-gray-900 bg-white border-2 border-[#00A676] focus:outline-none"
               />
-              <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={handleNewsletterSubscribe} className="px-6 py-3 bg-[#00A676] text-white font-semibold rounded-lg hover:bg-[#008A5E] transition-colors">
-                Subscribe
+              <motion.button 
+                whileHover={{ scale: 1.05 }} 
+                whileTap={{ scale: 0.95 }} 
+                onClick={handleNewsletterSubscribe} 
+                disabled={isSubscribing}
+                className="px-6 py-3 bg-[#00A676] text-white font-semibold rounded-lg hover:bg-[#008A5E] transition-colors disabled:opacity-70"
+              >
+                {isSubscribing ? 'Joining...' : 'Subscribe'}
               </motion.button>
             </div>
           </motion.div>
