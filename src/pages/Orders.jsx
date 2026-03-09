@@ -7,7 +7,7 @@ import { api } from '../utils/api';
 import { formatPrice, formatDate } from '../utils/formatPrice';
 import toast from 'react-hot-toast';
 import { useDispatch } from 'react-redux';
-import { addToCart } from '../store/slices/cartSlice';
+import { addToCart, addToCartAPI } from '../store/slices/cartSlice';
 
 const Orders = () => {
   const { user } = useAuth();
@@ -65,24 +65,30 @@ const Orders = () => {
   };
 
   const handleBuyAgain = async (order) => {
-    setBuyingAgain(order.id);
+    setBuyingAgain(order.id || order._id);
     try {
-      // Add all items from the order to cart
+      // Add all items from the order to cart via API
       for (const item of order.items) {
-        dispatch(addToCart({
-          id: item.productId || item.id,
-          name: item.name,
-          price: item.price,
-          quantity: item.quantity,
-          image: item.image || '/placeholder.jpg',
+        // Safely extract the ID whether it's populated or not
+        const productId = item.product?._id || item.product || item.productId || item.id;
+        
+        if (!productId) {
+          console.error('Product ID not found for item:', item);
+          continue;
+        }
+
+        await dispatch(addToCartAPI({
+          product: { id: productId, _id: productId },
           size: item.size || 'M',
-          color: item.color || 'Default'
-        }));
+          color: item.color || 'Default',
+          quantity: item.quantity || 1
+        })).unwrap();
       }
       toast.success('Items added to cart!');
       navigate('/cart');
     } catch (error) {
-      toast.error('Failed to add items to cart');
+      console.error('Error adding items to cart:', error);
+      toast.error(error.message || 'Failed to add items to cart');
     } finally {
       setBuyingAgain(null);
     }
