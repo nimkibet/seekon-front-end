@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Link } from 'react-router-dom';
+import ReactMarkdown from 'react-markdown';
 import { FiMessageCircle, FiX, FiSend, FiUser, FiCamera, FiShoppingCart, FiHeart, FiSearch, FiTrendingUp, FiStar, FiClock, FiPackage, FiCreditCard, FiSettings, FiHelpCircle, FiGift, FiShield, FiTruck, FiRefreshCw } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import { useSelector } from 'react-redux';
@@ -239,7 +241,31 @@ const AIChatAssistant = () => {
                           ? 'bg-gradient-to-r from-seekon-electricRed to-seekon-electricRed/80 text-seekon-pureWhite'
                           : 'bg-white/10 backdrop-blur-sm text-seekon-pureWhite border border-white/20'
                       }`}>
-                        <p className="text-xs sm:text-sm leading-relaxed">{message.text}</p>
+                        <ReactMarkdown className="text-xs sm:text-sm leading-relaxed prose prose-invert prose-sm max-w-none">{message.text}</ReactMarkdown>
+                        {/* Render suggested products if available */}
+                        {message.products && message.products.length > 0 && (
+                          <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {message.products.map((product) => (
+                              <Link
+                                key={product._id || product.id}
+                                to={`/product/${product._id || product.id}`}
+                                className="flex items-center space-x-2 p-2 bg-white/5 hover:bg-white/10 rounded-lg transition-colors border border-white/10"
+                              >
+                                {product.image && (
+                                  <img
+                                    src={product.image}
+                                    alt={product.name}
+                                    className="w-10 h-10 object-cover rounded"
+                                  />
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-xs font-medium text-seekon-neonCyan truncate">{product.name}</p>
+                                  <p className="text-xs text-seekon-softWhite">KSh {product.price?.toLocaleString()}</p>
+                                </div>
+                              </Link>
+                            ))}
+                          </div>
+                        )}
                         {message.suggestions && (
                           <div className="mt-2 sm:mt-3 space-y-1 sm:space-y-2">
                             {message.suggestions.map((suggestion, index) => (
