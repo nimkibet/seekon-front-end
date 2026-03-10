@@ -14,8 +14,8 @@ class GeminiService {
 
     // Initialize the Google Generative AI client
     this.genAI = new GoogleGenerativeAI(this.apiKey);
-    // Use the 'gemini-1.5-flash' model for speed and efficiency
-    this.model = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    // Use the 'gemini-2.5-flash' model for speed and efficiency
+    this.model = this.genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
   }
 
   async generateResponse(message, context = {}) {
@@ -36,7 +36,7 @@ class GeminiService {
         message: text,
         suggestions: this.extractSuggestions(text),
         metadata: {
-          model: 'gemini-1.5-flash',
+          model: 'gemini-2.5-flash',
           timestamp: new Date().toISOString()
         }
       };
@@ -57,8 +57,8 @@ class GeminiService {
       // Convert file to Base64
       const base64Data = await this.fileToGenerativePart(imageFile);
       
-      // Use gemini-1.5-flash which supports vision
-      const model = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      // Use gemini-2.5-flash which supports vision
+      const model = this.genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
       
       const prompt = `You are Seekon, a stylish fashion expert. ${promptText}. 
       Return your response in a clear, enthusiastic tone.`;
@@ -71,7 +71,7 @@ class GeminiService {
         analysis: text,
         recommendations: this.extractProductRecommendations(text),
         metadata: {
-          model: 'gemini-1.5-flash-vision',
+          model: 'gemini-2.5-flash-vision',
           timestamp: new Date().toISOString()
         }
       };
