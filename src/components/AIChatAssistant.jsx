@@ -70,7 +70,10 @@ const AIChatAssistant = () => {
       const response = await fetch(`${API_URL}/ai/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: inputMessage })
+        body: JSON.stringify({ 
+          message: inputMessage,
+          history: messages.map(m => ({ sender: m.sender, text: m.text }))
+        })
       });
       const data = await response.json();
       
@@ -100,8 +103,56 @@ const AIChatAssistant = () => {
     }
   };
 
-  const handleSuggestionClick = (suggestion) => {
-    setInputMessage(suggestion);
+  const handleSuggestionClick = async (suggestion) => {
+    // Add user message to chat
+    const userMessage = {
+      id: Date.now(),
+      sender: 'user',
+      text: suggestion,
+      timestamp: new Date(),
+    };
+    const currentMessages = [...messages, userMessage];
+    setMessages(currentMessages);
+    setInputMessage('');
+    setIsLoading(true);
+
+    try {
+      const BASE_URL = import.meta.env.VITE_API_URL || 'https://seekonbackend-production.up.railway.app';
+      const API_URL = BASE_URL.endsWith('/api') ? BASE_URL : `${BASE_URL}/api`;
+      const response = await fetch(`${API_URL}/ai/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          message: suggestion,
+          history: currentMessages.map(m => ({ sender: m.sender, text: m.text }))
+        })
+      });
+      const data = await response.json();
+      
+      if (response.ok && data.success) {
+        const aiMessage = {
+          id: Date.now() + 1,
+          sender: 'ai',
+          text: data.reply,
+          timestamp: new Date(),
+          products: data.suggestedProducts,
+        };
+        setMessages(prev => [...prev, aiMessage]);
+      } else {
+        throw new Error("Backend AI route failed");
+      }
+    } catch (error) {
+      console.error("AI Proxy Error:", error);
+      const errorMessage = {
+        id: Date.now() + 1,
+        sender: 'ai',
+        text: "Sorry, I'm Seekon and I'm having a little trouble connecting right now. Please try again later.",
+        timestamp: new Date(),
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleVisualSearch = (results) => {
