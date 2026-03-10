@@ -38,6 +38,9 @@ const Contact = lazy(() => import('./pages/Contact'));
 const Shipping = lazy(() => import('./pages/Shipping'));
 const Returns = lazy(() => import('./pages/Returns'));
 const FAQ = lazy(() => import('./pages/FAQ'));
+const Privacy = lazy(() => import('./pages/Privacy'));
+const Terms = lazy(() => import('./pages/Terms'));
+const Cookies = lazy(() => import('./pages/Cookies'));
 const CorporatePage = lazy(() => import('./pages/CorporatePage'));
 const Logo3DPage = lazy(() => import('./pages/Logo3DPage'));
 const Profile = lazy(() => import('./pages/Profile'));
@@ -420,6 +423,24 @@ const App = () => {
               <Route path="/faq" element={
                 <AppLayout>
                   <FAQ />
+                </AppLayout>
+              } />
+
+              <Route path="/privacy" element={
+                <AppLayout>
+                  <Privacy />
+                </AppLayout>
+              } />
+
+              <Route path="/terms" element={
+                <AppLayout>
+                  <Terms />
+                </AppLayout>
+              } />
+
+              <Route path="/cookies" element={
+                <AppLayout>
+                  <Cookies />
                 </AppLayout>
               } />
 

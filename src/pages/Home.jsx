@@ -364,7 +364,7 @@ const Home = () => {
                     >
                       <div className="relative aspect-square bg-gray-100">
                         <img 
-                          src={product.images?.[0]?.url || product.image || 'https://via.placeholder.com/400'} 
+                          src={product.images?.[0]?.url || product.image || 'https://placehold.co/400x400/png?text=No+Image'} 
                           alt={product.name}
                           loading="lazy"
                           decoding="async"

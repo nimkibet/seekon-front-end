@@ -97,7 +97,7 @@ const FlashSale = () => {
         {products.length === 0 ? (
           <div className="text-center py-20 bg-white rounded-xl shadow-sm">
             <p className="text-gray-500 text-lg">No products found with Flash Sale active.</p>
-            <Link to="/products" className="inline-block mt-6 px-6 py-2 bg-black text-white rounded-full hover:bg-gray-800">
+            <Link to="/collection" className="inline-block mt-6 px-6 py-2 bg-black text-white rounded-full hover:bg-gray-800">
               Shop All Products
             </Link>
           </div>
@@ -115,7 +115,7 @@ const FlashSale = () => {
                 >
                   <div className="relative aspect-square bg-gray-100">
                     <img 
-                      src={product.images?.[0]?.url || product.image || 'https://via.placeholder.com/400'} 
+                      src={product.images?.[0]?.url || product.image || 'https://placehold.co/400x400/png?text=No+Image'} 
                       alt={product.name}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />

@@ -100,7 +100,7 @@ const Login = () => {
     setIsCodeSending(true);
     
     try {
-      const response = await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/send-code`, {
+      const response = await axios.post(`${import.meta.env.VITE_API_URL || 'https://seekonbackend-production.up.railway.app'}/api/auth/send-code`, {
         email
       });
       
@@ -262,7 +262,7 @@ const Login = () => {
       
       if (isSignUp) {
         // Use axios for registration with verification code
-        const response = await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/register`, {
+        const response = await axios.post(`${import.meta.env.VITE_API_URL || 'https://seekonbackend-production.up.railway.app'}/api/auth/register`, {
           name: formData.name,
           email: formData.email,
           password: formData.password,
