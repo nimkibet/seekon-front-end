@@ -3,9 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FiMessageCircle, FiX, FiSend, FiUser, FiCamera, FiShoppingCart, FiHeart, FiSearch, FiTrendingUp, FiStar, FiClock, FiPackage, FiCreditCard, FiSettings, FiHelpCircle, FiGift, FiShield, FiTruck, FiRefreshCw } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import { useSelector } from 'react-redux';
-// REMOVED: import { api } from '../utils/api';
-// ADDED: Gemini Service
-import geminiService from '../services/geminiService';
 import VisualSearchModal from './VisualSearchModal';
 
 const AIChatAssistant = () => {
@@ -64,27 +61,29 @@ const AIChatAssistant = () => {
     setIsLoading(true);
 
     try {
-      // 🚀 UPDATED: Use Gemini Service
-      // Create context to help the AI be smarter
-      const context = {
-        user: user || { name: 'Guest' },
-        cartItems: cartItems || [],
-        products: products || [] // Optional: Pass product list if not too huge
-      };
-
-      const response = await geminiService.generateResponse(inputMessage, context);
+      // Send the message to our secure backend API
+      const API_URL = import.meta.env.VITE_API_URL || 'https://seekonbackend-production.up.railway.app/api';
+      const response = await fetch(`${API_URL}/ai/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: inputMessage })
+      });
+      const data = await response.json();
       
-      const aiMessage = {
-        id: Date.now() + 1,
-        sender: 'ai',
-        text: response.message,
-        timestamp: new Date(),
-        suggestions: response.suggestions,
-      };
-
-      setMessages(prev => [...prev, aiMessage]);
+      if (response.ok && data.success) {
+        const aiMessage = {
+          id: Date.now() + 1,
+          sender: 'ai',
+          text: data.reply,
+          timestamp: new Date(),
+          products: data.suggestedProducts,
+        };
+        setMessages(prev => [...prev, aiMessage]);
+      } else {
+        throw new Error("Backend AI route failed");
+      }
     } catch (error) {
-      console.error("Chat Error:", error);
+      console.error("AI Proxy Error:", error);
       const errorMessage = {
         id: Date.now() + 1,
         sender: 'ai',
