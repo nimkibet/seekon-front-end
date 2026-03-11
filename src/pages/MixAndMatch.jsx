@@ -60,20 +60,16 @@ const CATEGORIES = [
 ];
 
 // Placeholder silhouettes for each category
-const PlaceholderCard = ({ label, selected, onClear }) => (
-  <div className="relative flex-shrink-0 w-32 h-40 md:w-40 md:h-48 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-800 transition-all duration-300 hover:border-[#00A676]">
-    <div className="text-gray-400 dark:text-gray-500 text-center p-2">
-      <div className="w-16 h-20 mx-auto mb-2 bg-gray-200 dark:bg-gray-700 rounded-full opacity-50"></div>
+const PlaceholderCard = ({ label, selected, onClick, onClear }) => (
+  <div 
+    onClick={onClick}
+    className={`${onClick ? 'cursor-pointer hover:border-[#00A676]' : ''} flex-shrink-0 w-full max-w-[250px] h-40 md:h-48 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center bg-gray-50 dark:bg-gray-800 transition-all duration-300 p-4`}
+  >
+    <div className="text-gray-400 dark:text-gray-500 text-center">
+      <div className="w-16 h-16 mx-auto mb-2 bg-gray-200 dark:bg-gray-700 rounded-lg opacity-50"></div>
       <p className="text-xs font-medium">{label}</p>
+      <p className="text-[10px] text-gray-400 mt-1">Click to select</p>
     </div>
-    {selected && (
-      <button
-        onClick={onClear}
-        className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
-      >
-        <FiX size={14} />
-      </button>
-    )}
   </div>
 );
 
@@ -86,27 +82,34 @@ const SelectedItemDisplay = ({ item, category, onClear }) => {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -20 }}
-      className="relative flex flex-col items-center"
+      className="flex flex-col items-center w-full"
     >
-      <div className="relative group">
+      {/* Image Container with fixed height */}
+      <div className="relative group w-full max-w-[250px] h-40 md:h-48 flex justify-center items-center bg-gray-50 dark:bg-gray-700 rounded-lg overflow-hidden">
         <img 
           src={item.image} 
           alt={item.name}
-          className="max-w-[180px] md:max-w-[220px] h-auto object-contain drop-shadow-lg"
+          className="max-h-full max-w-full object-contain drop-shadow-md"
+          onError={(e) => {
+            e.target.src = 'https://via.placeholder.com/300x300?text=No+Image';
+          }}
         />
         <button
           onClick={onClear}
-          className="absolute -top-2 -right-2 p-2 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 shadow-lg"
+          className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 shadow-lg"
         >
           <FiX size={16} />
         </button>
       </div>
-      <p className="mt-2 text-xs md:text-sm font-medium text-gray-700 dark:text-gray-300 text-center max-w-[180px] truncate">
-        {item.name}
-      </p>
-      <p className="text-[#00A676] font-semibold text-sm">
-        KSh {item.price?.toLocaleString()}
-      </p>
+      {/* Text - cleanly below image */}
+      <div className="mt-3 text-center w-full max-w-[250px]">
+        <p className="text-xs md:text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
+          {item.name}
+        </p>
+        <p className="text-[#00A676] font-semibold text-sm mt-1">
+          KSh {item.price?.toLocaleString()}
+        </p>
+      </div>
     </motion.div>
   );
 };
@@ -315,116 +318,78 @@ const MixAndMatch = () => {
                 👗 Your Outfit
               </h2>
               
-              {/* The Mannequin - Visual Stacking */}
-              <div className="min-h-[400px] flex flex-col items-center justify-center py-4">
-                {/* Visual Stack Container - Using absolute positioning for overlap effect */}
-                <div className="relative w-full max-w-[280px] h-[380px]">
-                  
-                  {/* Accessory Layer - Topmost */}
-                  <AnimatePresence>
-                    {selectedAccessory && (
-                      <motion.div
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.8 }}
-                        className="absolute top-0 left-1/2 -translate-x-1/2 z-40"
-                      >
-                        <SelectedItemDisplay 
-                          item={selectedAccessory} 
-                          category="accessories"
-                          onClear={() => handleClearItem('accessories')}
-                        />
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+              {/* The Mannequin - Flexbox Column Layout */}
+              <div className="flex flex-col items-center justify-start gap-6 py-4 overflow-y-auto max-h-[500px] md:max-h-none">
+                {/* Accessory Row */}
+                <div className="w-full">
+                  {selectedAccessory ? (
+                    <SelectedItemDisplay 
+                      item={selectedAccessory} 
+                      category="accessories"
+                      onClear={() => handleClearItem('accessories')}
+                    />
+                  ) : (
+                    <PlaceholderCard 
+                      label="Select Accessory" 
+                      selected={false}
+                      onClick={() => setActiveCategory('accessories')}
+                      onClear={() => {}}
+                    />
+                  )}
+                </div>
 
-                  {/* Top Layer */}
-                  <AnimatePresence>
-                    {selectedTop ? (
-                      <motion.div
-                        initial={{ opacity: 0, y: 30 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -30 }}
-                        className="absolute top-[60px] left-1/2 -translate-x-1/2 z-30"
-                      >
-                        <SelectedItemDisplay 
-                          item={selectedTop} 
-                          category="tops"
-                          onClear={() => handleClearItem('tops')}
-                        />
-                      </motion.div>
-                    ) : (
-                      <div 
-                        onClick={() => setActiveCategory('tops')}
-                        className="absolute top-[60px] left-1/2 -translate-x-1/2 z-30 cursor-pointer"
-                      >
-                        <PlaceholderCard 
-                          label="Select a Top" 
-                          selected={false}
-                          onClear={() => {}}
-                        />
-                      </div>
-                    )}
-                  </AnimatePresence>
+                {/* Top Row */}
+                <div className="w-full">
+                  {selectedTop ? (
+                    <SelectedItemDisplay 
+                      item={selectedTop} 
+                      category="tops"
+                      onClear={() => handleClearItem('tops')}
+                    />
+                  ) : (
+                    <PlaceholderCard 
+                      label="Select a Top" 
+                      selected={false}
+                      onClick={() => setActiveCategory('tops')}
+                      onClear={() => {}}
+                    />
+                  )}
+                </div>
 
-                  {/* Bottom Layer - with overlap */}
-                  <AnimatePresence>
-                    {selectedBottom ? (
-                      <motion.div
-                        initial={{ opacity: 0, y: 30 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -30 }}
-                        className="absolute top-[200px] left-1/2 -translate-x-1/2 z-20"
-                      >
-                        <SelectedItemDisplay 
-                          item={selectedBottom} 
-                          category="bottoms"
-                          onClear={() => handleClearItem('bottoms')}
-                        />
-                      </motion.div>
-                    ) : (
-                      <div 
-                        onClick={() => setActiveCategory('bottoms')}
-                        className="absolute top-[200px] left-1/2 -translate-x-1/2 z-20 cursor-pointer"
-                      >
-                        <PlaceholderCard 
-                          label="Select Bottoms" 
-                          selected={false}
-                          onClear={() => {}}
-                        />
-                      </div>
-                    )}
-                  </AnimatePresence>
+                {/* Bottom Row */}
+                <div className="w-full">
+                  {selectedBottom ? (
+                    <SelectedItemDisplay 
+                      item={selectedBottom} 
+                      category="bottoms"
+                      onClear={() => handleClearItem('bottoms')}
+                    />
+                  ) : (
+                    <PlaceholderCard 
+                      label="Select Bottoms" 
+                      selected={false}
+                      onClick={() => setActiveCategory('bottoms')}
+                      onClear={() => {}}
+                    />
+                  )}
+                </div>
 
-                  {/* Footwear Layer - Bottommost */}
-                  <AnimatePresence>
-                    {selectedShoe ? (
-                      <motion.div
-                        initial={{ opacity: 0, y: 30 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -30 }}
-                        className="absolute top-[320px] left-1/2 -translate-x-1/2 z-10"
-                      >
-                        <SelectedItemDisplay 
-                          item={selectedShoe} 
-                          category="footwear"
-                          onClear={() => handleClearItem('footwear')}
-                        />
-                      </motion.div>
-                    ) : (
-                      <div 
-                        onClick={() => setActiveCategory('footwear')}
-                        className="absolute top-[320px] left-1/2 -translate-x-1/2 z-10 cursor-pointer"
-                      >
-                        <PlaceholderCard 
-                          label="Select Shoes" 
-                          selected={false}
-                          onClear={() => {}}
-                        />
-                      </div>
-                    )}
-                  </AnimatePresence>
-
+                {/* Footwear Row */}
+                <div className="w-full">
+                  {selectedShoe ? (
+                    <SelectedItemDisplay 
+                      item={selectedShoe} 
+                      category="footwear"
+                      onClear={() => handleClearItem('footwear')}
+                    />
+                  ) : (
+                    <PlaceholderCard 
+                      label="Select Shoes" 
+                      selected={false}
+                      onClick={() => setActiveCategory('footwear')}
+                      onClear={() => {}}
+                    />
+                  )}
                 </div>
               </div>
 
