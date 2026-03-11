@@ -4,7 +4,7 @@ import { FiArrowLeft, FiCalendar, FiClock, FiTrash2, FiMinus, FiPlus, FiMapPin, 
 import { useSelector, useDispatch } from 'react-redux';
 import { formatPrice } from '../utils/formatPrice';
 import { useCurrency } from '../context/CurrencyContext';
-import { clearCartAPI, updateQuantityAPI, removeFromCartAPI } from '../store/slices/cartSlice';
+import { clearCartAPI, updateQuantityAPI, removeFromCartAPI, updateCartItemVariant } from '../store/slices/cartSlice';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -38,6 +38,7 @@ const Checkout = () => {
   const dispatch = useDispatch();
   const { items, totalPrice } = useSelector(state => state.cart);
   const user = useSelector(state => state.user.user);
+  const { products } = useSelector(state => state.products);
   
   // Snap to top on load
   useEffect(() => {
@@ -798,12 +799,57 @@ const Checkout = () => {
                             </div>
                           </div>
                           <div className="flex items-center space-x-2">
-                            <select className="text-xs px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700">
-                              <option>{item.size}</option>
-                            </select>
-                            <select className="text-xs px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700">
-                              <option>{item.color}</option>
-                            </select>
+                            {(() => {
+                              // Find product to get available sizes and colors
+                              const product = products.find(p => p.id === item.id || p._id === item.id);
+                              const availableSizes = product?.sizes || [];
+                              const availableColors = product?.colors || [];
+                              
+                              return (
+                                <>
+                                  <select
+                                    value={item.size || ''}
+                                    onChange={(e) => {
+                                      const newSize = e.target.value;
+                                      dispatch(updateCartItemVariant({ 
+                                        cartItemId: item.id, 
+                                        newSize, 
+                                        newColor: item.color 
+                                      }));
+                                    }}
+                                    className="text-xs px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700"
+                                  >
+                                    {availableSizes.length > 0 ? (
+                                      availableSizes.map(size => (
+                                        <option key={size} value={size}>{size}</option>
+                                      ))
+                                    ) : (
+                                      <option>{item.size || 'N/A'}</option>
+                                    )}
+                                  </select>
+                                  <select
+                                    value={item.color || ''}
+                                    onChange={(e) => {
+                                      const newColor = e.target.value;
+                                      dispatch(updateCartItemVariant({ 
+                                        cartItemId: item.id, 
+                                        newSize: item.size, 
+                                        newColor 
+                                      }));
+                                    }}
+                                    className="text-xs px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700"
+                                  >
+                                    {availableColors.length > 0 ? (
+                                      availableColors.map(color => (
+                                        <option key={color} value={color}>{color}</option>
+                                      ))
+                                    ) : (
+                                      <option>{item.color || 'N/A'}</option>
+                                    )}
+                                  </select>
+                                </>
+                              );
+                            })()}
                           </div>
                         </div>
                       </div>

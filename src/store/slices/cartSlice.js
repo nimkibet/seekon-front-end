@@ -298,6 +298,48 @@ const cartSlice = createSlice({
       }
     },
 
+    // Update cart item variant (size/color)
+    updateCartItemVariant: (state, action) => {
+      const { cartItemId, newSize, newColor } = action.payload;
+      
+      // Find the item to update
+      const itemToUpdate = state.items.find(
+        item => (item._id || item.id || item.cartItemId) === cartItemId
+      );
+      
+      if (!itemToUpdate) return;
+      
+      // Check if new variant already exists in cart
+      const existingVariant = state.items.find(
+        item => 
+          item !== itemToUpdate && 
+          (item.id === itemToUpdate.id || item.productId === itemToUpdate.productId) && 
+          item.size === newSize && 
+          item.color === newColor
+      );
+      
+      if (existingVariant) {
+        // Merge quantities and remove old item
+        existingVariant.quantity += itemToUpdate.quantity;
+        state.items = state.items.filter(
+          item => item !== itemToUpdate
+        );
+        console.log('🛒 Merged cart items - new quantity:', existingVariant.quantity);
+      } else {
+        // Just update the variant
+        itemToUpdate.size = newSize;
+        itemToUpdate.color = newColor;
+        console.log('🛒 Updated cart item variant:', newSize, newColor);
+      }
+      
+      // Update totals
+      state.totalItems = state.items.reduce((total, item) => total + item.quantity, 0);
+      state.totalPrice = state.items.reduce((total, item) => total + (item.price * item.quantity), 0);
+      
+      // Sync to localStorage
+      localStorage.setItem('cartItems', JSON.stringify(state.items));
+    },
+
     clearCart: (state) => {
       state.items = [];
       state.totalItems = 0;
@@ -415,6 +457,7 @@ export const {
   addToCart,
   removeFromCart,
   updateQuantity,
+  updateCartItemVariant,
   clearCart,
   toggleCart,
   openCart,
