@@ -602,6 +602,17 @@ const ProductDetail = () => {
                 </motion.button>
               </div>
 
+              {/* Build Outfit Button */}
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => navigate(`/mix-and-match?prefillId=${product._id || product.id}&category=${encodeURIComponent(product.category || '')}`)}
+                className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold py-3 px-4 rounded-lg transition-all duration-200 flex items-center justify-center space-x-2 text-sm sm:text-base shadow-lg"
+              >
+                <span>👕</span>
+                <span>Build Outfit with this Item</span>
+              </motion.button>
+
               {/* Stock Status */}
               <div className="text-sm">
                 {product.inStock ? (

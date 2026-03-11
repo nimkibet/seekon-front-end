@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiShoppingBag, FiX, FiCheck, FiChevronDown } from 'react-icons/fi';
 import { fetchProducts } from '../store/slices/productSlice';
@@ -239,6 +240,7 @@ const ProductCard = ({ product, isSelected, onSelect }) => {
 const MixAndMatch = () => {
   const dispatch = useDispatch();
   const { products, isLoading } = useSelector(state => state.products);
+  const [searchParams, setSearchParams] = useSearchParams();
   
   // State for selected items
   const [selectedTop, setSelectedTop] = useState(null);
@@ -260,6 +262,60 @@ const MixAndMatch = () => {
   useEffect(() => {
     dispatch(fetchProducts());
   }, [dispatch]);
+
+  // Handle prefill from URL parameters
+  useEffect(() => {
+    const prefillId = searchParams.get('prefillId');
+    const category = searchParams.get('category');
+    
+    if (prefillId && products.length > 0) {
+      // Find the product in the products array
+      const product = products.find(p => 
+        p._id === prefillId || p.id === prefillId
+      );
+      
+      if (product) {
+        // Determine which slot to populate based on category
+        const productCategory = (category || product.category || '').toLowerCase();
+        const productName = (product.name || '').toLowerCase();
+        const productSubCategory = (product.subCategory || '').toLowerCase();
+        
+        // Check which category filter matches this product
+        const categoryConfig = CATEGORIES.find(c => c.filter(product));
+        const matchedCategory = categoryConfig?.id;
+        
+        if (matchedCategory) {
+          // Set the active category to show the user
+          setActiveCategory(matchedCategory);
+          
+          // Populate the appropriate slot
+          switch (matchedCategory) {
+            case 'tops':
+              setSelectedTop(product);
+              break;
+            case 'bottoms':
+              setSelectedBottom(product);
+              break;
+            case 'footwear':
+              setSelectedShoe(product);
+              break;
+            case 'accessories':
+              setSelectedAccessory(product);
+              break;
+            default:
+              break;
+          }
+          
+          toast.success(`Added ${product.name} to your outfit!`, {
+            icon: '👔'
+          });
+        }
+        
+        // Clear the URL parameters after loading
+        setSearchParams({});
+      }
+    }
+  }, [searchParams, products, setSearchParams]);
 
   // Filter products by active category
   const filteredProducts = useMemo(() => {
