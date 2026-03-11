@@ -74,8 +74,15 @@ const PlaceholderCard = ({ label, selected, onClick, onClear }) => (
 );
 
 // Selected item display in the mannequin area
-const SelectedItemDisplay = ({ item, category, onClear }) => {
+const SelectedItemDisplay = ({ item, category, onClear, activeImageIndex = 0, onImageChange }) => {
   if (!item) return null;
+  
+  // Get all images for this product
+  const productImages = item.images && item.images.length > 0 
+    ? item.images 
+    : [item.image];
+
+  const currentImageIndex = activeImageIndex < productImages.length ? activeImageIndex : 0;
   
   return (
     <motion.div 
@@ -87,7 +94,7 @@ const SelectedItemDisplay = ({ item, category, onClear }) => {
       {/* Image Container with fixed height */}
       <div className="relative group w-full max-w-[250px] h-40 md:h-48 flex justify-center items-center bg-gray-50 dark:bg-gray-700 rounded-lg overflow-hidden">
         <img 
-          src={item.image} 
+          src={productImages[currentImageIndex]} 
           alt={item.name}
           className="max-h-full max-w-full object-contain drop-shadow-md"
           onError={(e) => {
@@ -96,10 +103,38 @@ const SelectedItemDisplay = ({ item, category, onClear }) => {
         />
         <button
           onClick={onClear}
-          className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 shadow-lg"
+          className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600 shadow-lg z-10"
         >
           <FiX size={16} />
         </button>
+        {/* Image Gallery Thumbnails - Only show if multiple images */}
+        {productImages.length > 1 && onImageChange && (
+          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1 z-10 bg-black/50 rounded-full px-2 py-1">
+            {productImages.map((img, idx) => (
+              <button
+                key={idx}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onImageChange(idx);
+                }}
+                className={`w-6 h-6 rounded-full overflow-hidden border-2 transition-all ${
+                  currentImageIndex === idx 
+                    ? 'border-white scale-110' 
+                    : 'border-transparent opacity-70 hover:opacity-100'
+                }`}
+              >
+                <img 
+                  src={img} 
+                  alt={`${item.name} ${idx + 1}`}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.target.src = 'https://via.placeholder.com/50x50?text=No+Img';
+                  }}
+                />
+              </button>
+            ))}
+          </div>
+        )}
       </div>
       {/* Text - cleanly below image */}
       <div className="mt-3 text-center w-full max-w-[250px]">
@@ -123,11 +158,16 @@ const ProductCard = ({ product, isSelected, onSelect }) => {
     ? product.images 
     : [product.image];
 
+  const handleSelect = () => {
+    // Pass product along with the currently viewed image index
+    onSelect(product, activeImageIndex);
+  };
+
   return (
     <motion.div
       whileHover={{ scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
-      onClick={() => onSelect(product)}
+      onClick={handleSelect}
       className={`relative cursor-pointer rounded-lg overflow-hidden border-2 transition-all duration-200 ${
         isSelected 
           ? 'border-[#00A676] shadow-lg ring-2 ring-[#00A676] ring-opacity-50' 
@@ -206,6 +246,12 @@ const MixAndMatch = () => {
   const [selectedShoe, setSelectedShoe] = useState(null);
   const [selectedAccessory, setSelectedAccessory] = useState(null);
   
+  // State for active image indices (to carry over from selection)
+  const [topImageIndex, setTopImageIndex] = useState(0);
+  const [bottomImageIndex, setBottomImageIndex] = useState(0);
+  const [shoeImageIndex, setShoeImageIndex] = useState(0);
+  const [accessoryImageIndex, setAccessoryImageIndex] = useState(0);
+  
   // UI State
   const [activeCategory, setActiveCategory] = useState('tops');
   const [isAddingToCart, setIsAddingToCart] = useState(false);
@@ -223,19 +269,23 @@ const MixAndMatch = () => {
   }, [products, activeCategory]);
 
   // Handler for selecting a product
-  const handleSelectProduct = (product) => {
+  const handleSelectProduct = (product, imageIndex = 0) => {
     switch (activeCategory) {
       case 'tops':
         setSelectedTop(product);
+        setTopImageIndex(imageIndex);
         break;
       case 'bottoms':
         setSelectedBottom(product);
+        setBottomImageIndex(imageIndex);
         break;
       case 'footwear':
         setSelectedShoe(product);
+        setShoeImageIndex(imageIndex);
         break;
       case 'accessories':
         setSelectedAccessory(product);
+        setAccessoryImageIndex(imageIndex);
         break;
       default:
         break;
@@ -250,15 +300,19 @@ const MixAndMatch = () => {
     switch (category) {
       case 'tops':
         setSelectedTop(null);
+        setTopImageIndex(0);
         break;
       case 'bottoms':
         setSelectedBottom(null);
+        setBottomImageIndex(0);
         break;
       case 'footwear':
         setSelectedShoe(null);
+        setShoeImageIndex(0);
         break;
       case 'accessories':
         setSelectedAccessory(null);
+        setAccessoryImageIndex(0);
         break;
       default:
         break;
@@ -364,6 +418,8 @@ const MixAndMatch = () => {
                       item={selectedAccessory} 
                       category="accessories"
                       onClear={() => handleClearItem('accessories')}
+                      activeImageIndex={accessoryImageIndex}
+                      onImageChange={setAccessoryImageIndex}
                     />
                   ) : (
                     <PlaceholderCard 
@@ -382,6 +438,8 @@ const MixAndMatch = () => {
                       item={selectedTop} 
                       category="tops"
                       onClear={() => handleClearItem('tops')}
+                      activeImageIndex={topImageIndex}
+                      onImageChange={setTopImageIndex}
                     />
                   ) : (
                     <PlaceholderCard 
@@ -400,6 +458,8 @@ const MixAndMatch = () => {
                       item={selectedBottom} 
                       category="bottoms"
                       onClear={() => handleClearItem('bottoms')}
+                      activeImageIndex={bottomImageIndex}
+                      onImageChange={setBottomImageIndex}
                     />
                   ) : (
                     <PlaceholderCard 
@@ -418,12 +478,34 @@ const MixAndMatch = () => {
                       item={selectedShoe} 
                       category="footwear"
                       onClear={() => handleClearItem('footwear')}
+                      activeImageIndex={shoeImageIndex}
+                      onImageChange={setShoeImageIndex}
                     />
                   ) : (
                     <PlaceholderCard 
                       label="Select Shoes" 
                       selected={false}
                       onClick={() => setActiveCategory('footwear')}
+                      onClear={() => {}}
+                    />
+                  )}
+                </div>
+
+                {/* Accessory Row */}
+                <div className="w-full">
+                  {selectedAccessory ? (
+                    <SelectedItemDisplay 
+                      item={selectedAccessory} 
+                      category="accessories"
+                      onClear={() => handleClearItem('accessories')}
+                      activeImageIndex={accessoryImageIndex}
+                      onImageChange={setAccessoryImageIndex}
+                    />
+                  ) : (
+                    <PlaceholderCard 
+                      label="Select Accessory" 
+                      selected={false}
+                      onClick={() => setActiveCategory('accessories')}
                       onClear={() => {}}
                     />
                   )}
