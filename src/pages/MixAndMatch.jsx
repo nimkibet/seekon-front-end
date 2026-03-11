@@ -115,49 +115,86 @@ const SelectedItemDisplay = ({ item, category, onClear }) => {
 };
 
 // Product card for the wardrobe list
-const ProductCard = ({ product, isSelected, onSelect }) => (
-  <motion.div
-    whileHover={{ scale: 1.02 }}
-    whileTap={{ scale: 0.98 }}
-    onClick={() => onSelect(product)}
-    className={`relative cursor-pointer rounded-lg overflow-hidden border-2 transition-all duration-200 ${
-      isSelected 
-        ? 'border-[#00A676] shadow-lg ring-2 ring-[#00A676] ring-opacity-50' 
-        : 'border-transparent hover:border-gray-300 dark:hover:border-gray-600 shadow-md hover:shadow-lg'
-    }`}
-  >
-    <div className="aspect-square bg-gray-100 dark:bg-gray-800 relative">
-      <img 
-        src={product.image} 
-        alt={product.name}
-        className="w-full h-full object-cover"
-        onError={(e) => {
-          e.target.src = 'https://via.placeholder.com/300x300?text=No+Image';
-        }}
-      />
-      {isSelected && (
-        <div className="absolute top-2 right-2 bg-[#00A676] text-white p-1.5 rounded-full">
-          <FiCheck size={16} />
-        </div>
-      )}
-    </div>
-    <div className="p-3 bg-white dark:bg-gray-900">
-      <h3 className="font-medium text-sm text-gray-800 dark:text-gray-200 truncate">
-        {product.name}
-      </h3>
-      <div className="flex items-center justify-between mt-1">
-        <span className="text-[#00A676] font-bold text-sm">
-          KSh {product.price?.toLocaleString()}
-        </span>
-        {product.originalPrice > product.price && (
-          <span className="text-gray-400 text-xs line-through">
-            KSh {product.originalPrice?.toLocaleString()}
-          </span>
+const ProductCard = ({ product, isSelected, onSelect }) => {
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+  
+  // Get all images for this product
+  const productImages = product.images && product.images.length > 0 
+    ? product.images 
+    : [product.image];
+
+  return (
+    <motion.div
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
+      onClick={() => onSelect(product)}
+      className={`relative cursor-pointer rounded-lg overflow-hidden border-2 transition-all duration-200 ${
+        isSelected 
+          ? 'border-[#00A676] shadow-lg ring-2 ring-[#00A676] ring-opacity-50' 
+          : 'border-transparent hover:border-gray-300 dark:hover:border-gray-600 shadow-md hover:shadow-lg'
+      }`}
+    >
+      <div className="aspect-square bg-gray-100 dark:bg-gray-800 relative">
+        <img 
+          src={productImages[activeImageIndex]} 
+          alt={product.name}
+          className="w-full h-full object-cover"
+          onError={(e) => {
+            e.target.src = 'https://via.placeholder.com/300x300?text=No+Image';
+          }}
+        />
+        {isSelected && (
+          <div className="absolute top-2 right-2 bg-[#00A676] text-white p-1.5 rounded-full z-10">
+            <FiCheck size={16} />
+          </div>
+        )}
+        {/* Image Gallery Thumbnails */}
+        {productImages.length > 1 && (
+          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1 z-10 bg-black/50 rounded-full px-2 py-1">
+            {productImages.map((img, idx) => (
+              <button
+                key={idx}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setActiveImageIndex(idx);
+                }}
+                className={`w-6 h-6 rounded-full overflow-hidden border-2 transition-all ${
+                  activeImageIndex === idx 
+                    ? 'border-white scale-110' 
+                    : 'border-transparent opacity-70 hover:opacity-100'
+                }`}
+              >
+                <img 
+                  src={img} 
+                  alt={`${product.name} ${idx + 1}`}
+                  className="w-full h-full object-cover"
+                  onError={(e) => {
+                    e.target.src = 'https://via.placeholder.com/50x50?text=No+Img';
+                  }}
+                />
+              </button>
+            ))}
+          </div>
         )}
       </div>
-    </div>
-  </motion.div>
-);
+      <div className="p-3 bg-white dark:bg-gray-900">
+        <h3 className="font-medium text-sm text-gray-800 dark:text-gray-200 truncate">
+          {product.name}
+        </h3>
+        <div className="flex items-center justify-between mt-1">
+          <span className="text-[#00A676] font-bold text-sm">
+            KSh {product.price?.toLocaleString()}
+          </span>
+          {product.originalPrice > product.price && (
+            <span className="text-gray-400 text-xs line-through">
+              KSh {product.originalPrice?.toLocaleString()}
+            </span>
+          )}
+        </div>
+      </div>
+    </motion.div>
+  );
+};
 
 const MixAndMatch = () => {
   const dispatch = useDispatch();
