@@ -88,7 +88,7 @@ const AddProduct = () => {
       brands: ['Nike', 'Adidas', 'Jordan', 'Puma', 'New Balance', 'Converse', 'Vans', 'Reebok']
     },
     Apparel: {
-      subCategories: ['All Clothing', 'T-Shirts', 'Hoodies', 'Jackets', 'Pants', 'Shorts'],
+      subCategories: ['All Clothing', 'T-Shirts', 'Shirts', 'Hoodies', 'Jackets', 'Pants', 'Shorts'],
       brands: ['Nike', 'Adidas', 'Puma', 'Jordan', 'The North Face', 'Essentials', 'Under Armour']
     },
     Boots: {
@@ -209,7 +209,7 @@ const AddProduct = () => {
     return data.data.url;
   };
 
-  // Handle form submission
+  // Handle form submission - Non-blocking
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -235,9 +235,19 @@ const AddProduct = () => {
       return;
     }
 
-    setIsLoading(true);
-    setIsUploading(true);
-
+    // Store product name for success message
+    const productName = formData.name;
+    
+    // Show immediate feedback - don't block the UI
+    toast.success('Uploading product in the background... You can add another one!', {
+      duration: 5000,
+      icon: '⏳'
+    });
+    
+    // Clear form immediately so user can add another product
+    resetForm();
+    
+    // Fire and forget - let it run in background
     try {
       // Upload all images first
       console.log('[DEBUG] Uploading', images.length, 'images...');
@@ -269,7 +279,6 @@ const AddProduct = () => {
         isFeatured: formData.isFeatured,
         isNew: formData.isNew,
         newProduct: formData.isNew,
-        // Flash sale fields
         isFlashSale: formData.isFlashSale,
         flashSalePrice: formData.isFlashSale && formData.flashSalePrice ? Number(formData.flashSalePrice) : null,
         saleStartTime: formData.isFlashSale && formData.saleStartTime ? formData.saleStartTime : null,
@@ -282,15 +291,37 @@ const AddProduct = () => {
       const response = await adminApi.createProduct(productData);
       console.log('[DEBUG] Product created:', response);
 
-      toast.success('Product added successfully!');
-      navigate('/admin/products');
+      toast.success(`Product "${productName}" successfully added!`, {
+        icon: '✅'
+      });
     } catch (error) {
       console.error('[DEBUG] Error creating product:', error);
-      toast.error(error.message || 'Failed to add product');
-    } finally {
-      setIsLoading(false);
-      setIsUploading(false);
+      toast.error(error.message || `Failed to add product "${productName}"`);
     }
+  };
+
+  // Reset form to initial state
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      description: '',
+      price: '',
+      originalPrice: '',
+      category: 'Sneakers',
+      subCategory: '',
+      brand: '',
+      stock: '',
+      sizes: '',
+      colors: '',
+      isFeatured: false,
+      isNew: false,
+      isFlashSale: false,
+      flashSalePrice: '',
+      saleStartTime: '',
+      saleEndTime: ''
+    });
+    setImages([]);
+    setImagesPreview([]);
   };
 
   // Cleanup preview URLs on unmount
@@ -735,8 +766,7 @@ const AddProduct = () => {
           </Link>
           <button
             type="submit"
-            disabled={isLoading || isUploading}
-            className="px-6 py-3 bg-[#00A676] hover:bg-[#008A5E] text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            className="px-6 py-3 bg-[#00A676] hover:bg-[#008A5E] text-white rounded-lg transition-colors flex items-center gap-2"
           >
             {isLoading || isUploading ? (
               <>
