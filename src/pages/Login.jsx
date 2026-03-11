@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiEye, FiEyeOff, FiMail, FiLock, FiArrowRight, FiMenu, FiX, FiSend, FiShield, FiCheck } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
@@ -39,8 +39,10 @@ const Login = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
 
-  const from = location.state?.from?.pathname || '/';
+  const redirectUrl = searchParams.get('redirect') || '/';
+  const from = location.state?.from?.pathname || redirectUrl;
 
   // Close menu when clicking outside
   useEffect(() => {

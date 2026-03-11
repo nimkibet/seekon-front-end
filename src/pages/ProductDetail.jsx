@@ -190,8 +190,8 @@ const ProductDetail = () => {
         duration: 2500,
       });
       
-      // Navigate to login immediately
-      navigate('/login');
+      // Navigate to login immediately with redirect
+      navigate(`/login?redirect=${window.location.pathname}`);
       return;
     }
     
@@ -253,7 +253,7 @@ const ProductDetail = () => {
         icon: '🔐',
         duration: 2500,
       });
-      navigate('/login');
+      navigate(`/login?redirect=${window.location.pathname}`);
       return;
     }
     

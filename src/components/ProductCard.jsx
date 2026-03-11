@@ -61,7 +61,7 @@ const ProductCard = ({ product, viewMode = 'grid' }) => {
       const currentPath = window.location.pathname;
       localStorage.setItem('redirectAfterLogin', currentPath);
       toast('Please login to add items to your cart', { icon: '🔐' });
-      navigate('/login');
+      navigate(`/login?redirect=${window.location.pathname}`);
       return;
     }
     
@@ -113,7 +113,7 @@ const ProductCard = ({ product, viewMode = 'grid' }) => {
       const currentPath = window.location.pathname;
       localStorage.setItem('redirectAfterLogin', currentPath);
       toast('Please login to add items to your wishlist', { icon: '🔐' });
-      navigate('/login');
+      navigate(`/login?redirect=${window.location.pathname}`);
       return;
     }
     
