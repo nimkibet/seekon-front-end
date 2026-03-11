@@ -166,6 +166,19 @@ export const adminApi = {
       },
     }).then(res => res.json());
   },
+
+  // Coupons
+  getCoupons: () => apiCall('/coupons'),
+  createCoupon: (couponData) => apiCall('/coupons', {
+    method: 'POST',
+    body: JSON.stringify(couponData),
+  }),
+  updateCoupon: (id, couponData) => apiCall(`/coupons/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(couponData),
+  }),
+  deleteCoupon: (id) => apiCall(`/coupons/${id}`, { method: 'DELETE' }),
+  toggleCouponStatus: (id) => apiCall(`/coupons/${id}/toggle`, { method: 'PATCH' }),
 };
 
 export default adminApi;

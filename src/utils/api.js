@@ -167,7 +167,8 @@ export const api = {
       const paymentPayload = {
         phoneNumber: orderData.shippingAddress?.phone, // Ensure phone is passed
         amount: orderData.total,
-        userEmail: orderData.userEmail || 'guest@seekon.com'
+        userEmail: orderData.userEmail || 'guest@seekon.com',
+        couponCode: orderData.couponCode || null // Pass coupon code for server-side validation
       };
 
       const response = await client.post('/payment/stk-push', paymentPayload);
@@ -234,6 +235,18 @@ export const api = {
       return response.data;
     } catch (error) {
       handleApiError(error, 'checkCanReview');
+    }
+  },
+
+  // ==========================================
+  // 🎟️ COUPONS
+  // ==========================================
+  applyCoupon: async (code, cartTotal) => {
+    try {
+      const response = await client.post('/coupons/apply', { code, cartTotal });
+      return response.data;
+    } catch (error) {
+      handleApiError(error, 'applyCoupon');
     }
   },
 };

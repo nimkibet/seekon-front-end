@@ -20,7 +20,8 @@ import {
   FiX,
   FiUser,
   FiZap,
-  FiPlus
+  FiPlus,
+  FiTag
 } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
@@ -88,6 +89,7 @@ const AdminSidebar = ({ isFlashSaleActive = false, isMobileMenuOpen: propIsMobil
     { path: '/admin/transactions', label: 'Transactions', icon: FiDollarSign },
     { path: '/admin/analytics', label: 'Analytics', icon: FiBarChart2 },
     { path: '/admin/reports', label: 'Reports', icon: FiFileText },
+    { path: '/admin/coupons', label: 'Coupons', icon: FiTag },
     { path: '/admin/settings', label: 'Settings', icon: FiSettings }
   ];
 

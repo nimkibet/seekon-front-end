@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { FiArrowLeft, FiCalendar, FiClock, FiTrash2, FiMinus, FiPlus, FiMapPin, FiSmartphone, FiCreditCard, FiCheckCircle, FiXCircle, FiX } from 'react-icons/fi';
+import { FiArrowLeft, FiCalendar, FiClock, FiTrash2, FiMinus, FiPlus, FiMapPin, FiSmartphone, FiCreditCard, FiCheckCircle, FiXCircle, FiX, FiTag } from 'react-icons/fi';
 import { useSelector, useDispatch } from 'react-redux';
 import { formatPrice } from '../utils/formatPrice';
 import { useCurrency } from '../context/CurrencyContext';
@@ -8,6 +8,7 @@ import { clearCartAPI, updateQuantityAPI, removeFromCartAPI } from '../store/sli
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { api } from '../utils/api';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://seekonbackend-production.up.railway.app';
 
@@ -76,6 +77,12 @@ const Checkout = () => {
 
   // Shipping state
   const [selectedShipping, setSelectedShipping] = useState(shippingOptions[0]);
+
+  // Coupon state
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
+  const [discountAmount, setDiscountAmount] = useState(0);
 
   useEffect(() => {
     if (user?.name) {
@@ -269,7 +276,8 @@ const Checkout = () => {
             phoneNumber,
             amount: calculateTotals().total,
             userEmail: email,
-            orderId: createdOrder._id
+            orderId: createdOrder._id,
+            couponCode: appliedCoupon ? appliedCoupon.couponCode : null
           })
         });
 
@@ -485,8 +493,39 @@ const Checkout = () => {
   const calculateTotals = () => {
     const subtotal = totalPrice;
     const shippingCost = selectedShipping ? selectedShipping.price : 0;
-    const total = subtotal + shippingCost;
-    return { subtotal, shippingCost, total };
+    const total = subtotal + shippingCost - discountAmount;
+    return { subtotal, shippingCost, total, discount: discountAmount };
+  };
+
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) {
+      toast.error('Please enter a coupon code');
+      return;
+    }
+
+    setIsApplyingCoupon(true);
+    try {
+      const response = await api.applyCoupon(couponCode, totalPrice);
+      setAppliedCoupon(response);
+      setDiscountAmount(response.discountAmount);
+      toast.success(response.message || 'Coupon applied successfully!', {
+        icon: '🎟️'
+      });
+    } catch (error) {
+      console.error('Coupon error:', error);
+      toast.error(error.message || 'Invalid coupon code');
+      setAppliedCoupon(null);
+      setDiscountAmount(0);
+    } finally {
+      setIsApplyingCoupon(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setCouponCode('');
+    setAppliedCoupon(null);
+    setDiscountAmount(0);
+    toast.success('Coupon removed');
   };
 
   const { subtotal, shippingCost, total } = calculateTotals();
@@ -785,10 +824,54 @@ const Checkout = () => {
 
                 {/* Order Totals */}
                 <div className="space-y-3 pt-4 border-t-2 border-gray-200 dark:border-gray-700">
+                  {/* Coupon Input */}
+                  {!appliedCoupon ? (
+                    <div className="flex gap-2">
+                      <div className="flex-1 relative">
+                        <FiTag className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                        <input
+                          type="text"
+                          value={couponCode}
+                          onChange={(e) => setCouponCode(e.target.value)}
+                          placeholder="Enter promo code"
+                          className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-[#00A676] focus:border-transparent dark:bg-gray-700 dark:text-white text-sm"
+                        />
+                      </div>
+                      <button
+                        onClick={handleApplyCoupon}
+                        disabled={isApplyingCoupon}
+                        className="px-4 py-2 bg-[#00A676] hover:bg-[#008A5E] text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                      >
+                        {isApplyingCoupon ? 'Applying...' : 'Apply'}
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
+                      <div className="flex items-center gap-2">
+                        <FiCheckCircle className="text-green-600 dark:text-green-400" />
+                        <span className="text-green-800 dark:text-green-200 font-medium text-sm">
+                          {appliedCoupon.couponCode} applied (-{formatPrice(appliedCoupon.discountAmount)})
+                        </span>
+                      </div>
+                      <button
+                        onClick={handleRemoveCoupon}
+                        className="text-green-600 dark:text-green-400 hover:text-red-500 text-sm"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  )}
+
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600 dark:text-gray-400">Subtotal</span>
                     <span className="text-gray-900 dark:text-white font-medium">{formatPrice(subtotal)}</span>
                   </div>
+                  {discountAmount > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-green-600 dark:text-green-400">Discount</span>
+                      <span className="text-green-600 dark:text-green-400 font-medium">-{formatPrice(discountAmount)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600 dark:text-gray-400">Shipping</span>
                     <span className="text-gray-900 dark:text-white font-medium">{formatPrice(shippingCost)}</span>

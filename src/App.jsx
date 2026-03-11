@@ -32,6 +32,7 @@ const AdminReports = lazy(() => import('./pages/AdminReports'));
 const AdminSettings = lazy(() => import('./pages/AdminSettings'));
 const AdminCarts = lazy(() => import('./pages/AdminCarts'));
 const AdminFlashSale = lazy(() => import('./pages/AdminFlashSale'));
+const AdminCoupons = lazy(() => import('./pages/AdminCoupons'));
 const WebSettings = lazy(() => import('./pages/admin/WebSettings'));
 const AddProduct = lazy(() => import('./pages/admin/AddProduct'));
 const Contact = lazy(() => import('./pages/Contact'));
@@ -385,6 +386,14 @@ const App = () => {
                 <ProtectedRoute requireAdmin={true}>
                   <AdminLayout>
                     <AdminReports />
+                  </AdminLayout>
+                </ProtectedRoute>
+              } />
+              
+              <Route path="/admin/coupons" element={
+                <ProtectedRoute requireAdmin={true}>
+                  <AdminLayout>
+                    <AdminCoupons />
                   </AdminLayout>
                 </ProtectedRoute>
               } />
