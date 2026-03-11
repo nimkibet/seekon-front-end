@@ -3,6 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { FiMenu, FiX } from "react-icons/fi";
 import Logo3D from "./Logo3D";
+import PromoBanner from "./PromoBanner";
 
 const Layout = ({ children }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -76,6 +77,9 @@ const Layout = ({ children }) => {
 
       {/* Content Wrapper to ensure it's above the background */}
       <div className="relative z-10 flex flex-col flex-grow">
+      {/* Promo Banner */}
+      <PromoBanner />
+
       {/* 🔹 Header */}
       <header className="relative flex items-center justify-between px-6 py-4 bg-gray-900/40 backdrop-blur-xl shadow-md border-b border-gray-200/20 dark:border-gray-700/30 z-[10000]">
         <Link to="/" className="flex flex-col items-center group">
