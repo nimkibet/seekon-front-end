@@ -50,6 +50,7 @@ const AllApparel = lazy(() => import('./pages/AllApparel'));
 const AllAccessories = lazy(() => import('./pages/AllAccessories'));
 const FlashSale = lazy(() => import('./pages/FlashSale'));
 const MyOrders = lazy(() => import('./pages/MyOrders'));
+const MixAndMatch = lazy(() => import('./pages/MixAndMatch'));
 
 // Components
 import Layout from './components/Layout';
@@ -217,6 +218,12 @@ const App = () => {
               <Route path="/all-accessories" element={
                 <AppLayout>
                   <AllAccessories />
+                </AppLayout>
+              } />
+
+              <Route path="/mix-and-match" element={
+                <AppLayout>
+                  <MixAndMatch />
                 </AppLayout>
               } />
 
