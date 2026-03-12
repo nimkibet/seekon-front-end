@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import { useDispatch } from 'react-redux';
 import { loginUser, registerUser, resendVerificationEmail } from '../store/slices/userSlice';
 import { addToWishlistLocal } from '../store/slices/wishlistSlice';
-import { addToCart } from '../store/slices/cartSlice';
+import { addToCart, addToCartAPI } from '../store/slices/cartSlice';
 import toast from 'react-hot-toast';
 import Logo3D from '../components/Logo3D';
 import axios from 'axios';
@@ -291,7 +291,8 @@ const Login = () => {
           // and { id, name, price, image, brand, size, color, quantity } from ProductCard
           const productToAdd = item.product || item;
           
-          dispatch(addToCart({
+          // FIX: Use addToCartAPI for logged-in users to sync with backend
+          dispatch(addToCartAPI({
             product: productToAdd,
             size: item.size,
             color: item.color || item.color,

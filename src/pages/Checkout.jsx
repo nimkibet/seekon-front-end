@@ -4,7 +4,7 @@ import { FiArrowLeft, FiCalendar, FiClock, FiTrash2, FiMinus, FiPlus, FiMapPin, 
 import { useSelector, useDispatch } from 'react-redux';
 import { formatPrice } from '../utils/formatPrice';
 import { useCurrency } from '../context/CurrencyContext';
-import { clearCartAPI, updateQuantityAPI, removeFromCartAPI, updateCartItemVariant } from '../store/slices/cartSlice';
+import { clearCartAPI, updateQuantityAPI, removeFromCartAPI, updateCartItemVariant, updateCartItemVariantAPI } from '../store/slices/cartSlice';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -69,6 +69,9 @@ const Checkout = () => {
   const [checkoutRequestId, setCheckoutRequestId] = useState(null);
   const [isPolling, setIsPolling] = useState(false);
   const pollingIntervalRef = useRef(null);
+  
+  // FIX ISSUE #3: Store order items before clearing cart for confirmation display
+  const [orderConfirmationItems, setOrderConfirmationItems] = useState([]);
   
   // Card details state
   const [cardNumber, setCardNumber] = useState('');
@@ -297,6 +300,8 @@ const Checkout = () => {
             // Mock mode - just show success
             setPaymentStatus('success');
             toast.success('Payment successful!');
+            // FIX ISSUE #3: Store items before clearing cart for confirmation display
+            setOrderConfirmationItems([...items]);
             // Auto-clear cart on successful payment
             dispatch(clearCartAPI());
             setTimeout(() => {
@@ -318,6 +323,8 @@ const Checkout = () => {
         
         setPaymentStatus('success');
         toast.success('Payment successful!');
+        // FIX ISSUE #3: Store items before clearing cart for confirmation display
+        setOrderConfirmationItems([...items]);
         // Auto-clear cart on successful payment
         dispatch(clearCartAPI());
         setTimeout(() => {
@@ -367,6 +374,8 @@ const Checkout = () => {
           setPaymentStatus('success');
           clearPaymentFlag(); // Clear the 3D background flag
           toast.success('Payment Received Successfully!');
+          // FIX ISSUE #3: Store items before clearing cart for confirmation display
+          setOrderConfirmationItems([...items]);
           // Auto-clear cart on successful payment
           dispatch(clearCartAPI());
           // Move to confirmation step (which acts as success page)
@@ -431,6 +440,8 @@ const Checkout = () => {
         stopPolling();
         setPaymentStatus('success');
         toast.success('Payment verified successfully!');
+        // FIX ISSUE #3: Store items before clearing cart for confirmation display
+        setOrderConfirmationItems([...items]);
         // Auto-clear cart on successful payment
         dispatch(clearCartAPI());
         setTimeout(() => {
@@ -811,10 +822,17 @@ const Checkout = () => {
                                     value={item.size || ''}
                                     onChange={(e) => {
                                       const newSize = e.target.value;
+                                      // FIX ISSUE #2: Update both local state AND sync with backend API
                                       dispatch(updateCartItemVariant({ 
                                         cartItemId: item.id, 
                                         newSize, 
                                         newColor: item.color 
+                                      }));
+                                      // Also call API to sync with backend for logged-in users
+                                      dispatch(updateCartItemVariantAPI({
+                                        productId: item.id || item.productId,
+                                        size: newSize,
+                                        color: item.color
                                       }));
                                     }}
                                     className="text-xs px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700"
@@ -831,10 +849,17 @@ const Checkout = () => {
                                     value={item.color || ''}
                                     onChange={(e) => {
                                       const newColor = e.target.value;
+                                      // FIX ISSUE #2: Update both local state AND sync with backend API
                                       dispatch(updateCartItemVariant({ 
                                         cartItemId: item.id, 
                                         newSize: item.size, 
                                         newColor 
+                                      }));
+                                      // Also call API to sync with backend for logged-in users
+                                      dispatch(updateCartItemVariantAPI({
+                                        productId: item.id || item.productId,
+                                        size: item.size,
+                                        color: newColor
                                       }));
                                     }}
                                     className="text-xs px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700"
@@ -1237,7 +1262,8 @@ const Checkout = () => {
                 <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 text-left">
                   <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Order Summary</h3>
                   <p className="text-sm text-gray-600 dark:text-gray-400">Total: <span className="font-bold text-[#00A676]">{formatPrice(total)}</span></p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Items: {items.length}</p>
+                  {/* FIX ISSUE #3: Use stored order items instead of cleared cart items */}
+                  <p className="text-sm text-gray-600 dark:text-gray-400">Items: {orderConfirmationItems.length > 0 ? orderConfirmationItems.length : items.length}</p>
                 </div>
               </div>
               <div className="space-y-3">

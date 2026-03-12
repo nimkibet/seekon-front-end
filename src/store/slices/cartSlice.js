@@ -208,6 +208,44 @@ export const clearCartAPI = createAsyncThunk(
   }
 );
 
+// FIX ISSUE #2: Add async thunk for updating cart item variant (size/color) to sync with backend
+export const updateCartItemVariantAPI = createAsyncThunk(
+  'cart/updateCartItemVariantAPI',
+  async ({ productId, size, color }, { rejectWithValue }) => {
+    try {
+      const token = localStorage.getItem('token') || localStorage.getItem('adminToken');
+      if (!token) {
+        return rejectWithValue('Authentication required');
+      }
+
+      // Ensure productId is a valid string
+      const productIdStr = productId?._id || productId;
+      if (!productIdStr || typeof productIdStr !== 'string') {
+        return rejectWithValue('Invalid product ID');
+      }
+
+      const response = await fetch(`${API_URL}/api/cart/update`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ productId: productIdStr, size, color })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to update cart item variant');
+      }
+
+      return data.cart;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
 const cartSlice = createSlice({
   name: 'cart',
   initialState,
@@ -447,6 +485,24 @@ const cartSlice = createSlice({
         localStorage.setItem('cartTotalItems', state.totalItems.toString());
       })
       .addCase(clearCartAPI.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload;
+      })
+      // Update cart item variant (API) - FIX ISSUE #2
+      .addCase(updateCartItemVariantAPI.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(updateCartItemVariantAPI.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.items = action.payload.items || [];
+        state.totalItems = action.payload.totalItems || 0;
+        state.totalPrice = action.payload.totalPrice || 0;
+        // Sync to localStorage
+        localStorage.setItem('cartItems', JSON.stringify(state.items));
+        localStorage.setItem('cartTotalItems', state.totalItems.toString());
+      })
+      .addCase(updateCartItemVariantAPI.rejected, (state, action) => {
         state.isLoading = false;
         state.error = action.payload;
       });
