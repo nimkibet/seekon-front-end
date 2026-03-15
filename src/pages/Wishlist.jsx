@@ -69,7 +69,7 @@ const Wishlist = () => {
             </p>
             <Link 
               to="/collection" 
-              className="inline-block bg-[#00A676] hover:bg-[#008A5E] text-white font-semibold px-6 py-3 rounded-lg transition-colors duration-200"
+              className="inline-block bg-black hover:bg-gray-800 text-white font-semibold px-6 py-3 rounded-lg transition-colors duration-200"
             >
               Start Shopping
             </Link>
@@ -136,7 +136,7 @@ const Wishlist = () => {
               {/* Product Info */}
               <div className="p-4">
                 <Link to={`/product/${item.id}`}>
-                  <p className="text-xs text-[#00A676] font-semibold uppercase tracking-wide mb-1">
+                  <p className="text-xs text-black font-semibold uppercase tracking-wide mb-1">
                     {item.brand}
                   </p>
                   <h3 className="font-bold text-gray-900 dark:text-white text-base mb-2 line-clamp-2 hover:text-[#00A676] transition-colors">
@@ -145,7 +145,7 @@ const Wishlist = () => {
                 </Link>
                 
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-[#00A676] text-lg">
+                  <span className="font-bold text-black text-lg">
                     {formatPrice(item.price)}
                   </span>
                   
@@ -162,7 +162,7 @@ const Wishlist = () => {
                 {/* Add to Cart Button */}
                 <button
                   onClick={() => handleAddToCartFromWishlist(item)}
-                  className="w-full mt-3 bg-[#00A676] hover:bg-[#008A5E] text-white font-semibold py-2 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2"
+                  className="w-full mt-3 bg-black hover:bg-gray-800 text-white font-semibold py-2 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2"
                 >
                   <FiShoppingCart className="w-4 h-4" />
                   <span>Add to Cart</span>

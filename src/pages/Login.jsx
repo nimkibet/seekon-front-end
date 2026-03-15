@@ -901,7 +901,7 @@ const Login = () => {
             disabled={isLoading}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-                className="w-full bg-[#00A676] text-[#FAFAFA] text-sm sm:text-base font-semibold py-2.5 sm:py-3 px-4 rounded-lg hover:bg-[#008A5E] transition-colors duration-200 flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-black text-white text-sm sm:text-base font-semibold py-2.5 sm:py-3 px-4 rounded-lg hover:bg-gray-800 transition-colors duration-200 flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? (
                   <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-[#FAFAFA] border-t-transparent rounded-full animate-spin" />

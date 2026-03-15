@@ -573,7 +573,7 @@ const Checkout = () => {
                   <div className="flex flex-col items-center">
                     <div className={`w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all ${
                       isCompleted || isCurrent
-                        ? 'bg-[#00A676] border-[#00A676] text-white'
+                        ? 'bg-black border-black text-white'
                         : 'border-gray-300 dark:border-gray-600 text-gray-400 bg-white dark:bg-gray-800'
                     }`}>
                       <span className="font-bold text-lg">{stepNumber}</span>
@@ -587,7 +587,7 @@ const Checkout = () => {
                   {index < 2 && (
                     <div className={`w-20 h-1 mx-4 transition-colors ${
                       isCompleted
-                        ? 'bg-[#00A676]'
+                        ? 'bg-black'
                         : 'bg-gray-300 dark:bg-gray-600'
                     }`} />
                   )}
@@ -738,7 +738,7 @@ const Checkout = () => {
                   <label 
                     key={option.id} 
                     className={`flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
-                      selectedShipping.id === option.id ? 'bg-[#00A676]/10 dark:bg-[#00A676]/20' : ''
+                      selectedShipping.id === option.id ? 'bg-black/10 dark:bg-black/20' : ''
                     }`}
                   >
                     <div className="flex items-center gap-3">
@@ -760,7 +760,7 @@ const Checkout = () => {
               {/* Proceed to Payment Button */}
               <button
                 onClick={handleProceedToPayment}
-                className="w-full bg-[#00A676] hover:bg-[#008A5E] text-white font-bold py-4 px-6 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center space-x-2"
+                className="w-full bg-black hover:bg-gray-800 text-white font-bold py-4 px-6 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center space-x-2"
               >
                 <span>Proceed to Payment</span>
                 <FiArrowLeft className="w-5 h-5 rotate-180" />
@@ -911,7 +911,7 @@ const Checkout = () => {
                       <button
                         onClick={handleApplyCoupon}
                         disabled={isApplyingCoupon}
-                        className="px-4 py-2 bg-[#00A676] hover:bg-[#008A5E] text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                        className="px-4 py-2 bg-black hover:bg-gray-800 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
                       >
                         {isApplyingCoupon ? 'Applying...' : 'Apply'}
                       </button>
@@ -979,7 +979,7 @@ const Checkout = () => {
                     onClick={() => setPaymentMethod('mpesa')}
                     className={`flex flex-col items-center justify-center p-6 rounded-xl border-2 transition-all ${
                       paymentMethod === 'mpesa'
-                        ? 'border-[#00A676] bg-[#00A676]/10'
+                        ? 'border-black bg-black/10'
                         : 'border-gray-200 dark:border-gray-600 hover:border-gray-400'
                     }`}
                   >
@@ -992,7 +992,7 @@ const Checkout = () => {
                     onClick={() => setPaymentMethod('card')}
                     className={`flex flex-col items-center justify-center p-6 rounded-xl border-2 transition-all ${
                       paymentMethod === 'card'
-                        ? 'border-[#00A676] bg-[#00A676]/10'
+                        ? 'border-black bg-black/10'
                         : 'border-gray-200 dark:border-gray-600 hover:border-gray-400'
                     }`}
                   >
@@ -1121,7 +1121,7 @@ const Checkout = () => {
                   {checkoutRequestId && (
                     <button
                       onClick={handleVerifyPayment}
-                      className="w-full mt-4 bg-[#00A676] hover:bg-[#008A5E] text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
+                      className="w-full mt-4 bg-black hover:bg-gray-800 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
                     >
                       <FiSmartphone className="w-4 h-4" />
                       <span>Verify Payment Status</span>
@@ -1195,7 +1195,7 @@ const Checkout = () => {
               <button
                 onClick={handlePayment}
                 disabled={paymentStatus === 'loading' || paymentStatus === 'success' || isPolling}
-                className="w-full mt-6 bg-[#00A676] hover:bg-[#008A5E] text-white font-bold py-4 px-6 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full mt-6 bg-black hover:bg-gray-800 text-white font-bold py-4 px-6 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isPolling ? 'Waiting for Payment...' : paymentStatus === 'loading' ? 'Processing...' : 'Pay Now'}
               </button>
@@ -1270,7 +1270,7 @@ const Checkout = () => {
                 {currentOrderId && (
                   <button
                     onClick={() => navigate(`/orders/${currentOrderId}`)}
-                    className="w-full bg-[#00A676] hover:bg-[#008A5E] text-white font-bold py-4 px-6 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl"
+                    className="w-full bg-black hover:bg-gray-800 text-white font-bold py-4 px-6 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl"
                   >
                     View Order Details
                   </button>

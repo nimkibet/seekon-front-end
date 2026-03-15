@@ -393,7 +393,7 @@ const Register = () => {
                 </p>
                 <Link
                   to="/login"
-                  className="inline-flex items-center justify-center space-x-2 w-full bg-[#00A676] hover:bg-[#008A5E] text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200"
+                  className="inline-flex items-center justify-center space-x-2 w-full bg-black hover:bg-gray-800 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200"
                 >
                   <span>Back to Login</span>
                   <FiArrowRight className="w-4 h-4" />
@@ -482,7 +482,7 @@ const Register = () => {
                       type="button"
                       onClick={handleSendVerificationCode}
                       disabled={isCodeSending || !formData.email}
-                      className="mt-2 w-full bg-[#00A676]/20 hover:bg-[#00A676]/30 text-[#00A676] border border-[#00A676]/30 font-semibold py-2 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                      className="mt-2 w-full bg-black/20 hover:bg-black/30 text-black border border-black/30 font-semibold py-2 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
                     >
                       {isCodeSending ? (
                         <>
@@ -687,7 +687,7 @@ const Register = () => {
                 disabled={isLoading}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className="w-full bg-[#00A676] hover:bg-[#008A5E] text-white font-semibold py-2 sm:py-2.5 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+                className="w-full bg-black hover:bg-gray-800 text-white font-semibold py-2 sm:py-2.5 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
               >
                 {isLoading ? (
                   <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />

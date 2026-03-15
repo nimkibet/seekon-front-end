@@ -197,25 +197,25 @@ const AllFootwear = () => {
             <h3 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">Type</h3>
             <button 
               onClick={() => handleFilter('type', 'all')} 
-              className={`w-full text-left px-4 py-2 rounded-lg transition-colors ${activeFilter === 'all' ? 'bg-[#00A676] text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'}`}
+              className={`w-full text-left px-4 py-2 rounded-lg transition-colors ${activeFilter === 'all' ? 'bg-black text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'}`}
             >
               All Sneakers
             </button>
             <button 
               onClick={() => handleFilter('type', 'running')} 
-              className={`w-full text-left px-4 py-2 rounded-lg transition-colors ${activeFilter === 'running' ? 'bg-[#00A676] text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'}`}
+              className={`w-full text-left px-4 py-2 rounded-lg transition-colors ${activeFilter === 'running' ? 'bg-black text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'}`}
             >
               Running Shoes
             </button>
             <button 
               onClick={() => handleFilter('type', 'basketball')} 
-              className={`w-full text-left px-4 py-2 rounded-lg transition-colors ${activeFilter === 'basketball' ? 'bg-[#00A676] text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'}`}
+              className={`w-full text-left px-4 py-2 rounded-lg transition-colors ${activeFilter === 'basketball' ? 'bg-black text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'}`}
             >
               Basketball
             </button>
             <button 
               onClick={() => handleFilter('type', 'lifestyle')} 
-              className={`w-full text-left px-4 py-2 rounded-lg transition-colors ${activeFilter === 'lifestyle' ? 'bg-[#00A676] text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'}`}
+              className={`w-full text-left px-4 py-2 rounded-lg transition-colors ${activeFilter === 'lifestyle' ? 'bg-black text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'}`}
             >
               Lifestyle
             </button>
@@ -344,7 +344,7 @@ const AllFootwear = () => {
             <p className="text-lg text-gray-600 dark:text-gray-400">No products found for this filter</p>
             <button 
               onClick={clearFilter}
-              className="mt-4 px-6 py-2 bg-[#00A676] text-white rounded-lg hover:bg-[#008A5E] transition-colors"
+              className="mt-4 px-6 py-2 bg-black text-white rounded-lg hover:bg-gray-800 transition-colors"
             >
               Clear Filter
             </button>

@@ -546,7 +546,7 @@ const ProductDetail = () => {
                   whileTap={{ scale: 0.98 }}
                   onClick={handleAddToCart}
                   disabled={!product.inStock}
-                  className="flex-1 bg-[#00A676] text-[#FAFAFA] hover:bg-[#008A5E] font-semibold py-3 px-4 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 text-sm sm:text-base shadow-lg"
+                  className="flex-1 bg-black text-white hover:bg-gray-800 font-semibold py-3 px-4 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 text-sm sm:text-base shadow-lg"
                 >
                   <FiShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
                   <span>{product.inStock ? 'Add to Cart' : 'Out of Stock'}</span>

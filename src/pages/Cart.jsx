@@ -595,7 +595,7 @@ const Cart = () => {
                             }));
                             toast.success(`${item.name} added to cart!`);
                           }}
-                          className="mt-3 w-full bg-gray-100 hover:bg-[#00A676] hover:text-white text-gray-800 dark:bg-gray-600 dark:text-gray-200 py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1"
+                          className="mt-3 w-full bg-gray-100 hover:bg-black hover:text-white text-gray-800 dark:bg-gray-600 dark:text-gray-200 py-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1"
                         >
                           <FiRefreshCw className="w-3 h-3" />
                           Buy Again
@@ -608,7 +608,7 @@ const Cart = () => {
                   {order.items?.length > 3 && (
                     <button
                       onClick={() => handleBuyAgain(order)}
-                      className="mt-4 w-full bg-[#00A676] hover:bg-[#008A5E] text-white py-2 rounded-lg text-sm font-bold transition flex items-center justify-center gap-2"
+                      className="mt-4 w-full bg-black hover:bg-gray-800 text-white py-2 rounded-lg text-sm font-bold transition flex items-center justify-center gap-2"
                     >
                       <FiRefreshCw className="w-4 h-4" />
                       Buy All {order.items.length} Items Again

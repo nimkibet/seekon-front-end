@@ -496,14 +496,14 @@ const Home = () => {
                 placeholder="Enter your email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="flex-1 px-4 py-3 rounded-lg text-gray-900 bg-white border-2 border-[#00A676] focus:outline-none"
+                className="flex-1 px-4 py-3 rounded-lg text-gray-900 bg-white border-2 border-black focus:outline-none"
               />
               <motion.button 
                 whileHover={{ scale: 1.05 }} 
                 whileTap={{ scale: 0.95 }} 
                 onClick={handleNewsletterSubscribe} 
                 disabled={isSubscribing}
-                className="px-6 py-3 bg-[#00A676] text-white font-semibold rounded-lg hover:bg-[#008A5E] transition-colors disabled:opacity-70"
+                className="px-6 py-3 bg-black text-white font-semibold rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-70"
               >
                 {isSubscribing ? 'Joining...' : 'Subscribe'}
               </motion.button>
