@@ -413,7 +413,6 @@ const Register = () => {
                     size="large"
                     text="signup_with"
                     shape="rectangular"
-                    width="100%"
                   />
                 </div>
 

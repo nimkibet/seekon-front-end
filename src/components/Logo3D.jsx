@@ -161,33 +161,14 @@ const Logo3D = ({ width = '100%', height = '100%' }) => {
       canvas.removeEventListener('webglcontextlost', handleContextLost);
       canvas.removeEventListener('webglcontextrestored', handleContextRestored);
       
-      // Force context loss and dispose renderer properly to prevent 'Canvas has an existing context' errors
+      // Properly dispose the renderer
       if (rendererRef.current) {
         try {
-          // Dispose all resources
           rendererRef.current.dispose();
         } catch (e) {
           console.warn('Could not dispose WebGL renderer:', e);
         }
         rendererRef.current = null;
-      }
-      
-      // Clear the canvas reference and force context loss
-      if (canvas && !contextLostRef.current) {
-        try {
-          const gl = canvas.getContext('webgl') || canvas.getContext('webgl2');
-          if (gl) {
-            // Try to lose context gracefully
-            const ext = gl.getExtension('WEBGL_lose_context');
-            if (ext) {
-              ext.loseContext();
-            }
-          }
-          // Clear the context by setting it to null
-          canvas.getContext && canvas.getContext('webgl') && canvas.getContext('webgl2') && (canvas.width = 0) && (canvas.height = 0);
-        } catch (e) {
-          console.warn('Could not lose WebGL context:', e);
-        }
       }
       
       isInitializedRef.current = false;
