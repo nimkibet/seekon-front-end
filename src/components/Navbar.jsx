@@ -277,12 +277,6 @@ const Navbar = () => {
       }
     }, 
     { 
-      name: '👗 Build Outfit', 
-      path: '/mix-and-match',
-      highlight: true,
-      icon: <FiShoppingBag className="w-4 h-4" />
-    },
-    { 
       name: 'Flash Sale', 
       path: '/flash-sale',
       highlight: true,
