@@ -854,7 +854,7 @@ const Login = () => {
                   <p className="mt-1 text-xs text-red-600">{errors.confirmPassword}</p>
                 )}
                 {formData.confirmPassword && formData.password === formData.confirmPassword && !errors.confirmPassword && (
-                  <p className="mt-1 text-xs text-green-600">✓ Passwords match</p>
+                  <p className="mt-1 text-xs text-black">✓ Passwords match</p>
                 )}
               </div>
             )}

@@ -124,28 +124,28 @@ export default {
           900: '#999999',
         },
         
-        // Unified Brand Colors (Easy Access)
+        // Unified Brand Colors (Easy Access) - Black & White Theme
         seekon: {
-          // Primary Palette
-          midnight: '#0C0C0C', // Midnight Black
-          softWhite: '#FDFDFD', // Soft White
-          electricRed: '#FF2E2E', // Electric Red
+          // Primary Palette - Black & White
+          midnight: '#000000', // Pure Black - Primary Base
+          softWhite: '#FFFFFF', // Pure White - Primary Text
+          electricRed: '#000000', // Black for primary accent (red removed)
           
-          // Secondary Palette
-          deepNavy: '#1B2340', // Deep Navy
-          neonCyan: '#00E5FF', // Neon Cyan
-          platinumSilver: '#E5E8EC', // Platinum Silver
+          // Secondary Palette - Grayscale
+          deepNavy: '#111827', // Dark Gray - replaces Deep Navy
+          neonCyan: '#374151', // Medium Gray - replaces Neon Cyan
+          platinumSilver: '#F3F4F6', // Light Gray - Panel Background
           
-          // Luxury Palette
-          charcoalGray: '#2F2F2F', // Charcoal Gray
-          charcoalGrayCustom: '#2C2C2C', // Custom Charcoal Gray for glassmorphism
-          goldMetallic: '#D4AF37', // Gold Metallic
+          // Luxury Palette - Grayscale
+          charcoalGray: '#1F2937', // Charcoal Gray
+          charcoalGrayCustom: '#1F2937', // Custom Charcoal Gray
+          goldMetallic: '#000000', // Black - replaces Gold
           pureWhite: '#FFFFFF', // Pure White
           
-          // Unified Balance Colors
-          base: '#0C0C0C', // Base (Black/Gray) = 60%
-          light: '#FDFDFD', // Light (White/Silver) = 25%
-          accent: '#FF2E2E', // Accent (Red/Gold/Cyan) = 15%
+          // Unified Balance Colors - Black & White
+          base: '#000000', // Base (Black) = 60%
+          light: '#FFFFFF', // Light (White) = 25%
+          accent: '#000000', // Accent (Black) = 15%
         }
       },
       fontFamily: {
@@ -174,37 +174,37 @@ export default {
           '50%': { transform: 'translateY(-5px)' },
         },
         glow: {
-          '0%': { boxShadow: '0 0 5px #FF2E2E, 0 0 10px #FF2E2E, 0 0 15px #FF2E2E' },
-          '100%': { boxShadow: '0 0 10px #FF2E2E, 0 0 20px #FF2E2E, 0 0 30px #FF2E2E' },
+          '0%': { boxShadow: '0 0 5px #000000, 0 0 10px #000000, 0 0 15px #000000' },
+          '100%': { boxShadow: '0 0 10px #000000, 0 0 20px #000000, 0 0 30px #000000' },
         },
         premiumGlow: {
-          '0%': { boxShadow: '0 0 5px #D4AF37, 0 0 10px #D4AF37, 0 0 15px #D4AF37' },
-          '100%': { boxShadow: '0 0 10px #D4AF37, 0 0 20px #D4AF37, 0 0 30px #D4AF37' },
+          '0%': { boxShadow: '0 0 5px #000000, 0 0 10px #000000, 0 0 15px #000000' },
+          '100%': { boxShadow: '0 0 10px #000000, 0 0 20px #000000, 0 0 30px #000000' },
         },
         neonGlow: {
-          '0%': { boxShadow: '0 0 5px #00E5FF, 0 0 10px #00E5FF, 0 0 15px #00E5FF' },
-          '100%': { boxShadow: '0 0 10px #00E5FF, 0 0 20px #00E5FF, 0 0 30px #00E5FF' },
+          '0%': { boxShadow: '0 0 5px #374151, 0 0 10px #374151, 0 0 15px #374151' },
+          '100%': { boxShadow: '0 0 10px #374151, 0 0 20px #374151, 0 0 30px #374151' },
         },
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
         'gradient-conic': 'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
         
-        // Primary Palette Gradients
-        'gradient-primary': 'linear-gradient(135deg, #FF2E2E 0%, #0C0C0C 100%)',
-        'gradient-base': 'linear-gradient(135deg, #0C0C0C 0%, #2F2F2F 100%)',
+        // Primary Palette Gradients - Black & White
+        'gradient-primary': 'linear-gradient(135deg, #000000 0%, #374151 100%)',
+        'gradient-base': 'linear-gradient(135deg, #000000 0%, #1F2937 100%)',
         
-        // Secondary Palette Gradients
-        'gradient-tech': 'linear-gradient(135deg, #1B2340 0%, #E5E8EC 100%)',
-        'gradient-neon': 'linear-gradient(135deg, #00E5FF 0%, #1B2340 100%)',
+        // Secondary Palette Gradients - Grayscale
+        'gradient-tech': 'linear-gradient(135deg, #111827 0%, #F3F4F6 100%)',
+        'gradient-neon': 'linear-gradient(135deg, #111827 0%, #374151 100%)',
         
-        // Luxury Palette Gradients
-        'gradient-luxury': 'linear-gradient(135deg, #D4AF37 0%, #2F2F2F 100%)',
-        'gradient-premium': 'linear-gradient(135deg, #D4AF37 0%, #FFFFFF 100%)',
+        // Luxury Palette Gradients - Black & White
+        'gradient-luxury': 'linear-gradient(135deg, #000000 0%, #1F2937 100%)',
+        'gradient-premium': 'linear-gradient(135deg, #000000 0%, #FFFFFF 100%)',
         
-        // Unified Brand Gradients
-        'gradient-balanced': 'linear-gradient(135deg, #0C0C0C 0%, #FDFDFD 50%, #FF2E2E 100%)',
-        'gradient-modern': 'linear-gradient(135deg, #1B2340 0%, #00E5FF 100%)',
+        // Unified Brand Gradients - Black & White
+        'gradient-balanced': 'linear-gradient(135deg, #000000 0%, #FFFFFF 50%, #374151 100%)',
+        'gradient-modern': 'linear-gradient(135deg, #111827 0%, #374151 100%)',
       },
     },
   },

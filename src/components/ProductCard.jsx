@@ -195,7 +195,7 @@ const ProductCard = ({ product, viewMode = 'grid' }) => {
             <div className="flex space-x-3">
               <button
                 onClick={handleQuickView}
-                className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-gray-700 hover:text-green-600 shadow-lg"
+                className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-gray-700 hover:text-black shadow-lg"
               >
                 <FiEye className="w-5 h-5" />
               </button>
@@ -213,7 +213,7 @@ const ProductCard = ({ product, viewMode = 'grid' }) => {
 
         {/* Product Info */}
         <div className="p-4">
-          <p className="text-xs text-green-600 font-semibold uppercase tracking-wide mb-1">
+          <p className="text-xs text-black font-semibold uppercase tracking-wide mb-1">
             {product.brand}
           </p>
           
@@ -240,7 +240,7 @@ const ProductCard = ({ product, viewMode = 'grid' }) => {
                 ({product.reviews})
               </span>
               {product.verifiedReviews && product.verifiedReviews > 0 && (
-                <span className="flex items-center text-xs text-green-600 dark:text-green-400">
+                <span className="flex items-center text-xs text-black dark:text-gray-300">
                   <FiCheckCircle className="w-3 h-3 mr-0.5" />
                   Verified
                 </span>
@@ -263,7 +263,7 @@ const ProductCard = ({ product, viewMode = 'grid' }) => {
                 </span>
               </>
             ) : (
-              <span className="font-bold text-green-600 text-lg">
+              <span className="font-bold text-black text-lg">
                 {formatPrice(product.price)}
               </span>
             )}
@@ -279,7 +279,7 @@ const ProductCard = ({ product, viewMode = 'grid' }) => {
                   onClick={(e) => handleColorSelect(e, color)}
                   className={`w-5 h-5 rounded-full border-2 transition-all duration-200 ${
                     selectedColor === color 
-                      ? 'border-green-600 ring-2 ring-green-500 ring-offset-2 scale-110' 
+                      ? 'border-black ring-2 ring-gray-500 ring-offset-2 scale-110' 
                       : 'border-gray-300 hover:border-gray-400'
                   }`}
                   style={{ backgroundColor: getColorValue(color) }}
@@ -291,7 +291,7 @@ const ProductCard = ({ product, viewMode = 'grid' }) => {
             {/* Add to Cart (Small) */}
             <button
               onClick={handleAddToCart}
-              className="bg-green-600 hover:bg-green-700 text-white p-2 rounded-lg shadow-md transition-colors"
+              className="bg-black hover:bg-gray-800 text-white p-2 rounded-lg shadow-md transition-colors"
             >
               <FiShoppingCart className="w-5 h-5" />
             </button>

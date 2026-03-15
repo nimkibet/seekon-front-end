@@ -638,7 +638,7 @@ const Register = () => {
                     <p className="mt-0.5 text-[10px] text-red-600 dark:text-red-400">{errors.confirmPassword}</p>
                   )}
                   {formData.confirmPassword && formData.password === formData.confirmPassword && !errors.confirmPassword && (
-                    <p className="mt-0.5 text-[10px] text-green-600 dark:text-green-400">✓ Passwords match</p>
+                    <p className="mt-0.5 text-[10px] text-black dark:text-gray-300">✓ Passwords match</p>
                   )}
                 </div>
               </div>

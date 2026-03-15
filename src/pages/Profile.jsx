@@ -237,7 +237,7 @@ const Profile = () => {
                 <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">
                   Edit Profile
                 </h1>
-                <p className="text-green-100 text-sm sm:text-base">
+                <p className="text-gray-200 text-sm sm:text-base">
                   Manage your account information and preferences
                 </p>
               </div>

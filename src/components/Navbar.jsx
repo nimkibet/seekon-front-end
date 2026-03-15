@@ -293,7 +293,7 @@ const Navbar = () => {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="w-full bg-gradient-to-r from-orange-500 via-red-500 to-pink-500 text-white overflow-hidden relative z-50"
+            className="w-full bg-gradient-to-r from-black via-gray-800 to-black text-white overflow-hidden relative z-50"
           >
             <div className="w-full px-4 py-3 flex justify-center items-center">
               <Link to="/flash-sale" className="flex items-center justify-center gap-2 hover:opacity-90 transition-opacity">
@@ -426,7 +426,7 @@ const Navbar = () => {
               <Link to="/my-orders" className="relative p-2 hover:bg-gray-100 rounded-full transition-colors" title="Track Orders">
                 <FiTruck className="w-5 h-5 text-gray-700" />
                 {activeOrdersCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center animate-pulse">
+                  <span className="absolute -top-1 -right-1 bg-black text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
                     {activeOrdersCount}
                   </span>
                 )}
@@ -471,7 +471,7 @@ const Navbar = () => {
                         <FiHeart className="w-4 h-4" /> Wishlist
                       </Link>
                       {user?.role === 'admin' && (
-                        <Link to="/admin/dashboard" className="block px-4 py-2 text-sm text-emerald-600 hover:bg-emerald-50 flex items-center gap-2 font-medium">
+                        <Link to="/admin/dashboard" className="block px-4 py-2 text-sm text-black hover:bg-gray-50 flex items-center gap-2 font-medium">
                           <FiZap className="w-4 h-4" /> Admin Dashboard
                         </Link>
                       )}

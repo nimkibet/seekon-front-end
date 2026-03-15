@@ -28,7 +28,7 @@ const Footer = () => {
         scrollSpeed="slow"
       />
       
-      <footer className="bg-seekon-deepNavy text-seekon-platinumSilver">
+      <footer className="bg-black text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6">
         <div className="flex flex-col lg:flex-row justify-between gap-4 sm:gap-6">
           
@@ -45,11 +45,11 @@ const Footer = () => {
                 onClick={() => handleLinkClick('/')}
                 className="flex items-center space-x-2 mb-4"
               >
-                <span className="text-2xl font-bold text-seekon-neonCyan">Seekon</span>
-                <span className="text-2xl font-bold text-seekon-neonCyan">Apparel</span>
+                <span className="text-2xl font-bold text-white">Seekon</span>
+                <span className="text-2xl font-bold text-white">Apparel</span>
               </Link>
               
-              <p className="text-seekon-platinumSilver text-xs leading-relaxed mb-4 max-w-xs">
+              <p className="text-gray-300 text-xs leading-relaxed mb-4 max-w-xs">
                 Premium sneakers and apparel for the modern lifestyle.
               </p>
               
@@ -59,7 +59,7 @@ const Footer = () => {
                   whileHover={{ x: 5 }}
                   className="flex items-center space-x-3"
                 >
-                  <FiMail className="w-4 h-4 text-seekon-neonCyan flex-shrink-0" />
+                  <FiMail className="w-4 h-4 text-gray-400 flex-shrink-0" />
                   <a 
                     href="mailto:seekonapparel77@gmail.com"
                     onClick={() => handleExternalLink('mailto:seekonapparel77@gmail.com')}

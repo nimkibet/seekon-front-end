@@ -38,7 +38,7 @@ const HeroBanner = () => {
       image: "https://images.unsplash.com/photo-1595950653106-6c9ebd614d3a?w=1200&h=600&fit=crop",
       buttonText: "Shop Sale",
       buttonLink: "/collection?filter=sale",
-      gradient: "from-green-600/80 to-teal-600/80"
+      gradient: "from-black/80 to-gray-600/80"
     }
   ];
 
