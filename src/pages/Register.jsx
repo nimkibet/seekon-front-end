@@ -8,6 +8,7 @@ import { registerUser } from '../store/slices/userSlice';
 import toast from 'react-hot-toast';
 import Logo3D from '../components/Logo3D';
 import axios from 'axios';
+import { GoogleLogin } from '@react-oauth/google';
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -118,6 +119,29 @@ const Register = () => {
         ...prev,
         confirmPassword: ''
       }));
+    }
+  };
+
+  // Handle Google Signup
+  const handleGoogleSignup = async (credentialResponse) => {
+    try {
+      toast.loading('Signing up with Google...', { id: 'google-signup' });
+      
+      const response = await axios.post(`${import.meta.env.VITE_API_URL || 'https://seekonbackend-production.up.railway.app'}/api/auth/google`, {
+        credential: credentialResponse.credential
+      });
+
+      if (response.data.success) {
+        // Store token and user data
+        localStorage.setItem('token', response.data.token);
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+
+        toast.success('Account created successfully!', { id: 'google-signup' });
+        navigate('/');
+      }
+    } catch (error) {
+      const message = error.response?.data?.message || 'Google signup failed';
+      toast.error(message, { id: 'google-signup', duration: 4000 });
     }
   };
 
@@ -377,6 +401,31 @@ const Register = () => {
               </motion.div>
             ) : (
               <form className="space-y-3" onSubmit={handleSubmit}>
+                {/* Google Signup Button */}
+                <div className="flex justify-center mb-4">
+                  <GoogleLogin
+                    onSuccess={handleGoogleSignup}
+                    onError={() => {
+                      toast.error('Google signup failed. Please try again.', { id: 'google-signup' });
+                    }}
+                    useOneTap
+                    theme="outline"
+                    size="large"
+                    text="signup_with"
+                    shape="rectangular"
+                    width="100%"
+                  />
+                </div>
+
+                <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-gray-300"></div>
+                  </div>
+                  <div className="relative flex justify-center text-sm">
+                    <span className="px-2 bg-white text-gray-500">Or sign up with email</span>
+                  </div>
+                </div>
+
                 <div className="space-y-2.5">
                 {/* Name Field */}
                 <div>

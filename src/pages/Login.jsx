@@ -10,6 +10,7 @@ import { addToCart, addToCartAPI } from '../store/slices/cartSlice';
 import toast from 'react-hot-toast';
 import Logo3D from '../components/Logo3D';
 import axios from 'axios';
+import { GoogleLogin } from '@react-oauth/google';
 
 const Login = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -371,6 +372,71 @@ const Login = () => {
     }
   };
 
+  // Handle Google Login
+  const handleGoogleLogin = async (credentialResponse) => {
+    try {
+      toast.loading('Signing in with Google...', { id: 'google-login' });
+      
+      const response = await axios.post(`${import.meta.env.VITE_API_URL || 'https://seekonbackend-production.up.railway.app'}/api/auth/google`, {
+        credential: credentialResponse.credential
+      });
+
+      if (response.data.success) {
+        // Store token and user data
+        localStorage.setItem('token', response.data.token);
+        localStorage.setItem('user', JSON.stringify(response.data.user));
+
+        // Check for pending cart item and add it
+        const pendingCartItem = sessionStorage.getItem('pendingCartItem');
+        if (pendingCartItem) {
+          try {
+            const item = JSON.parse(pendingCartItem);
+            const productToAdd = item.product || item;
+            dispatch(addToCartAPI({
+              product: productToAdd,
+              size: item.size,
+              color: item.color || item.color,
+              quantity: item.quantity
+            }));
+            sessionStorage.removeItem('pendingCartItem');
+            toast.success(`${productToAdd.name} added to cart!`, {
+              icon: '🛒',
+            });
+          } catch (error) {
+            console.error('Error adding pending cart item:', error);
+          }
+        }
+
+        // Check for pending wishlist item and add it
+        const pendingItem = sessionStorage.getItem('pendingWishlistItem');
+        if (pendingItem) {
+          try {
+            const product = JSON.parse(pendingItem);
+            dispatch(addToWishlistLocal({ product }));
+            sessionStorage.removeItem('pendingWishlistItem');
+            toast.success(`${product.name} added to wishlist!`, {
+              icon: '❤️',
+            });
+          } catch (error) {
+            console.error('Error adding pending wishlist item:', error);
+          }
+        }
+
+        // Check user role and redirect
+        if (response.data.user.role === 'admin' || response.data.user.role === 'superadmin') {
+          toast.success('Welcome back Admin!', { id: 'google-login' });
+          navigate('/admin/dashboard', { replace: true });
+        } else {
+          toast.success('Welcome back!', { id: 'google-login' });
+          navigate(from, { replace: true });
+        }
+      }
+    } catch (error) {
+      const message = error.response?.data?.message || 'Google login failed';
+      toast.error(message, { id: 'google-login', duration: 4000 });
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900 relative">
       {/* Full-page background 3D Logo */}
@@ -536,6 +602,31 @@ const Login = () => {
           className="mt-8 space-y-6"
           onSubmit={handleSubmit}
         >
+          {/* Google Login Button */}
+          <div className="flex justify-center">
+            <GoogleLogin
+              onSuccess={handleGoogleLogin}
+              onError={() => {
+                toast.error('Google login failed. Please try again.', { id: 'google-login' });
+              }}
+              useOneTap
+              theme="outline"
+              size="large"
+              text="signin_with"
+              shape="rectangular"
+              width="100%"
+            />
+          </div>
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-white text-gray-500">Or continue with email</span>
+            </div>
+          </div>
+
           <div className="space-y-4">
                 {/* Name Field - Only show during sign up */}
                 {isSignUp && (

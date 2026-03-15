@@ -4,6 +4,7 @@ import App from './App.jsx'
 import './index.css'
 import { Toaster } from 'react-hot-toast'
 import { CurrencyProvider } from './context/CurrencyContext.jsx'
+import { GoogleOAuthProvider } from '@react-oauth/google'
 
 console.log('🚀 Starting Seekon App initialization...');
 console.log('📦 React version:', React.version);
@@ -22,9 +23,10 @@ try {
   
   root.render(
     <React.StrictMode>
-      <CurrencyProvider>
-        <App />
-        <Toaster
+      <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
+        <CurrencyProvider>
+          <App />
+          <Toaster
         position="top-right"
         toastOptions={{
           duration: 1500,
@@ -51,6 +53,7 @@ try {
         }}
       />
       </CurrencyProvider>
+      </GoogleOAuthProvider>
     </React.StrictMode>
   );
   
