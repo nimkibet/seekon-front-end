@@ -475,7 +475,7 @@ const Cart = () => {
                 <div className="border-t-2 border-gray-200 dark:border-gray-700 pt-4 mt-4">
                   <div className="flex justify-between items-center">
                     <span className="text-lg font-bold text-gray-900 dark:text-gray-100">Total</span>
-                    <span className="text-xl font-bold text-[#00A676]">{formatPrice(totalPrice)}</span>
+                    <span className="text-xl font-bold text-gray-600">{formatPrice(totalPrice)}</span>
                   </div>
                 </div>
               </div>
@@ -483,7 +483,7 @@ const Cart = () => {
               {/* Checkout Button - Premium Design */}
               <Link
                 to="/checkout"
-                className="w-full inline-flex items-center justify-center space-x-2 px-6 py-3.5 bg-gradient-to-r from-[#00A676] to-[#008A5E] hover:from-[#008A5E] hover:to-[#006B4D] text-white font-semibold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl active:scale-[0.98] mb-3"
+                className="w-full inline-flex items-center justify-center space-x-2 px-6 py-3.5 bg-black hover:bg-gray-800 text-white transition-colors duration-300 font-semibold rounded-xl shadow-lg hover:shadow-xl active:scale-[0.98] mb-3"
               >
                 <span>Proceed to Checkout</span>
                 <FiArrowRight className="w-5 h-5" />

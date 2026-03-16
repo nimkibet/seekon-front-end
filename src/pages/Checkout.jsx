@@ -1195,7 +1195,7 @@ const Checkout = () => {
               <button
                 onClick={handlePayment}
                 disabled={paymentStatus === 'loading' || paymentStatus === 'success' || isPolling}
-                className="w-full mt-6 bg-black hover:bg-gray-800 text-white font-bold py-4 px-6 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full mt-6 bg-black hover:bg-gray-800 text-white transition-colors duration-300 font-bold py-4 px-6 rounded-lg shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isPolling ? 'Waiting for Payment...' : paymentStatus === 'loading' ? 'Processing...' : 'Pay Now'}
               </button>
