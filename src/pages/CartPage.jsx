@@ -178,7 +178,7 @@ const CartPage = () => {
           <p className="text-gray-600 dark:text-gray-300 mb-6">{error}</p>
           <button
             onClick={() => dispatch(fetchCart())}
-            className="inline-flex items-center px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+            className="inline-flex items-center px-6 py-3 bg-black hover:bg-gray-800 text-white rounded-lg transition-colors"
           >
             <FiRefreshCw className="mr-2" />
             Try Again
@@ -206,7 +206,7 @@ const CartPage = () => {
           </p>
           <Link
             to="/"
-            className="inline-flex items-center px-6 py-3 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+            className="inline-flex items-center px-6 py-3 bg-black hover:bg-gray-800 text-white rounded-lg transition-colors"
           >
             Continue Shopping
             <FiArrowRight className="ml-2" />
@@ -388,7 +388,7 @@ const CartPage = () => {
               {/* Checkout Button */}
               <Link
                 to="/checkout"
-                className="mt-6 w-full inline-flex items-center justify-center px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="mt-6 w-full inline-flex items-center justify-center px-6 py-3 bg-black hover:bg-gray-800 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Proceed to Checkout
                 <FiArrowRight className="ml-2" />
