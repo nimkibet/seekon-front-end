@@ -222,13 +222,13 @@ const AdminInventory = () => {
           <table className="w-full min-w-[800px]">
             <thead className="bg-white/5">
               <tr className="border-b border-white/10">
-                <th className="text-left py-4 px-4 text-sm font-medium text-gray-400 whitespace-nowrap">Product</th>
-                <th className="text-left py-4 px-4 text-sm font-medium text-gray-400 whitespace-nowrap">Category</th>
-                <th className="text-left py-4 px-4 text-sm font-medium text-gray-400 whitespace-nowrap">Brand</th>
-                <th className="text-left py-4 px-4 text-sm font-medium text-gray-400 whitespace-nowrap">Size</th>
-                <th className="text-left py-4 px-4 text-sm font-medium text-gray-400 whitespace-nowrap">Color</th>
-                <th className="text-left py-4 px-4 text-sm font-medium text-gray-400 whitespace-nowrap">Stock</th>
-                <th className="text-left py-4 px-4 text-sm font-medium text-gray-400 whitespace-nowrap">Status</th>
+                <th className="text-center md:text-left py-4 px-4 text-sm font-medium text-gray-400 whitespace-nowrap">Product</th>
+                <th className="text-center md:text-left py-4 px-4 text-sm font-medium text-gray-400 whitespace-nowrap">Category</th>
+                <th className="text-center md:text-left py-4 px-4 text-sm font-medium text-gray-400 whitespace-nowrap">Brand</th>
+                <th className="text-center md:text-left py-4 px-4 text-sm font-medium text-gray-400 whitespace-nowrap">Size</th>
+                <th className="text-center md:text-left py-4 px-4 text-sm font-medium text-gray-400 whitespace-nowrap">Color</th>
+                <th className="text-center md:text-left py-4 px-4 text-sm font-medium text-gray-400 whitespace-nowrap">Stock</th>
+                <th className="text-center md:text-left py-4 px-4 text-sm font-medium text-gray-400 whitespace-nowrap">Status</th>
               </tr>
             </thead>
             <tbody>

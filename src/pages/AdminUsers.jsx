@@ -155,13 +155,13 @@ const AdminUsers = () => {
               <table className="w-full min-w-[800px]">
                 <thead className="bg-white/5">
                   <tr>
-                    <th className="px-4 lg:px-6 py-3 sm:py-4 text-left text-xs font-medium text-gray-300 uppercase whitespace-nowrap">Actions</th>
-                    <th className="px-4 lg:px-6 py-3 sm:py-4 text-left text-xs font-medium text-gray-300 uppercase whitespace-nowrap">Name</th>
-                    <th className="px-4 lg:px-6 py-3 sm:py-4 text-left text-xs font-medium text-gray-300 uppercase whitespace-nowrap">Email</th>
-                    <th className="px-4 lg:px-6 py-3 sm:py-4 text-left text-xs font-medium text-gray-300 uppercase whitespace-nowrap hidden lg:table-cell">Phone</th>
-                    <th className="px-4 lg:px-6 py-3 sm:py-4 text-left text-xs font-medium text-gray-300 uppercase whitespace-nowrap">Role</th>
-                    <th className="px-4 lg:px-6 py-3 sm:py-4 text-left text-xs font-medium text-gray-300 uppercase whitespace-nowrap">Status</th>
-                    <th className="px-4 lg:px-6 py-3 sm:py-4 text-left text-xs font-medium text-gray-300 uppercase whitespace-nowrap hidden xl:table-cell">Joined</th>
+                    <th className="px-4 lg:px-6 py-3 sm:py-4 text-center md:text-left text-xs font-medium text-gray-300 uppercase whitespace-nowrap">Actions</th>
+                    <th className="px-4 lg:px-6 py-3 sm:py-4 text-center md:text-left text-xs font-medium text-gray-300 uppercase whitespace-nowrap">Name</th>
+                    <th className="px-4 lg:px-6 py-3 sm:py-4 text-center md:text-left text-xs font-medium text-gray-300 uppercase whitespace-nowrap">Email</th>
+                    <th className="px-4 lg:px-6 py-3 sm:py-4 text-center md:text-left text-xs font-medium text-gray-300 uppercase whitespace-nowrap hidden lg:table-cell">Phone</th>
+                    <th className="px-4 lg:px-6 py-3 sm:py-4 text-center md:text-left text-xs font-medium text-gray-300 uppercase whitespace-nowrap">Role</th>
+                    <th className="px-4 lg:px-6 py-3 sm:py-4 text-center md:text-left text-xs font-medium text-gray-300 uppercase whitespace-nowrap">Status</th>
+                    <th className="px-4 lg:px-6 py-3 sm:py-4 text-center md:text-left text-xs font-medium text-gray-300 uppercase whitespace-nowrap hidden xl:table-cell">Joined</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/10">

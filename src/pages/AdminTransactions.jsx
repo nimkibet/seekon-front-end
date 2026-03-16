@@ -147,13 +147,13 @@ const AdminTransactions = () => {
             <table className="w-full min-w-[800px]">
               <thead className="bg-white/5">
                 <tr>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-300 uppercase tracking-wider whitespace-nowrap">Actions</th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-300 uppercase tracking-wider whitespace-nowrap">Phone</th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-300 uppercase tracking-wider whitespace-nowrap">Email</th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-300 uppercase tracking-wider whitespace-nowrap">Amount</th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-300 uppercase tracking-wider whitespace-nowrap">Status</th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-300 uppercase tracking-wider whitespace-nowrap">Reference</th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-300 uppercase tracking-wider whitespace-nowrap">Date</th>
+                  <th className="px-6 py-4 text-center md:text-left text-xs font-medium text-gray-300 uppercase tracking-wider whitespace-nowrap">Actions</th>
+                  <th className="px-6 py-4 text-center md:text-left text-xs font-medium text-gray-300 uppercase tracking-wider whitespace-nowrap">Phone</th>
+                  <th className="px-6 py-4 text-center md:text-left text-xs font-medium text-gray-300 uppercase tracking-wider whitespace-nowrap">Email</th>
+                  <th className="px-6 py-4 text-center md:text-left text-xs font-medium text-gray-300 uppercase tracking-wider whitespace-nowrap">Amount</th>
+                  <th className="px-6 py-4 text-center md:text-left text-xs font-medium text-gray-300 uppercase tracking-wider whitespace-nowrap">Status</th>
+                  <th className="px-6 py-4 text-center md:text-left text-xs font-medium text-gray-300 uppercase tracking-wider whitespace-nowrap">Reference</th>
+                  <th className="px-6 py-4 text-center md:text-left text-xs font-medium text-gray-300 uppercase tracking-wider whitespace-nowrap">Date</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/10">
@@ -261,14 +261,14 @@ const AdminTransactions = () => {
                 {selectedTransaction.order && selectedTransaction.order.items && selectedTransaction.order.items.length > 0 && (
                   <div className="bg-white/5 rounded-xl p-5 border border-white/10">
                     <h3 className="text-lg font-semibold text-white mb-4">Order Summary</h3>
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
+                    <div className="overflow-x-auto rounded-lg">
+                      <table className="w-full min-w-[500px]">
                         <thead className="bg-white/5">
                           <tr>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-300 uppercase">Product</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-300 uppercase">Qty</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-300 uppercase">Price</th>
-                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-300 uppercase">Total</th>
+                            <th className="px-4 py-2 text-center md:text-left text-xs font-medium text-gray-300 uppercase whitespace-nowrap">Product</th>
+                            <th className="px-4 py-2 text-center md:text-left text-xs font-medium text-gray-300 uppercase whitespace-nowrap">Qty</th>
+                            <th className="px-4 py-2 text-center md:text-left text-xs font-medium text-gray-300 uppercase whitespace-nowrap">Price</th>
+                            <th className="px-4 py-2 text-center md:text-left text-xs font-medium text-gray-300 uppercase whitespace-nowrap">Total</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-white/10">

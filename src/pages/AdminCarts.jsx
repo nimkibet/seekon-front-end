@@ -218,13 +218,13 @@ const AdminCarts = () => {
           <table className="w-full min-w-[800px]">
             <thead>
               <tr className="border-b border-white/20">
-                <th className="text-left py-3 px-4 text-xs font-medium text-gray-400 uppercase whitespace-nowrap">Actions</th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-gray-400 uppercase whitespace-nowrap">Cart ID</th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-gray-400 uppercase whitespace-nowrap">Customer</th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-gray-400 uppercase whitespace-nowrap">Items</th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-gray-400 uppercase whitespace-nowrap">Total</th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-gray-400 uppercase whitespace-nowrap">Status</th>
-                <th className="text-left py-3 px-4 text-xs font-medium text-gray-400 uppercase whitespace-nowrap">Last Updated</th>
+                <th className="text-center md:text-left py-3 px-4 text-xs font-medium text-gray-400 uppercase whitespace-nowrap">Actions</th>
+                <th className="text-center md:text-left py-3 px-4 text-xs font-medium text-gray-400 uppercase whitespace-nowrap">Cart ID</th>
+                <th className="text-center md:text-left py-3 px-4 text-xs font-medium text-gray-400 uppercase whitespace-nowrap">Customer</th>
+                <th className="text-center md:text-left py-3 px-4 text-xs font-medium text-gray-400 uppercase whitespace-nowrap">Items</th>
+                <th className="text-center md:text-left py-3 px-4 text-xs font-medium text-gray-400 uppercase whitespace-nowrap">Total</th>
+                <th className="text-center md:text-left py-3 px-4 text-xs font-medium text-gray-400 uppercase whitespace-nowrap">Status</th>
+                <th className="text-center md:text-left py-3 px-4 text-xs font-medium text-gray-400 uppercase whitespace-nowrap">Last Updated</th>
               </tr>
             </thead>
             <tbody>
