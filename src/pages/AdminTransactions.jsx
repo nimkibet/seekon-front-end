@@ -132,7 +132,7 @@ const AdminTransactions = () => {
       </div>
 
       {/* Transactions Table */}
-      <div className="bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 overflow-hidden">
+      <div className="bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 overflow-hidden mt-4">
         {isLoading ? (
           <div className="p-8 text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00A676] mx-auto"></div>
@@ -143,8 +143,8 @@ const AdminTransactions = () => {
             <p className="text-gray-400">No transactions found</p>
           </div>
         ) : (
-          <div className="w-full overflow-x-auto rounded-lg shadow-sm">
-            <table className="w-full min-w-[800px]">
+          <div className="w-full overflow-x-auto">
+            <table className="w-full whitespace-nowrap min-w-max text-left">
               <thead className="bg-white/5">
                 <tr>
                   <th className="px-6 py-4 text-center md:text-left text-xs font-medium text-gray-300 uppercase tracking-wider whitespace-nowrap">Actions</th>

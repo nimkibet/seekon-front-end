@@ -213,9 +213,9 @@ const AdminCarts = () => {
       </div>
 
       {/* Carts List */}
-      <div className="bg-white/10 backdrop-blur-xl rounded-xl border border-white/20 overflow-hidden">
-        <div className="w-full overflow-x-auto rounded-lg shadow-sm">
-          <table className="w-full min-w-[800px]">
+      <div className="bg-white/10 backdrop-blur-xl rounded-xl border border-white/20 overflow-hidden mt-4">
+        <div className="w-full overflow-x-auto">
+          <table className="w-full whitespace-nowrap min-w-max text-left">
             <thead>
               <tr className="border-b border-white/20">
                 <th className="text-center md:text-left py-3 px-4 text-xs font-medium text-gray-400 uppercase whitespace-nowrap">Actions</th>

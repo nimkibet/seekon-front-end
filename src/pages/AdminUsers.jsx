@@ -139,7 +139,7 @@ const AdminUsers = () => {
       </div>
 
       {/* Users Table */}
-      <div className="bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 overflow-hidden">
+      <div className="bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 overflow-hidden mt-4">
         {isLoading ? (
           <div className="p-4 sm:p-8 text-center">
             <div className="animate-spin rounded-full h-8 w-8 sm:h-12 sm:w-12 border-b-2 border-[#00A676] mx-auto"></div>
@@ -151,8 +151,8 @@ const AdminUsers = () => {
         ) : (
           <>
             {/* Desktop Table View */}
-            <div className="hidden md:block w-full overflow-x-auto rounded-lg shadow-sm">
-              <table className="w-full min-w-[800px]">
+            <div className="hidden md:block w-full overflow-x-auto">
+              <table className="w-full whitespace-nowrap min-w-max text-left">
                 <thead className="bg-white/5">
                   <tr>
                     <th className="px-4 lg:px-6 py-3 sm:py-4 text-center md:text-left text-xs font-medium text-gray-300 uppercase whitespace-nowrap">Actions</th>

@@ -216,10 +216,10 @@ const AdminInventory = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white/10 backdrop-blur-xl rounded-xl border border-white/20 overflow-hidden"
+        className="bg-white/10 backdrop-blur-xl rounded-xl border border-white/20 overflow-hidden mt-4"
       >
-        <div className="w-full overflow-x-auto rounded-lg shadow-sm">
-          <table className="w-full min-w-[800px]">
+        <div className="w-full overflow-x-auto">
+          <table className="w-full whitespace-nowrap min-w-max text-left">
             <thead className="bg-white/5">
               <tr className="border-b border-white/10">
                 <th className="text-center md:text-left py-4 px-4 text-sm font-medium text-gray-400 whitespace-nowrap">Product</th>
