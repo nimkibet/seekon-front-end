@@ -239,16 +239,15 @@ const AddProduct = () => {
     const productName = formData.name;
     
     // Show immediate feedback - don't block the UI
-    toast.success('Uploading product in the background... You can add another one!', {
+    toast.success('Uploading product... Please wait for completion!', {
       duration: 5000,
       icon: '⏳'
     });
     
-    // Clear form immediately so user can add another product
-    resetForm();
-    
     // Fire and forget - let it run in background
     try {
+      setIsLoading(true);
+      
       // Upload all images first
       console.log('[DEBUG] Uploading', images.length, 'images...');
       const imageUrls = [];
@@ -294,9 +293,14 @@ const AddProduct = () => {
       toast.success(`Product "${productName}" successfully added!`, {
         icon: '✅'
       });
+      
+      // Reset form after successful upload
+      resetForm();
     } catch (error) {
       console.error('[DEBUG] Error creating product:', error);
       toast.error(error.message || `Failed to add product "${productName}"`);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -766,7 +770,8 @@ const AddProduct = () => {
           </Link>
           <button
             type="submit"
-            className="px-6 py-3 bg-[#00A676] hover:bg-[#008A5E] text-white rounded-lg transition-colors flex items-center gap-2"
+            disabled={isLoading || isUploading}
+            className="px-6 py-3 bg-[#00A676] hover:bg-[#008A5E] disabled:bg-gray-500 disabled:cursor-not-allowed text-white rounded-lg transition-colors flex items-center gap-2"
           >
             {isLoading || isUploading ? (
               <>

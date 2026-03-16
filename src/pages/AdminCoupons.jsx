@@ -172,7 +172,7 @@ const AdminCoupons = () => {
       </div>
 
       {/* Coupons Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden mt-4">
+      <div className="bg-white/10 backdrop-blur-xl rounded-xl border border-white/20 overflow-hidden mt-4">
         <div className="w-full overflow-x-auto">
           <table className="w-full whitespace-nowrap min-w-max text-left">
             <thead className="bg-gray-50 dark:bg-gray-700">

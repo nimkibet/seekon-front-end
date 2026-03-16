@@ -67,10 +67,19 @@ const Navbar = () => {
   useEffect(() => {
     if (isMobileMenuOpen) {
       document.body.style.overflow = 'hidden';
+      // Strict lock for mobile browsers
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
     } else {
       document.body.style.overflow = 'unset';
+      document.body.style.position = '';
+      document.body.style.width = '';
     }
-    return () => { document.body.style.overflow = 'unset'; };
+    return () => { 
+      document.body.style.overflow = 'unset'; 
+      document.body.style.position = '';
+      document.body.style.width = '';
+    };
   }, [isMobileMenuOpen]);
 
   // Fetch active orders count for notification badge

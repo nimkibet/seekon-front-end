@@ -151,8 +151,9 @@ const AdminUsers = () => {
         ) : (
           <>
             {/* Desktop Table View */}
-            <div className="hidden md:block w-full overflow-x-auto">
-              <table className="w-full whitespace-nowrap min-w-max text-left">
+            <div className="bg-white/10 backdrop-blur-xl rounded-xl border border-white/20 overflow-hidden mt-4">
+              <div className="hidden md:block w-full overflow-x-auto">
+                <table className="w-full whitespace-nowrap min-w-max text-left">
                 <thead className="bg-white/5">
                   <tr>
                     <th className="px-4 lg:px-6 py-3 sm:py-4 text-center md:text-left text-xs font-medium text-gray-300 uppercase whitespace-nowrap">Actions</th>
@@ -216,7 +217,8 @@ const AdminUsers = () => {
                   ))}
                 </tbody>
               </table>
-            </div>
+              </div>
+              </div>
 
             {/* Mobile Card View */}
             <div className="md:hidden">
