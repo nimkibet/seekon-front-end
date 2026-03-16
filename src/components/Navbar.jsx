@@ -63,6 +63,16 @@ const Navbar = () => {
     setIsMobileMenuOpen(false);
   }, [location.pathname]);
 
+  // Lock body scroll when mobile menu is open
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => { document.body.style.overflow = 'unset'; };
+  }, [isMobileMenuOpen]);
+
   // Fetch active orders count for notification badge
   useEffect(() => {
     const fetchActiveOrders = async () => {
@@ -504,7 +514,7 @@ const Navbar = () => {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              className="md:hidden bg-white border-t border-gray-100 overflow-hidden"
+              className="md:hidden bg-white border-t border-gray-100 h-[100dvh] overflow-y-auto overscroll-none pb-20"
             >
               <div className="px-4 py-4 space-y-2">
                 {/* Mobile Nav Items */}
