@@ -990,7 +990,8 @@ const Checkout = () => {
                   <button
                     type="button"
                     onClick={() => setPaymentMethod('card')}
-                    className={`flex flex-col items-center justify-center p-6 rounded-xl border-2 transition-all ${
+                    disabled={true}
+                    className={`flex flex-col items-center justify-center p-6 rounded-xl border-2 transition-all opacity-60 cursor-not-allowed ${
                       paymentMethod === 'card'
                         ? 'border-black bg-black/10'
                         : 'border-gray-200 dark:border-gray-600 hover:border-gray-400'
@@ -998,7 +999,7 @@ const Checkout = () => {
                   >
                     <FiCreditCard className="text-4xl mb-2" />
                     <span className="font-semibold text-gray-900 dark:text-white">Card</span>
-                    <span className="text-xs text-gray-500 mt-1">Credit/Debit</span>
+                    <span className="text-xs text-gray-500 mt-1">Credit/Debit <span className="text-xs text-gray-500 italic ml-1">(Coming Soon)</span></span>
                   </button>
                 </div>
               </div>
@@ -1026,80 +1027,13 @@ const Checkout = () => {
 
               {paymentMethod === 'card' && (
                 <div className="space-y-4">
-                  {/* Demo Card Numbers Info */}
-                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                    <p className="text-xs font-semibold text-blue-800 dark:text-blue-200 mb-2">💳 Demo Card Numbers:</p>
-                    <div className="text-xs text-blue-700 dark:text-blue-300 space-y-1">
-                      <p><strong>Visa:</strong> 4111 1111 1111 1111</p>
-                      <p><strong>MasterCard:</strong> 5555 5555 5555 4444</p>
-                      <p><strong>Amex:</strong> 3782 8224 6310 005</p>
-                      <p className="mt-2"><strong>Any CVV:</strong> 123</p>
-                      <p><strong>Any Expiry:</strong> 12/25 or later</p>
-                    </div>
+                  {/* Coming Soon Notice */}
+                  <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-6 text-center">
+                    <p className="text-lg font-semibold text-amber-800 dark:text-amber-200 mb-2">🚧 Card Payments Coming Soon!</p>
+                    <p className="text-sm text-amber-700 dark:text-amber-300">
+                      We're currently working on integrating card payments. Please use M-Pesa for now.
+                    </p>
                   </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Card Number
-                    </label>
-                    <input
-                      type="text"
-                      value={cardNumber}
-                      onChange={(e) => setCardNumber(e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#00A676] focus:border-[#00A676]"
-                      placeholder="1234 5678 9012 3456"
-                      maxLength={19}
-                      disabled={paymentStatus === 'loading' || paymentStatus === 'success'}
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Cardholder Name
-                    </label>
-                    <input
-                      type="text"
-                      value={cardHolder}
-                      onChange={(e) => setCardHolder(e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#00A676] focus:border-[#00A676]"
-                      placeholder="John Doe"
-                      disabled={paymentStatus === 'loading' || paymentStatus === 'success'}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Expiry Date
-                      </label>
-                      <input
-                        type="text"
-                        value={expiryDate}
-                        onChange={(e) => setExpiryDate(e.target.value)}
-                        className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#00A676] focus:border-[#00A676]"
-                        placeholder="MM/YY"
-                        maxLength={5}
-                        disabled={paymentStatus === 'loading' || paymentStatus === 'success'}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        CVV
-                      </label>
-                      <input
-                        type="text"
-                        value={cvv}
-                        onChange={(e) => setCvv(e.target.value)}
-                        className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#00A676] focus:border-[#00A676]"
-                        placeholder="123"
-                        maxLength={3}
-                        disabled={paymentStatus === 'loading' || paymentStatus === 'success'}
-                      />
-                    </div>
-                  </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Secured by PCI-DSS compliant payment gateway
-                  </p>
                 </div>
               )}
 

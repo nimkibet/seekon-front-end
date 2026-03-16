@@ -307,11 +307,7 @@ const Navbar = () => {
       </AnimatePresence>
 
       <nav
-        className={`sticky top-0 left-0 right-0 z-[9999] transition-all duration-300 ${
-          isScrolled 
-            ? 'bg-white/10 backdrop-blur-xl border border-white/20 shadow-lg'
-            : 'bg-white shadow-sm'
-        }`}
+        className={`sticky top-0 left-0 right-0 z-[9999] transition-all duration-300 bg-white/80 backdrop-blur-md border-b border-gray-100`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 w-full">
           <div className="flex justify-between items-center">
