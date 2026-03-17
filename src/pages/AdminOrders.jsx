@@ -154,7 +154,7 @@ const AdminOrders = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black p-4 sm:p-8 w-full max-w-full">
+    <div className="w-full min-w-0 p-4 sm:p-6">
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-4xl font-bold text-white mb-2">Orders</h1>
@@ -213,7 +213,7 @@ const AdminOrders = () => {
       </div>
 
       {/* Orders Table */}
-      <div className="bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 overflow-hidden mt-4 w-full max-w-full">
+      <div className="bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 overflow-hidden mt-4 w-full min-w-0">
         {isLoading ? (
           <div className="p-8 text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00A676] mx-auto"></div>
@@ -225,8 +225,8 @@ const AdminOrders = () => {
           </div>
         ) : (
           <div className="bg-white/10 backdrop-blur-xl rounded-xl border border-white/20 overflow-hidden mt-4">
-            <div className="w-full max-w-full overflow-x-auto">
-              <table className="w-full whitespace-nowrap min-w-max text-left">
+            <div className="w-full min-w-0 overflow-x-auto">
+              <table className="w-full whitespace-nowrap min-w-[800px] text-left">
               <thead className="bg-white/5">
                 <tr>
                   <th className="px-6 py-4 text-center md:text-left text-xs font-medium text-gray-300 uppercase tracking-wider whitespace-nowrap">Actions</th>

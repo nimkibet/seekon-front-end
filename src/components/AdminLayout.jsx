@@ -113,7 +113,7 @@ const AdminLayout = ({ children }) => {
       </AnimatePresence>
 
       {/* Main Content */}
-      <div className="flex-1 lg:ml-64 flex flex-col">
+      <div className="flex-1 lg:ml-64 flex flex-col min-w-0">
         {/* Top Header - Fixed Layout with Hamburger on Left, Profile/Bell on Right */}
         <header className="flex items-center justify-between w-full px-2 sm:px-4 lg:px-6 py-2 sm:py-3 lg:py-4 bg-gray-800/50 backdrop-blur-xl border-b border-white/10 relative" style={{ zIndex: 100 }}>
           {/* LEFT: Hamburger + Title */}
@@ -384,7 +384,7 @@ const AdminLayout = ({ children }) => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.3 }}
-          className="flex-1 overflow-y-auto overflow-x-hidden w-full max-w-full relative z-0"
+          className="flex-1 overflow-y-auto overflow-x-hidden relative z-0 min-w-0 w-full"
         >
           {children}
         </motion.main>

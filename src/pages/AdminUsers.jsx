@@ -107,7 +107,7 @@ const AdminUsers = () => {
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 min-h-screen">
+    <div className="w-full min-w-0 p-4 sm:p-6 lg:p-8">
       <div className="mb-6 sm:mb-8">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
           <div>
