@@ -63,22 +63,19 @@ const Navbar = () => {
     setIsMobileMenuOpen(false);
   }, [location.pathname]);
 
-  // Lock body scroll when mobile menu is open
+  // Lock body scroll when mobile menu is open - safe version for iOS/Safari
   useEffect(() => {
     if (isMobileMenuOpen) {
+      // Safe lock for both HTML and Body
+      document.documentElement.style.overflow = 'hidden';
       document.body.style.overflow = 'hidden';
-      // Strict lock for mobile browsers
-      document.body.style.position = 'fixed';
-      document.body.style.width = '100%';
     } else {
-      document.body.style.overflow = 'unset';
-      document.body.style.position = '';
-      document.body.style.width = '';
+      document.documentElement.style.overflow = '';
+      document.body.style.overflow = '';
     }
     return () => { 
-      document.body.style.overflow = 'unset'; 
-      document.body.style.position = '';
-      document.body.style.width = '';
+      document.documentElement.style.overflow = '';
+      document.body.style.overflow = '';
     };
   }, [isMobileMenuOpen]);
 
@@ -523,7 +520,7 @@ const Navbar = () => {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              className="md:hidden bg-white border-t border-gray-100 h-[100dvh] overflow-y-auto overscroll-none pb-20"
+              className="md:hidden bg-white border-t border-gray-100 overflow-y-auto overscroll-contain pb-32 max-h-[calc(100dvh-70px)] shadow-inner"
             >
               <div className="px-4 py-4 space-y-2">
                 {/* Mobile Nav Items */}
