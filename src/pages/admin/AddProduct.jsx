@@ -209,99 +209,73 @@ const AddProduct = () => {
     return data.data.url;
   };
 
-  // Handle form submission - Non-blocking
+  // Handle form submission - Non-blocking with background processing
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Validation
-    if (!formData.name.trim()) {
-      toast.error('Product name is required');
-      return;
-    }
-    if (!formData.category) {
-      toast.error('Category is required');
-      return;
-    }
-    if (!formData.brand.trim()) {
-      toast.error('Brand is required');
-      return;
-    }
-    if (!formData.price || formData.price <= 0) {
-      toast.error('Valid price is required');
-      return;
-    }
-    if (images.length === 0) {
-      toast.error('At least one product image is required');
-      return;
-    }
+    // 1. Validation
+    if (!formData.name.trim()) return toast.error('Product name is required');
+    if (!formData.category) return toast.error('Category is required');
+    if (!formData.brand.trim()) return toast.error('Brand is required');
+    if (!formData.price || formData.price <= 0) return toast.error('Valid price is required');
+    if (images.length === 0) return toast.error('At least one product image is required');
 
-    // Store product name for success message
-    const productName = formData.name;
+    // 2. CAPTURE STATE IN CLOSURE (Crucial for background processing)
+    // We must copy the exact state right now before resetting the form
+    const filesToUpload = [...images];
+    const currentFormData = { ...formData };
+    const productName = currentFormData.name;
     
-    // Show immediate feedback - don't block the UI
-    toast.success('Uploading product... Please wait for completion!', {
-      duration: 5000,
-      icon: '⏳'
-    });
+    // 3. Start a persistent loading toast
+    const toastId = toast.loading(`Uploading "${productName}" in background...`, { duration: 8000 });
     
-    // Fire and forget - let it run in background
-    try {
-      setIsLoading(true);
-      
-      // Upload all images first
-      console.log('[DEBUG] Uploading', images.length, 'images...');
-      const imageUrls = [];
-      
-      for (let i = 0; i < images.length; i++) {
-        console.log(`[DEBUG] Uploading image ${i + 1}/${images.length}`);
-        const url = await uploadImageToServer(images[i]);
-        imageUrls.push(url);
+    // 4. Immediately free up the UI for the next product
+    resetForm();
+    
+    // 5. Fire and Forget Background Task (Do not await this directly in the main thread)
+    (async () => {
+      try {
+        const imageUrls = [];
+        
+        // Loop through the captured local array, NOT the React state
+        for (let i = 0; i < filesToUpload.length; i++) {
+          const url = await uploadImageToServer(filesToUpload[i]);
+          imageUrls.push(url);
+        }
+
+        const productData = {
+          name: currentFormData.name,
+          description: currentFormData.description,
+          price: Number(currentFormData.price),
+          originalPrice: currentFormData.originalPrice ? Number(currentFormData.originalPrice) : Number(currentFormData.price),
+          discount: currentFormData.originalPrice ? Math.round((1 - Number(currentFormData.price) / Number(currentFormData.originalPrice)) * 100) : 0,
+          image: imageUrls[0],
+          images: imageUrls,
+          category: currentFormData.category,
+          subCategory: currentFormData.subCategory,
+          brand: currentFormData.brand,
+          stock: Number(currentFormData.stock) || 0,
+          sizes: currentFormData.sizes ? currentFormData.sizes.split(',').map(s => s.trim()).filter(s => s) : [],
+          colors: currentFormData.colors ? currentFormData.colors.split(',').map(c => c.trim()).filter(c => c) : [],
+          isFeatured: currentFormData.isFeatured,
+          isNew: currentFormData.isNew,
+          newProduct: currentFormData.isNew,
+          isFlashSale: currentFormData.isFlashSale,
+          flashSalePrice: currentFormData.isFlashSale && currentFormData.flashSalePrice ? Number(currentFormData.flashSalePrice) : null,
+          saleStartTime: currentFormData.isFlashSale && currentFormData.saleStartTime ? currentFormData.saleStartTime : null,
+          saleEndTime: currentFormData.isFlashSale && currentFormData.saleEndTime ? currentFormData.saleEndTime : null
+        };
+
+        await adminApi.createProduct(productData);
+        
+        // Update the specific toast to success
+        toast.success(`Product "${productName}" successfully added!`, { id: toastId, duration: 4000 });
+      } catch (error) {
+        console.error('[DEBUG] Error creating product:', error);
+        // Update the specific toast to error
+        toast.error(`Failed to add "${productName}": ${error.message}`, { id: toastId, duration: 6000 });
       }
-
-      console.log('[DEBUG] All images uploaded:', imageUrls.length);
-
-      // Prepare product data
-      const productData = {
-        name: formData.name,
-        description: formData.description,
-        price: Number(formData.price),
-        originalPrice: formData.originalPrice ? Number(formData.originalPrice) : Number(formData.price),
-        discount: formData.originalPrice ? Math.round((1 - Number(formData.price) / Number(formData.originalPrice)) * 100) : 0,
-        image: imageUrls[0],
-        images: imageUrls,
-        category: formData.category,
-        subCategory: formData.subCategory,
-        brand: formData.brand,
-        stock: Number(formData.stock) || 0,
-        sizes: formData.sizes ? formData.sizes.split(',').map(s => s.trim()).filter(s => s) : [],
-        colors: formData.colors ? formData.colors.split(',').map(c => c.trim()).filter(c => c) : [],
-        isFeatured: formData.isFeatured,
-        isNew: formData.isNew,
-        newProduct: formData.isNew,
-        isFlashSale: formData.isFlashSale,
-        flashSalePrice: formData.isFlashSale && formData.flashSalePrice ? Number(formData.flashSalePrice) : null,
-        saleStartTime: formData.isFlashSale && formData.saleStartTime ? formData.saleStartTime : null,
-        saleEndTime: formData.isFlashSale && formData.saleEndTime ? formData.saleEndTime : null
-      };
-
-      console.log('[DEBUG] Submitting product data:', productData);
-
-      // Create product
-      const response = await adminApi.createProduct(productData);
-      console.log('[DEBUG] Product created:', response);
-
-      toast.success(`Product "${productName}" successfully added!`, {
-        icon: '✅'
-      });
-      
-      // Reset form after successful upload
-      resetForm();
-    } catch (error) {
-      console.error('[DEBUG] Error creating product:', error);
-      toast.error(error.message || `Failed to add product "${productName}"`);
-    } finally {
-      setIsLoading(false);
-    }
+    })(); // Execute immediately
   };
 
   // Reset form to initial state
@@ -770,20 +744,11 @@ const AddProduct = () => {
           </Link>
           <button
             type="submit"
-            disabled={isLoading || isUploading}
+            disabled={!formData.name.trim() || !formData.category || !formData.brand.trim() || !formData.price || images.length === 0}
             className="px-6 py-3 bg-[#00A676] hover:bg-[#008A5E] disabled:bg-gray-500 disabled:cursor-not-allowed text-white rounded-lg transition-colors flex items-center gap-2"
           >
-            {isLoading || isUploading ? (
-              <>
-                <FiPlus className="w-5 h-5 animate-spin" />
-                <span>Processing...</span>
-              </>
-            ) : (
-              <>
-                <FiPlus className="w-5 h-5" />
-                <span>Add Product</span>
-              </>
-            )}
+            <FiPlus className="w-5 h-5" />
+            <span>Add Product</span>
           </button>
         </div>
       </form>
