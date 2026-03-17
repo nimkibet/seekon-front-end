@@ -85,7 +85,7 @@ const AdminTransactions = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black p-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black p-4 sm:p-8 w-full max-w-full">
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-4xl font-bold text-white mb-2">Transactions</h1>
@@ -132,7 +132,7 @@ const AdminTransactions = () => {
       </div>
 
       {/* Transactions Table */}
-      <div className="bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 overflow-hidden mt-4">
+      <div className="bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 overflow-hidden mt-4 w-full max-w-full">
         {isLoading ? (
           <div className="p-8 text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#00A676] mx-auto"></div>
@@ -144,7 +144,7 @@ const AdminTransactions = () => {
           </div>
         ) : (
           <div className="bg-white/10 backdrop-blur-xl rounded-xl border border-white/20 overflow-hidden mt-4">
-            <div className="w-full overflow-x-auto">
+            <div className="w-full max-w-full overflow-x-auto">
               <table className="w-full whitespace-nowrap min-w-max text-left">
               <thead className="bg-white/5">
                 <tr>

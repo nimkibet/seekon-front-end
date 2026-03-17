@@ -384,7 +384,7 @@ const AdminLayout = ({ children }) => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.3 }}
-          className="flex-1 overflow-y-auto relative z-0"
+          className="flex-1 overflow-y-auto overflow-x-hidden w-full max-w-full relative z-0"
         >
           {children}
         </motion.main>

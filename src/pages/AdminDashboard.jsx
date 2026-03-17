@@ -145,7 +145,7 @@ const AdminDashboard = () => {
   };
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6 w-full max-w-full overflow-hidden">
       {/* Loading State - Non-blocking */}
       {isLoading && (
         <div className="absolute top-4 right-4 z-50">
@@ -214,7 +214,7 @@ const AdminDashboard = () => {
       </div>
 
       {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6 w-full max-w-full overflow-x-auto">
         {/* Revenue Chart - Simple version without Chart.js */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}

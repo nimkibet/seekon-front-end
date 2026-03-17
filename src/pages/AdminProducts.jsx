@@ -251,7 +251,7 @@ const AdminProducts = () => {
 
   if (isLoading) {
     return (
-      <div className="p-4 sm:p-6">
+      <div className="p-4 sm:p-6 w-full max-w-full overflow-hidden">
         <div className="flex items-center justify-center h-96">
           <div className="text-center">
             <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-[#00A676] mx-auto mb-4"></div>
@@ -263,7 +263,7 @@ const AdminProducts = () => {
   }
 
   return (
-    <div className="p-4 sm:p-6">
+    <div className="p-4 sm:p-6 w-full max-w-full overflow-hidden">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 sm:mb-8 gap-4">
         <div>
