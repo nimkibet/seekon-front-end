@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { FiArrowLeft, FiUpload, FiX, FiPlus, FiTrash2 } from 'react-icons/fi';
+import { FiArrowLeft, FiUpload, FiX, FiPlus, FiTrash2, FiLoader } from 'react-icons/fi';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { adminApi } from '../../utils/adminApi';
+import imglyRemoveBackground from '@imgly/background-removal';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://seekonbackend-production.up.railway.app';
 
@@ -78,6 +79,8 @@ const AddProduct = () => {
   const [images, setImages] = useState([]);
   const [imagesPreview, setImagesPreview] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [isProcessingAI, setIsProcessingAI] = useState(false);
+  const [processingProgress, setProcessingProgress] = useState("");
   const singleImageInputRef = useRef(null);
   const multipleImageInputRef = useRef(null);
 
@@ -132,45 +135,110 @@ const AddProduct = () => {
     multipleImageInputRef.current?.click();
   };
 
+  // AI Configuration - CRITICAL SAFETY CONFIG to prevent RAM crashes
+  const aiConfig = {
+    publicPath: "https://static.imgly.com/@imgly/background-removal/assets/",
+    model: 'small',
+    output: { format: 'image/webp', quality: 0.8 },
+    maxDimension: 1024
+  };
+
+  // Process a single image with AI
+  const processImageWithAI = async (file, index, total) => {
+    setProcessingProgress(`Removing background ${index + 1} of ${total}...`);
+    console.log(`[AI] Processing image ${index + 1}:`, file.name);
+
+    try {
+      const imageBlob = await imglyRemoveBackground(file, aiConfig);
+      const newFile = new File([imageBlob], `transparent-${Date.now()}-${index}.webp`, { type: "image/webp" });
+      console.log(`[AI] Success on image ${index + 1}`);
+      return newFile;
+    } catch (error) {
+      console.error(`[AI] Failed on image ${index + 1}, keeping original:`, error);
+      return file; // Fallback to original if AI fails
+    }
+  };
+
   // Handle single image selection
-  const handleSingleImageChange = (e) => {
+  const handleSingleImageChange = async (e) => {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
 
     console.log('[DEBUG] Single image selected:', files[0].name);
+    setIsProcessingAI(true);
 
-    // Add single file to existing array
-    setImages((prevImages) => [...prevImages, files[0]]);
+    try {
+      // Process single image with AI
+      const processedFile = await processImageWithAI(files[0], 0, 1);
+      
+      // Add processed file to existing array
+      setImages((prevImages) => [...prevImages, processedFile]);
 
-    // Generate preview
-    const newPreview = URL.createObjectURL(files[0]);
-    setImagesPreview((prevPreviews) => [...prevPreviews, newPreview]);
+      // Generate preview from processed file
+      const newPreview = URL.createObjectURL(processedFile);
+      setImagesPreview((prevPreviews) => [...prevPreviews, newPreview]);
 
-    // Clear input and reset ref
-    e.target.value = '';
-    if (singleImageInputRef.current) {
-      singleImageInputRef.current.value = '';
+      toast.success('Image processed and ready!');
+    } catch (error) {
+      console.error('[AI] Error processing image:', error);
+      toast.error('AI processing failed, using original image');
+      // Fallback to original
+      setImages((prevImages) => [...prevImages, files[0]]);
+      const newPreview = URL.createObjectURL(files[0]);
+      setImagesPreview((prevPreviews) => [...prevPreviews, newPreview]);
+    } finally {
+      setIsProcessingAI(false);
+      setProcessingProgress("");
+      
+      // Clear input and reset ref
+      e.target.value = '';
+      if (singleImageInputRef.current) {
+        singleImageInputRef.current.value = '';
+      }
     }
   };
 
-  // Handle multiple images selection
-  const handleMultipleImageChange = (e) => {
+  // Handle multiple images selection - SEQUENTIAL processing to prevent RAM crashes
+  const handleMultipleImageChange = async (e) => {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
 
     console.log('[DEBUG] Multiple images selected:', files.length);
+    setIsProcessingAI(true);
 
-    // Add all files to existing array
-    setImages((prevImages) => [...prevImages, ...files]);
+    const processedFilesArray = [];
+    const newPreviews = [];
 
-    // Generate previews
-    const newPreviews = files.map((file) => URL.createObjectURL(file));
-    setImagesPreview((prevPreviews) => [...prevPreviews, ...newPreviews]);
+    try {
+      // Process images ONE AT A TIME (sequentially) to prevent RAM crashes
+      for (let i = 0; i < files.length; i++) {
+        const processedFile = await processImageWithAI(files[i], i, files.length);
+        processedFilesArray.push(processedFile);
+        
+        // Generate preview from processed file
+        newPreviews.push(URL.createObjectURL(processedFile));
+      }
 
-    // Clear input and reset ref
-    e.target.value = '';
-    if (multipleImageInputRef.current) {
-      multipleImageInputRef.current.value = '';
+      console.log('[AI] All files processed. Adding to state:', processedFilesArray);
+      setProcessingProgress("All images processed!");
+
+      // Add all processed files to existing array
+      setImages((prevImages) => [...prevImages, ...processedFilesArray]);
+      setImagesPreview((prevPreviews) => [...prevPreviews, ...newPreviews]);
+
+      toast.success(`${files.length} images processed and ready!`);
+    } catch (error) {
+      console.error('[AI] Error processing images:', error);
+      toast.error('Some images failed to process');
+    } finally {
+      setIsProcessingAI(false);
+      setProcessingProgress("");
+
+      // Clear input and reset ref
+      e.target.value = '';
+      if (multipleImageInputRef.current) {
+        multipleImageInputRef.current.value = '';
+      }
     }
   };
 
@@ -373,24 +441,51 @@ const AddProduct = () => {
             <button
               type="button"
               onClick={handleSingleImageUpload}
-              disabled={isUploading}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-white/5 border border-white/20 rounded-lg text-gray-300 hover:border-[#00A676] hover:text-[#00A676] transition-colors"
+              disabled={isUploading || isProcessingAI}
+              className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 border rounded-lg text-gray-300 transition-colors ${
+                isProcessingAI 
+                  ? 'bg-gray-800 border-gray-700 cursor-not-allowed' 
+                  : 'bg-white/5 border-white/20 hover:border-[#00A676] hover:text-[#00A676]'
+              }`}
             >
-              <FiPlus className="w-5 h-5" />
-              <span>Add Single Image</span>
+              {isProcessingAI ? (
+                <FiLoader className="w-5 h-5 animate-spin" />
+              ) : (
+                <FiPlus className="w-5 h-5" />
+              )}
+              <span>{isProcessingAI ? 'Processing...' : 'Add Single Image'}</span>
             </button>
 
             {/* Multiple Images Upload Button */}
             <button
               type="button"
               onClick={handleMultipleImageUpload}
-              disabled={isUploading}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-white/5 border border-white/20 rounded-lg text-gray-300 hover:border-[#00A676] hover:text-[#00A676] transition-colors"
+              disabled={isUploading || isProcessingAI}
+              className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 border rounded-lg text-gray-300 transition-colors ${
+                isProcessingAI 
+                  ? 'bg-gray-800 border-gray-700 cursor-not-allowed' 
+                  : 'bg-white/5 border-white/20 hover:border-[#00A676] hover:text-[#00A676]'
+              }`}
             >
-              <FiUpload className="w-5 h-5" />
-              <span>Add Multiple Images</span>
+              {isProcessingAI ? (
+                <FiLoader className="w-5 h-5 animate-spin" />
+              ) : (
+                <FiUpload className="w-5 h-5" />
+              )}
+              <span>{isProcessingAI ? 'Processing...' : 'Add Multiple Images'}</span>
             </button>
           </div>
+
+          {/* Processing Progress */}
+          {isProcessingAI && processingProgress && (
+            <div className="mb-4 p-3 bg-[#00A676]/10 border border-[#00A676]/30 rounded-lg">
+              <div className="flex items-center gap-2 text-[#00A676]">
+                <FiLoader className="w-4 h-4 animate-spin" />
+                <span className="text-sm font-medium">{processingProgress}</span>
+              </div>
+              <p className="text-xs text-gray-400 mt-1">Please wait while AI processes your images...</p>
+            </div>
+          )}
 
           {/* Hidden Inputs */}
           <input
@@ -399,7 +494,7 @@ const AddProduct = () => {
             accept="image/jpeg,image/jpg,image/png,image/webp,image/gif"
             onChange={handleSingleImageChange}
             className="hidden"
-            disabled={isUploading}
+            disabled={isUploading || isProcessingAI}
           />
           <input
             ref={multipleImageInputRef}
@@ -408,7 +503,7 @@ const AddProduct = () => {
             multiple
             onChange={handleMultipleImageChange}
             className="hidden"
-            disabled={isUploading}
+            disabled={isUploading || isProcessingAI}
           />
 
           {isUploading && (
