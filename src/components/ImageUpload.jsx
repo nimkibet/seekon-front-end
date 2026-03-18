@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { FiUpload, FiX, FiImage, FiLoader } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
+import imglyRemoveBackground from '@imgly/background-removal';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://seekonbackend-production.up.railway.app';
 
@@ -20,6 +21,7 @@ const ImageUpload = ({
 }) => {
   const [previews, setPreviews] = useState(initialImage ? [initialImage] : []);
   const [isUploading, setIsUploading] = useState(false);
+  const [isProcessingAI, setIsProcessingAI] = useState(false);
   const [error, setError] = useState('');
   const [inputType, setInputType] = useState('file'); // 'file' or 'url'
   const [urlInput, setUrlInput] = useState('');
@@ -73,6 +75,37 @@ const ImageUpload = ({
     return response.json();
   };
 
+  // Process image with AI in browser before uploading
+  const processWithAI = async (originalFile) => {
+    try {
+      setIsProcessingAI(true);
+      console.log('[AI] Starting background removal...');
+      
+      // CRITICAL SAFETY CONFIG: Load WASM from CDN, use small model, prevent RAM crashes
+      const aiConfig = {
+        publicPath: "https://static.imgly.com/@imgly/background-removal/assets/",
+        model: 'small',
+        output: { format: 'image/webp', quality: 0.8 },
+        maxDimension: 1024
+      };
+
+      // Run the AI locally in the browser
+      const imageBlob = await imglyRemoveBackground(originalFile, aiConfig);
+      
+      // Convert the Blob back to a File object
+      const processedFile = new File([imageBlob], "transparent-product.webp", { type: "image/webp" });
+      
+      console.log('[AI] Background removal successful!');
+      return processedFile;
+    } catch (error) {
+      console.error('[AI] Local AI Failed, falling back to original:', error);
+      toast.error('AI processing failed, uploading original image');
+      return originalFile; // Fall back to original
+    } finally {
+      setIsProcessingAI(false);
+    }
+  };
+
   const handleFileChange = async (e) => {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
@@ -89,9 +122,15 @@ const ImageUpload = ({
     setIsUploading(true);
 
     try {
-      // Upload all files
-      const uploadPromises = files.map(async (file) => {
-        // Show preview immediately using local URL
+      // Process each file with AI before uploading
+      const processedFiles = await Promise.all(
+        files.map(async (file) => {
+          return await processWithAI(file);
+        })
+      );
+
+      // Show preview immediately using local URL from processed image
+      const uploadPromises = processedFiles.map(async (file) => {
         const localPreview = URL.createObjectURL(file);
         return { localPreview, file };
       });
@@ -175,12 +214,15 @@ const ImageUpload = ({
     setIsUploading(true);
 
     try {
+      // Process with AI before uploading
+      const processedFile = await processWithAI(file);
+      
       // Show preview immediately using local URL
-      const localPreview = URL.createObjectURL(file);
+      const localPreview = URL.createObjectURL(processedFile);
       setPreview(localPreview);
 
       // Upload to server/Cloudinary
-      const result = await uploadFileToServer(file);
+      const result = await uploadFileToServer(processedFile);
 
       if (result.success && result.data) {
         const imageData = {
@@ -283,11 +325,19 @@ const ImageUpload = ({
             onChange={handleFileChange}
             className="hidden"
             id="image-upload-input"
-            disabled={isUploading}
+            disabled={isUploading || isProcessingAI}
             multiple={multiple}
           />
 
-          {!previews.length && !isUploading && (
+          {isProcessingAI && (
+            <div className="flex flex-col items-center justify-center space-y-3 sm:space-y-4 py-6 sm:py-8">
+              <FiLoader className="w-10 h-10 sm:w-12 sm:h-12 text-[#00A676] animate-spin" />
+              <p className="text-white font-medium text-sm sm:text-base">Removing background... Please wait</p>
+              <p className="text-gray-400 text-xs sm:text-sm">AI is processing your image locally</p>
+            </div>
+          )}
+
+          {!previews.length && !isUploading && !isProcessingAI && (
             <label
               htmlFor="image-upload-input"
               className="flex flex-col items-center justify-center space-y-3 sm:space-y-4 cursor-pointer"
@@ -307,7 +357,7 @@ const ImageUpload = ({
             </label>
           )}
 
-          {isUploading && (
+          {isUploading && !isProcessingAI && (
             <div className="flex flex-col items-center justify-center space-y-3 sm:space-y-4 py-6 sm:py-8">
               <FiLoader className="w-10 h-10 sm:w-12 sm:h-12 text-[#00A676] animate-spin" />
               <p className="text-white font-medium text-sm sm:text-base">Uploading image(s)...</p>
