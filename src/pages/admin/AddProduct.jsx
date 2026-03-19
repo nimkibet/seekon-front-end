@@ -187,11 +187,13 @@ const AddProduct = () => {
     });
   };
 
-  // Upload image to server
+  // Upload images to server - supports single or multiple
   const uploadImageToServer = async (file) => {
     const token = getAuthToken();
     const formData = new FormData();
-    formData.append('file', file);
+    
+    // Append as 'images' field (array) to match backend multer config
+    formData.append('images', file);
 
     const response = await fetch(`${API_URL}/api/upload`, {
       method: 'POST',
@@ -207,6 +209,33 @@ const AddProduct = () => {
 
     const data = await response.json();
     return data.data.url;
+  };
+
+  // Upload multiple images at once
+  const uploadMultipleImagesToServer = async (files) => {
+    const token = getAuthToken();
+    const formData = new FormData();
+    
+    // Append each file as 'images' field (array) to match backend multer config
+    files.forEach((file) => {
+      formData.append('images', file);
+    });
+
+    const response = await fetch(`${API_URL}/api/upload`, {
+      method: 'POST',
+      headers: {
+        ...(token && { 'Authorization': `Bearer ${token}` }),
+      },
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error('Upload failed');
+    }
+
+    const data = await response.json();
+    // Return array of URLs
+    return Array.isArray(data.data) ? data.data.map(d => d.url) : [data.data.url];
   };
 
   // Handle form submission - Non-blocking with background processing
@@ -235,13 +264,8 @@ const AddProduct = () => {
     // 5. Fire and Forget Background Task (Do not await this directly in the main thread)
     (async () => {
       try {
-        const imageUrls = [];
-        
-        // Loop through the captured local array, NOT the React state
-        for (let i = 0; i < filesToUpload.length; i++) {
-          const url = await uploadImageToServer(filesToUpload[i]);
-          imageUrls.push(url);
-        }
+        // Upload all images at once using the new multiple upload function
+        const imageUrls = await uploadMultipleImagesToServer(filesToUpload);
 
         const productData = {
           name: currentFormData.name,
