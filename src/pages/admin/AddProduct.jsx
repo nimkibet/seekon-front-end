@@ -211,31 +211,74 @@ const AddProduct = () => {
     return data.data.url;
   };
 
-  // Upload multiple images at once
+  // Upload multiple images and poll for AI background removal completion
   const uploadMultipleImagesToServer = async (files) => {
     const token = getAuthToken();
-    const formData = new FormData();
-    
-    // Append each file as 'images' field (array) to match backend multer config
-    files.forEach((file) => {
-      formData.append('images', file);
-    });
+    const finalUrls = [];
 
-    const response = await fetch(`${API_URL}/api/upload`, {
-      method: 'POST',
-      headers: {
-        ...(token && { 'Authorization': `Bearer ${token}` }),
-      },
-      body: formData,
-    });
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      const formData = new FormData();
+      formData.append('images', file); // Multer catch-all will grab this
 
-    if (!response.ok) {
-      throw new Error('Upload failed');
+      // 1. Submit the job
+      const uploadRes = await fetch(`${API_URL}/api/upload`, {
+        method: 'POST',
+        headers: { ...(token && { 'Authorization': `Bearer ${token}` }) },
+        body: formData,
+      });
+
+      if (!uploadRes.ok) throw new Error('Failed to submit image upload job');
+      const uploadData = await uploadRes.json();
+      
+      // If backend processed synchronously (fallback), grab URL directly
+      if (uploadData.data && !uploadData.data[0]?.jobId && uploadData.data[0]?.url) {
+        finalUrls.push(uploadData.data[0].url);
+        continue;
+      }
+
+      // 2. Extract Job ID for polling
+      const jobId = uploadData.data?.[0]?.jobId;
+      if (!jobId) throw new Error('No Job ID returned from server');
+
+      console.log(`[Job ${jobId}] Polling for AI completion...`);
+
+      // 3. Poll the status endpoint every 3 seconds
+      let isComplete = false;
+      let attempts = 0;
+      const maxAttempts = 20; // 60 seconds max timeout
+
+      while (!isComplete && attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 3000)); // Wait 3s
+        attempts++;
+
+        const statusRes = await fetch(`${API_URL}/api/upload/status/${jobId}`, {
+          headers: { ...(token && { 'Authorization': `Bearer ${token}` }) }
+        });
+        
+        if (!statusRes.ok) continue;
+        const statusData = await statusRes.json();
+
+        if (statusData.status === 'completed' && statusData.result?.url) {
+          finalUrls.push(statusData.result.url);
+          isComplete = true;
+          console.log(`[Job ${jobId}] ✅ AI Processing Complete!`);
+        } else if (statusData.status === 'failed') {
+          console.warn(`[Job ${jobId}] ⚠️ AI Failed. Using original image.`);
+          // Fallback to original URL from initial upload
+          finalUrls.push(uploadData.data[0]?.originalUrl);
+          isComplete = true;
+        }
+        // If status is 'pending' or 'processing', the loop continues
+      }
+
+      if (!isComplete) {
+        console.warn(`[Job ${jobId}] ⏱️ Polling timed out. Using original image.`);
+        finalUrls.push(uploadData.data[0]?.originalUrl);
+      }
     }
 
-    const data = await response.json();
-    // Return array of URLs
-    return Array.isArray(data.data) ? data.data.map(d => d.url) : [data.data.url];
+    return finalUrls;
   };
 
   // Handle form submission - Non-blocking with background processing
