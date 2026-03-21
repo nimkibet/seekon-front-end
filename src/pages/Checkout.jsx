@@ -115,13 +115,6 @@ const Checkout = () => {
   
   // Freeze totals for the final confirmation page so they aren't lost when cart clears
   const [finalOrderTotals, setFinalOrderTotals] = useState({ total: 0, subtotal: 0, shippingCost: 0, discount: 0 });
-
-  useEffect(() => {
-    if (currentStep < 3) {
-      const totals = calculateTotals();
-      setFinalOrderTotals(totals);
-    }
-  }, [totalPrice, selectedShipping, discountAmount, currentStep]);
   
   // Card details state
   const [cardNumber, setCardNumber] = useState('');
@@ -556,6 +549,14 @@ const Checkout = () => {
     const total = subtotal + shippingCost - discountAmount;
     return { subtotal, shippingCost, total, discount: discountAmount };
   };
+
+  // Freeze totals for the final confirmation page so they aren't lost when cart clears
+  useEffect(() => {
+    if (currentStep < 3) {
+      const totals = calculateTotals();
+      setFinalOrderTotals(totals);
+    }
+  }, [totalPrice, selectedShipping, discountAmount, currentStep]);
 
   const handleApplyCoupon = async () => {
     if (!couponCode.trim()) {
