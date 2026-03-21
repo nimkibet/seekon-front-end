@@ -274,6 +274,46 @@ const ProductDetail = () => {
     }
   };
 
+  // Helper for color dots with Tailwind-matched hex codes
+  const getColorValue = (colorName) => {
+    const colors = {
+      black: '#000000',
+      white: '#ffffff',
+      red: '#ef4444',
+      blue: '#3b82f6',
+      green: '#22c55e',
+      yellow: '#eab308',
+      orange: '#f97316',
+      purple: '#a855f7',
+      pink: '#ec4899',
+      brown: '#78350f',
+      gray: '#6b7280',
+      grey: '#6b7280',
+      navy: '#1e3a8a',
+      beige: '#f5f5dc',
+      cream: '#fffdd0',
+      tan: '#d2b48c',
+      maroon: '#800000',
+      burgundy: '#800020',
+      turquoise: '#40e0d0',
+      teal: '#008080',
+      coral: '#ff7f50',
+      salmon: '#fa8072',
+      olive: '#808000',
+      lime: '#84cc16',
+      mint: '#98fb98',
+      lavender: '#e6e6fa',
+      indigo: '#4b0082',
+      gold: '#ffd700',
+      silver: '#c0c0c0',
+      charcoal: '#36454f',
+    };
+    
+    if (!colorName) return '#cccccc';
+    const normalizedColor = colorName.toLowerCase().trim();
+    return colors[normalizedColor] || colorName;
+  };
+
   // WhatsApp Inquiry Button Handler
   const handleWhatsAppClick = (e) => {
     e.preventDefault();
@@ -502,11 +542,7 @@ const ProductDetail = () => {
                         : 'w-10 h-10 sm:w-12 sm:h-12 border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 hover:scale-105'
                     }`}
                     style={{
-                      backgroundColor: color.toLowerCase().includes('black') ? '#000' :
-                                     color.toLowerCase().includes('white') ? '#fff' :
-                                     color.toLowerCase().includes('red') ? '#ef4444' :
-                                     color.toLowerCase().includes('blue') ? '#3b82f6' :
-                                     color.toLowerCase().includes('gray') ? '#6b7280' : '#000'
+                      backgroundColor: getColorValue(color)
                     }}
                     title={color}
                   />

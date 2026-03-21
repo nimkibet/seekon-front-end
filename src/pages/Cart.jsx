@@ -13,37 +13,42 @@ import { getOrders } from '../utils/api';
 
 // Color mapping helper
 const getColorHex = (colorName) => {
-  const color = colorName?.toLowerCase() || '';
-  const colorMap = {
-    'black': '#000000',
-    'white': '#FFFFFF',
-    'red': '#EF4444',
-    'blue': '#3B82F6',
-    'green': '#10B981',
-    'gray': '#6B7280',
-    'grey': '#6B7280',
-    'navy': '#1E3A8A',
-    'beige': '#F5F5DC',
-    'brown': '#92400E',
-    'orange': '#F97316',
-    'yellow': '#EAB308',
-    'pink': '#EC4899',
-    'purple': '#A855F7',
-    'silver': '#94A3B8',
-    'gold': '#F59E0B',
-    'tan': '#D2B48C',
-    'olive': '#84CC16'
+  const colors = {
+    black: '#000000',
+    white: '#ffffff',
+    red: '#ef4444',
+    blue: '#3b82f6',
+    green: '#22c55e',
+    yellow: '#eab308',
+    orange: '#f97316',
+    purple: '#a855f7',
+    pink: '#ec4899',
+    brown: '#78350f',
+    gray: '#6b7280',
+    grey: '#6b7280',
+    navy: '#1e3a8a',
+    beige: '#f5f5dc',
+    cream: '#fffdd0',
+    tan: '#d2b48c',
+    maroon: '#800000',
+    burgundy: '#800020',
+    turquoise: '#40e0d0',
+    teal: '#008080',
+    coral: '#ff7f50',
+    salmon: '#fa8072',
+    olive: '#808000',
+    lime: '#84cc16',
+    mint: '#98fb98',
+    lavender: '#e6e6fa',
+    indigo: '#4b0082',
+    gold: '#ffd700',
+    silver: '#c0c0c0',
+    charcoal: '#36454f',
   };
   
-  // Try exact match first
-  if (colorMap[color]) return colorMap[color];
-  
-  // Try partial match
-  for (const [key, hex] of Object.entries(colorMap)) {
-    if (color.includes(key)) return hex;
-  }
-  
-  return '#000000'; // Default to black
+  if (!colorName) return '#cccccc';
+  const normalizedColor = colorName.toLowerCase().trim();
+  return colors[normalizedColor] || colorName;
 };
 
 const Cart = () => {
