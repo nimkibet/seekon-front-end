@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { FiUpload, FiX, FiImage, FiLoader } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
-import imglyRemoveBackground from '@imgly/background-removal';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://seekonbackend-production.up.railway.app';
 
@@ -75,35 +74,10 @@ const ImageUpload = ({
     return response.json();
   };
 
-  // Process image with AI in browser before uploading
+  // Process image - AI background removal disabled
   const processWithAI = async (originalFile) => {
-    try {
-      setIsProcessingAI(true);
-      console.log('[AI] Starting background removal...');
-      
-      // CRITICAL SAFETY CONFIG: Load WASM from CDN, use small model, prevent RAM crashes
-      const aiConfig = {
-        publicPath: "https://static.imgly.com/@imgly/background-removal/assets/",
-        model: 'small',
-        output: { format: 'image/webp', quality: 0.8 },
-        maxDimension: 1024
-      };
-
-      // Run the AI locally in the browser
-      const imageBlob = await imglyRemoveBackground(originalFile, aiConfig);
-      
-      // Convert the Blob back to a File object
-      const processedFile = new File([imageBlob], "transparent-product.webp", { type: "image/webp" });
-      
-      console.log('[AI] Background removal successful!');
-      return processedFile;
-    } catch (error) {
-      console.error('[AI] Local AI Failed, falling back to original:', error);
-      toast.error('AI processing failed, uploading original image');
-      return originalFile; // Fall back to original
-    } finally {
-      setIsProcessingAI(false);
-    }
+    // AI background removal has been disabled
+    return originalFile;
   };
 
   const handleFileChange = async (e) => {
@@ -122,7 +96,7 @@ const ImageUpload = ({
     setIsUploading(true);
 
     try {
-      // Process each file with AI before uploading
+      // Use original files directly (AI processing disabled)
       const processedFiles = await Promise.all(
         files.map(async (file) => {
           return await processWithAI(file);
@@ -214,7 +188,7 @@ const ImageUpload = ({
     setIsUploading(true);
 
     try {
-      // Process with AI before uploading
+      // Use original file directly (AI processing disabled)
       const processedFile = await processWithAI(file);
       
       // Show preview immediately using local URL
