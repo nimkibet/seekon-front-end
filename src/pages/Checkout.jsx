@@ -211,6 +211,12 @@ const Checkout = () => {
         return;
       }
       
+      // 🔒 FREEZE CART STATE IMMEDIATELY 
+      // We take the snapshot BEFORE any API calls. This guarantees the receipt 
+      // will be perfectly accurate even if polling takes 2 minutes and Redux clears in the background.
+      setOrderConfirmationItems([...items]);
+      setFinalOrderTotals(calculateTotals());
+      
       setPaymentStatus('loading');
       
       // Set flag to hide 3D background during payment processing to prevent WebGL issues
@@ -350,8 +356,6 @@ const Checkout = () => {
             // Mock mode - just show success
             setPaymentStatus('success');
             toast.success('Payment successful!');
-            // FIX ISSUE #3: Store items before clearing cart for confirmation display
-            setOrderConfirmationItems([...items]);
             // Auto-clear cart on successful payment
             dispatch(clearCartAPI());
             setTimeout(() => {
@@ -373,8 +377,6 @@ const Checkout = () => {
         
         setPaymentStatus('success');
         toast.success('Payment successful!');
-        // FIX ISSUE #3: Store items before clearing cart for confirmation display
-        setOrderConfirmationItems([...items]);
         // Auto-clear cart on successful payment
         dispatch(clearCartAPI());
         setTimeout(() => {
@@ -424,8 +426,6 @@ const Checkout = () => {
           setPaymentStatus('success');
           clearPaymentFlag(); // Clear the 3D background flag
           toast.success('Payment Received Successfully!');
-          // FIX ISSUE #3: Store items before clearing cart for confirmation display
-          setOrderConfirmationItems([...items]);
           // Auto-clear cart on successful payment
           dispatch(clearCartAPI());
           // Move to confirmation step (which acts as success page)
@@ -490,8 +490,6 @@ const Checkout = () => {
         stopPolling();
         setPaymentStatus('success');
         toast.success('Payment verified successfully!');
-        // FIX ISSUE #3: Store items before clearing cart for confirmation display
-        setOrderConfirmationItems([...items]);
         // Auto-clear cart on successful payment
         dispatch(clearCartAPI());
         setTimeout(() => {
