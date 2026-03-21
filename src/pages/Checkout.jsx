@@ -73,6 +73,16 @@ const Checkout = () => {
   // FIX ISSUE #3: Store order items before clearing cart for confirmation display
   const [orderConfirmationItems, setOrderConfirmationItems] = useState([]);
   
+  // Freeze totals for the final confirmation page so they aren't lost when cart clears
+  const [finalOrderTotals, setFinalOrderTotals] = useState({ total: 0, subtotal: 0, shippingCost: 0, discount: 0 });
+
+  useEffect(() => {
+    if (currentStep < 3) {
+      const totals = calculateTotals();
+      setFinalOrderTotals(totals);
+    }
+  }, [totalPrice, selectedShipping, discountAmount, currentStep]);
+  
   // Card details state
   const [cardNumber, setCardNumber] = useState('');
   const [cardHolder, setCardHolder] = useState('');
@@ -547,14 +557,17 @@ const Checkout = () => {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          {/* Back Button */}
-          <button 
-            onClick={() => navigate('/cart')}
-            className="flex items-center space-x-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 mb-4 transition-colors"
-          >
-            <FiArrowLeft className="w-5 h-5" />
-            <span className="font-medium">Checkout</span>
-          </button>
+          {/* Dynamic Back Button */}
+          {currentStep < 3 && (
+            <button 
+              onClick={() => currentStep === 2 ? setCurrentStep(1) : navigate('/cart')}
+              disabled={paymentStatus === 'loading' || isPolling}
+              className="flex items-center space-x-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 mb-4 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <FiArrowLeft className="w-5 h-5" />
+              <span className="font-medium">{currentStep === 2 ? 'Back to Delivery Details' : 'Back to Cart'}</span>
+            </button>
+          )}
           
           {/* Breadcrumb */}
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
@@ -571,13 +584,18 @@ const Checkout = () => {
               return (
                 <div key={step} className="flex items-center">
                   <div className="flex flex-col items-center">
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all ${
-                      isCompleted || isCurrent
-                        ? 'bg-black border-black text-white'
-                        : 'border-gray-300 dark:border-gray-600 text-gray-400 bg-white dark:bg-gray-800'
-                    }`}>
+                    <button
+                      type="button"
+                      disabled={!isCompleted || currentStep === 3 || paymentStatus === 'loading' || isPolling}
+                      onClick={() => isCompleted && currentStep === 2 ? setCurrentStep(1) : null}
+                      className={`w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all ${
+                        isCompleted || isCurrent
+                          ? 'bg-black border-black text-white'
+                          : 'border-gray-300 dark:border-gray-600 text-gray-400 bg-white dark:bg-gray-800'
+                      } ${isCompleted && currentStep !== 3 ? 'cursor-pointer hover:scale-105' : 'cursor-default'}`}
+                    >
                       <span className="font-bold text-lg">{stepNumber}</span>
-                    </div>
+                    </button>
                     <span className={`text-sm mt-2 font-medium ${
                       isCompleted || isCurrent ? 'text-[#00A676]' : 'text-gray-500 dark:text-gray-400'
                     }`}>
@@ -1193,11 +1211,40 @@ const Checkout = () => {
                 Thank you for your purchase. Your order has been successfully placed.
               </p>
               <div className="space-y-4 mb-8">
-                <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-4 text-left">
-                  <h3 className="font-semibold text-gray-900 dark:text-white mb-2">Order Summary</h3>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Total: <span className="font-bold text-[#00A676]">{formatPrice(total)}</span></p>
-                  {/* FIX ISSUE #3: Use stored order items instead of cleared cart items */}
-                  <p className="text-sm text-gray-600 dark:text-gray-400">Items: {orderConfirmationItems.length > 0 ? orderConfirmationItems.length : items.length}</p>
+                <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-6 text-left border border-gray-200 dark:border-gray-700">
+                  <h3 className="font-bold text-gray-900 dark:text-white mb-4 border-b border-gray-200 dark:border-gray-700 pb-2">Order Receipt</h3>
+                  
+                  {/* Render actual bought items */}
+                  <div className="space-y-3 mb-4 max-h-48 overflow-y-auto">
+                    {orderConfirmationItems.map((item, idx) => (
+                      <div key={`${item.id}-${idx}`} className="flex justify-between text-sm">
+                        <span className="text-gray-600 dark:text-gray-400">{item.quantity}x {item.name}</span>
+                        <span className="text-gray-900 dark:text-white font-medium">{formatPrice(item.price * item.quantity)}</span>
+                      </div>
+                    ))}
+                  </div>
+                  
+                  {/* Render Frozen Totals */}
+                  <div className="border-t border-gray-200 dark:border-gray-700 pt-4 space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600 dark:text-gray-400">Subtotal</span>
+                      <span className="text-gray-900 dark:text-white">{formatPrice(finalOrderTotals.subtotal)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600 dark:text-gray-400">Shipping</span>
+                      <span className="text-gray-900 dark:text-white">{formatPrice(finalOrderTotals.shippingCost)}</span>
+                    </div>
+                    {finalOrderTotals.discount > 0 && (
+                      <div className="flex justify-between text-sm text-[#00A676]">
+                        <span>Discount</span>
+                        <span>-{formatPrice(finalOrderTotals.discount)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between text-lg font-bold mt-2 pt-2 border-t border-gray-200 dark:border-gray-700">
+                      <span className="text-gray-900 dark:text-white">Total Paid</span>
+                      <span className="text-[#00A676]">{formatPrice(finalOrderTotals.total)}</span>
+                    </div>
+                  </div>
                 </div>
               </div>
               <div className="space-y-3">
