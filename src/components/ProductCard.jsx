@@ -40,15 +40,6 @@ const ProductCard = ({ product, viewMode = 'grid' }) => {
   const isOnFlashSale = product?.isOnFlashSale || product?.onFlashSale || 
     (product?.flashSalePrice && product.flashSalePrice > 0 && product.flashSalePrice < product.price) || false;
   const activePrice = product?.flashSalePrice || product?.activePrice || product?.price || 0;
-  
-  // Calculate original price: use existing originalPrice/oldPrice or calculate from discountPercentage
-  const discountPercent = product?.discount || product?.discountPercentage || 0;
-  let originalPrice = product?.originalPrice || product?.oldPrice || product?.price || 0;
-  if (originalPrice === product?.price && discountPercent > 0) {
-    // Calculate original from discounted price and percentage
-    originalPrice = product.price / (1 - (discountPercent / 100));
-  }
-  
   const flashSaleEndTime = product?.saleEndTime || product?.flashSaleEndTime || null;
 
   // Check wishlist status
@@ -291,31 +282,19 @@ const ProductCard = ({ product, viewMode = 'grid' }) => {
           )}
           
           {/* Price */}
-          <div className="flex items-center space-x-2 mb-3">
-            {isOnFlashSale ? (
-              <>
-                <span className="font-bold text-red-500 text-lg">
-                  {formatPrice(activePrice)}
-                </span>
-                <span className="text-gray-400 text-sm line-through">
-                  {formatPrice(originalPrice)}
-                </span>
-                <span className="bg-red-100 text-red-600 text-xs px-2 py-0.5 rounded-full font-medium">
-                  -{Math.round((1 - activePrice / originalPrice) * 100)}% OFF
-                </span>
-              </>
-            ) : discountPercent > 0 ? (
-              <>
-                <span className="font-bold text-gray-900 dark:text-white text-lg">
-                  {formatPrice(product.price)}
-                </span>
-                <span className="text-gray-400 dark:text-gray-500 text-sm line-through font-medium">
-                  {formatPrice(originalPrice)}
-                </span>
-              </>
-            ) : (
-              <span className="font-bold text-black text-lg">
-                {formatPrice(product.price)}
+          <div className="flex items-center space-x-2 mt-1">
+            {/* Current / Discounted Price */}
+            <span className="font-bold text-gray-900 dark:text-white">
+              {formatPrice(product.price)}
+            </span>
+            
+            {/* Crossed-out Original Price */}
+            {(product.originalPrice || product.discountPercentage > 0) && (
+              <span className="text-sm text-gray-400 dark:text-gray-500 line-through font-medium">
+                {formatPrice(
+                  product.originalPrice || 
+                  Math.round(product.price / (1 - (product.discountPercentage / 100)))
+                )}
               </span>
             )}
           </div>
