@@ -197,14 +197,14 @@ const Home = () => {
           </button>
         </div>
       </div>
-      <div className="absolute inset-0 z-0">
+      <div className="absolute inset-0 z-0 bg-black">
         {isVideo(heroSettings.heroVideoUrl) ? (
           <video 
             autoPlay 
             loop 
             muted 
             playsInline 
-            className="w-full h-full object-cover opacity-50"
+            className="absolute inset-0 w-full h-full object-contain object-center bg-black"
           >
             <source src={heroSettings.heroVideoUrl} type="video/mp4" />
           </video>
