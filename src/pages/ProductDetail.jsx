@@ -692,20 +692,23 @@ const ProductDetail = () => {
 
               {/* Individual Reviews */}
               <div className="space-y-4">
-                {product.reviewDetails?.slice().reverse().map((review, index) => (
-                  <div
-                    key={index}
-                    className="p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
-                  >
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 bg-[#00A676] rounded-full flex items-center justify-center text-white font-medium text-sm">
-                          {review.userName?.charAt(0).toUpperCase() || 'A'}
-                        </div>
-                        <div>
-                          <p className="font-medium text-gray-900 dark:text-gray-100 text-sm">
-                            {review.userName || 'Anonymous'}
-                          </p>
+                {product.reviewDetails?.slice().reverse().map((review, index) => {
+                  // Compute display name: user.name -> firstName -> email prefix -> Anonymous
+                  const displayName = review.user?.name || review.user?.firstName || (review.user?.email ? review.user.email.split('@')[0] : "Anonymous");
+                  return (
+                    <div
+                      key={index}
+                      className="p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
+                    >
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 bg-[#00A676] rounded-full flex items-center justify-center text-white font-medium text-sm">
+                            {displayName.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-900 dark:text-gray-100 text-sm">
+                              {displayName}
+                            </p>
                           <div className="flex items-center gap-1">
                             {[1, 2, 3, 4, 5].map((star) => (
                               <FiStar
@@ -740,7 +743,8 @@ const ProductDetail = () => {
                       </p>
                     )}
                   </div>
-                ))}
+                )}
+              )}
               </div>
 
               {(!product.reviewDetails || product.reviewDetails.length === 0) && (

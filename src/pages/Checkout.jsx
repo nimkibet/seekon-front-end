@@ -544,7 +544,8 @@ const Checkout = () => {
   };
 
   const calculateTotals = () => {
-    const subtotal = totalPrice;
+    // Calculate from frozen order items to ensure accuracy
+    const subtotal = orderConfirmationItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
     const shippingCost = selectedShipping ? selectedShipping.price : 0;
     const total = subtotal + shippingCost - discountAmount;
     return { subtotal, shippingCost, total, discount: discountAmount };
@@ -552,11 +553,11 @@ const Checkout = () => {
 
   // Freeze totals for the final confirmation page so they aren't lost when cart clears
   useEffect(() => {
-    if (currentStep < 3) {
+    if (currentStep < 3 && orderConfirmationItems.length > 0) {
       const totals = calculateTotals();
       setFinalOrderTotals(totals);
     }
-  }, [totalPrice, selectedShipping, discountAmount, currentStep]);
+  }, [orderConfirmationItems, selectedShipping, discountAmount, currentStep]);
 
   const handleApplyCoupon = async () => {
     if (!couponCode.trim()) {

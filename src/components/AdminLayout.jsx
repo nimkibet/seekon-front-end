@@ -59,9 +59,9 @@ const AdminLayout = ({ children }) => {
     setNotifications(prev => 
       prev.map(n => n._id === id ? { ...n, isRead: true } : n)
     );
-    // Navigate to order if orderId exists
+    // Navigate to order if orderId exists - use query param like Notifications.jsx
     if (orderId) {
-      navigate(`/admin/orders/${orderId}`);
+      navigate(`/admin/orders?orderId=${orderId}`);
     }
   };
 
