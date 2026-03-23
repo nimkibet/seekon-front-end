@@ -43,12 +43,12 @@ const ProductCard = ({ product, viewMode = 'grid' }) => {
   const flashSaleEndTime = product?.saleEndTime || product?.flashSaleEndTime || null;
 
   // Strict check: Is it actually on sale?
-  const isValidSale = product.discountPercentage > 0 || (product.originalPrice && product.originalPrice > product.price);
+  const hasDiscount = product.discount > 0 || (product.originalPrice && product.originalPrice > product.price);
   
   // Calculate correct old price without decimals
-  const oldPriceToDisplay = (product.originalPrice && product.originalPrice > product.price) 
+  const originalPriceToDisplay = product.originalPrice 
     ? product.originalPrice 
-    : Math.round(product.price / (1 - (product.discountPercentage / 100)));
+    : (hasDiscount ? Math.round(product.price / (1 - (product.discount / 100))) : null);
 
   // Check wishlist status
   useEffect(() => {
@@ -297,9 +297,9 @@ const ProductCard = ({ product, viewMode = 'grid' }) => {
             </span>
             
             {/* Crossed-out Original Price (ONLY show if it's a valid sale) */}
-            {isValidSale && (
+            {hasDiscount && originalPriceToDisplay && (
               <span className="text-sm text-gray-400 dark:text-gray-500 line-through font-medium">
-                {formatPrice(oldPriceToDisplay)}
+                {formatPrice(originalPriceToDisplay)}
               </span>
             )}
           </div>
