@@ -42,6 +42,14 @@ const ProductCard = ({ product, viewMode = 'grid' }) => {
   const activePrice = product?.flashSalePrice || product?.activePrice || product?.price || 0;
   const flashSaleEndTime = product?.saleEndTime || product?.flashSaleEndTime || null;
 
+  // Strict check: Is it actually on sale?
+  const isValidSale = product.discountPercentage > 0 || (product.originalPrice && product.originalPrice > product.price);
+  
+  // Calculate correct old price without decimals
+  const oldPriceToDisplay = (product.originalPrice && product.originalPrice > product.price) 
+    ? product.originalPrice 
+    : Math.round(product.price / (1 - (product.discountPercentage / 100)));
+
   // Check wishlist status
   useEffect(() => {
     const productId = product?._id || product?.id;
@@ -283,18 +291,15 @@ const ProductCard = ({ product, viewMode = 'grid' }) => {
           
           {/* Price */}
           <div className="flex items-center space-x-2 mt-1">
-            {/* Current / Discounted Price */}
+            {/* Current / Sale Price (Always show) */}
             <span className="font-bold text-gray-900 dark:text-white">
               {formatPrice(product.price)}
             </span>
             
-            {/* Crossed-out Original Price */}
-            {(product.originalPrice || product.discountPercentage > 0) && (
+            {/* Crossed-out Original Price (ONLY show if it's a valid sale) */}
+            {isValidSale && (
               <span className="text-sm text-gray-400 dark:text-gray-500 line-through font-medium">
-                {formatPrice(
-                  product.originalPrice || 
-                  Math.round(product.price / (1 - (product.discountPercentage / 100)))
-                )}
+                {formatPrice(oldPriceToDisplay)}
               </span>
             )}
           </div>
