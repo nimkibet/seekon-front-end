@@ -286,7 +286,7 @@ const Navbar = () => {
         }
       ],
       image: {
-        src: "https://images.unsplash.com/photo-1523293188086-b520e57197dd?q=80&w=1000&auto=format&fit=crop",
+        src: "https://images.unsplash.com/photo-1523206489230-c012c64b2b48?auto=format&fit=crop&w=600&q=80",
         alt: "Accessories Collection",
         label: "ALL ACCESSORIES",
         path: '/collection?category=accessories'
