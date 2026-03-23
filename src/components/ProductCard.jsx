@@ -42,13 +42,13 @@ const ProductCard = ({ product, viewMode = 'grid' }) => {
   const activePrice = product?.flashSalePrice || product?.activePrice || product?.price || 0;
   const flashSaleEndTime = product?.saleEndTime || product?.flashSaleEndTime || null;
 
-  // Strict check: Is it actually on sale?
-  const hasDiscount = product.discount > 0 || (product.originalPrice && product.originalPrice > product.price);
-  
-  // Calculate correct old price without decimals
-  const originalPriceToDisplay = product.originalPrice 
-    ? product.originalPrice 
-    : (hasDiscount ? Math.round(product.price / (1 - (product.discount / 100))) : null);
+  // 1. Safely extract the discount number (fallback to 0)
+  const discountVal = Number(product.discountPercentage || product.discount || 0);
+
+  // 2. Mathematically calculate the original price and force it to be a whole number
+  const originalCalculatedPrice = discountVal > 0 
+    ? Math.round(product.price / (1 - (discountVal / 100))) 
+    : null;
 
   // Check wishlist status
   useEffect(() => {
@@ -291,15 +291,15 @@ const ProductCard = ({ product, viewMode = 'grid' }) => {
           
           {/* Price */}
           <div className="flex items-center space-x-2 mt-1">
-            {/* Current / Sale Price (Always show) */}
+            {/* Current Final Price (Always show) */}
             <span className="font-bold text-gray-900 dark:text-white">
               {formatPrice(product.price)}
             </span>
             
-            {/* Crossed-out Original Price (ONLY show if it's a valid sale) */}
-            {hasDiscount && originalPriceToDisplay && (
+            {/* Crossed-out Calculated Price (ONLY show if discount > 0) */}
+            {discountVal > 0 && originalCalculatedPrice && (
               <span className="text-sm text-gray-400 dark:text-gray-500 line-through font-medium">
-                {formatPrice(originalPriceToDisplay)}
+                {formatPrice(originalCalculatedPrice)}
               </span>
             )}
           </div>
