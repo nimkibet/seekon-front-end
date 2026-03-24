@@ -54,29 +54,24 @@ const AddProduct = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   
-  // Dynamic categories and brands from API
-  const [dynamicCategories, setDynamicCategories] = useState([]);
-  const [dynamicBrands, setDynamicBrands] = useState([]);
+  // Dynamic categories from API - hierarchical structure
+  const [dbCategories, setDbCategories] = useState([]);
   
-  // Fetch dynamic categories and brands on mount
+  // Fetch categories from database on mount
   useEffect(() => {
-    const fetchDynamicData = async () => {
+    const fetchCategories = async () => {
       try {
         const token = getAuthToken();
-        const [catRes, brandRes] = await Promise.all([
-          fetch(`${API_URL}/api/categories`),
-          fetch(`${API_URL}/api/brands`)
-        ]);
-        const catData = await catRes.json();
-        const brandData = await brandRes.json();
-        
-        if (catData.success) setDynamicCategories(catData.categories);
-        if (brandData.success) setDynamicBrands(brandData.brands);
+        const res = await fetch(`${API_URL}/api/categories/all`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success) setDbCategories(data.categories);
       } catch (err) {
         console.log('Using hardcoded categories/brands');
       }
     };
-    fetchDynamicData();
+    fetchCategories();
   }, []);
   
   // Form state
@@ -106,36 +101,32 @@ const AddProduct = () => {
   const singleImageInputRef = useRef(null);
   const multipleImageInputRef = useRef(null);
 
-  // Hardcoded fallback category data
-  const hardcodedCategoryData = {
-    Sneakers: {
-      subCategories: ['All Sneakers', 'Running', 'Basketball', 'Lifestyle', 'High Tops', 'Low Tops'],
-      brands: ['Nike', 'Adidas', 'Jordan', 'Puma', 'New Balance', 'Converse', 'Vans', 'Reebok']
-    },
-    Apparel: {
-      subCategories: ['All Clothing', 'T-Shirts', 'Shirts', 'Hoodies', 'Jackets', 'Pants', 'Shorts'],
-      brands: ['Nike', 'Adidas', 'Puma', 'Jordan', 'The North Face', 'Essentials', 'Under Armour']
-    },
-    Boots: {
-      subCategories: ['All Boots', 'Hiking', 'Casual', 'Winter'],
-      brands: ['Timberland', 'Dr. Martens', 'UGG', 'Columbia', 'Sorel']
-    },
-    Men: {
-      subCategories: ['All Men', 'Shoes', 'Clothing', 'Accessories'],
-      brands: ['Nike', 'Adidas', 'Jordan', 'Puma', 'New Balance']
-    },
-    Women: {
-      subCategories: ['All Women', 'Shoes', 'Clothing', 'Accessories'],
-      brands: ['Nike', 'Adidas', 'Jordan', 'Puma', 'New Balance']
-    },
-    Kids: {
-      subCategories: ['All Kids', 'Boys', 'Girls', 'Shoes', 'Clothing'],
-      brands: ['Nike', 'Adidas', 'Jordan', 'Puma']
-    },
-    Accessories: {
-      subCategories: ['All Accessories', 'Bags', 'Hats', 'Socks', 'Watches', 'Wallets', 'Sunglasses'],
-      brands: ['Nike', 'Adidas', 'Puma', 'Jordan', 'Restyle', 'Casio']
-    }
+  // Hardcoded fallback data (UPPERCASE to match DB)
+  const hardcodedFallback = {
+    SNEKERS: { subCategories: ['ALL SNEAKERS', 'RUNNING', 'BASKETBALL', 'LIFESTYLE', 'HIGH TOPS', 'LOW TOPS'], brands: ['NIKE', 'ADIDAS', 'JORDAN', 'PUMA', 'NEW BALANCE', 'CONVERSE', 'VANS', 'REEBOK'] },
+    APPAREL: { subCategories: ['ALL CLOTHING', 'T-SHIRTS', 'SHIRTS', 'HOODIES', 'JACKETS', 'PANTS', 'SHORTS'], brands: ['NIKE', 'ADIDAS', 'PUMA', 'JORDAN', 'THE NORTH FACE', 'ESSENTIALS', 'UNDER ARMOUR'] },
+    BOOTS: { subCategories: ['ALL BOOTS', 'HIKING', 'CASUAL', 'WINTER'], brands: ['TIMBERLAND', 'DR. MARTENS', 'UGG', 'COLUMBIA', 'SOREL'] },
+    MEN: { subCategories: ['ALL MEN', 'SHOES', 'CLOTHING', 'ACCESSORIES'], brands: ['NIKE', 'ADIDAS', 'JORDAN', 'PUMA', 'NEW BALANCE'] },
+    WOMEN: { subCategories: ['ALL WOMEN', 'SHOES', 'CLOTHING', 'ACCESSORIES'], brands: ['NIKE', 'ADIDAS', 'JORDAN', 'PUMA', 'NEW BALANCE'] },
+    KIDS: { subCategories: ['ALL KIDS', 'BOYS', 'GIRLS', 'SHOES', 'CLOTHING'], brands: ['NIKE', 'ADIDAS', 'JORDAN', 'PUMA'] },
+    ACCESSORIES: { subCategories: ['ALL ACCESSORIES', 'BAGS', 'HATS', 'SOCKS', 'WATCHES', 'WALLETS', 'SUNGLASSES'], brands: ['NIKE', 'ADIDAS', 'PUMA', 'JORDAN', 'RESTYLE', 'CASIO'] }
+  };
+
+  // Get all categories for dropdown (DB + fallback)
+  const allCategories = [...new Set([...dbCategories.map(c => c.name), ...Object.keys(hardcodedFallback)])];
+
+  // Waterfall helpers
+  const getSubCategoriesForCategory = (catName) => {
+    const upperCat = catName.toUpperCase();
+    const dbCat = dbCategories.find(c => c.name === upperCat);
+    const fallbackCat = hardcodedFallback[upperCat];
+    return [...new Set([...(dbCat?.subCategories || []), ...(fallbackCat?.subCategories || [])])];
+  };
+  const getBrandsForCategory = (catName) => {
+    const upperCat = catName.toUpperCase();
+    const dbCat = dbCategories.find(c => c.name === upperCat);
+    const fallbackCat = hardcodedFallback[upperCat];
+    return [...new Set([...(dbCat?.brands || []), ...(fallbackCat?.brands || [])])];
   };
 
   // Build categoryData combining dynamic + hardcoded
