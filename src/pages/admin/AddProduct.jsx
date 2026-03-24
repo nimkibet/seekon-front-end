@@ -80,7 +80,7 @@ const AddProduct = () => {
     description: '',
     price: '',
     originalPrice: '',
-    category: 'Sneakers',
+    category: 'SNEKERS',
     subCategory: '',
     brand: '',
     stock: '',
@@ -129,9 +129,9 @@ const AddProduct = () => {
     return [...new Set([...(dbCat?.brands || []), ...(fallbackCat?.brands || [])])];
   };
 
-  // Build categoryData combining dynamic + hardcoded
-  const categoryData = { ...hardcodedCategoryData };
-  dynamicCategories.forEach(cat => {
+  // Build categoryData combining db categories + hardcoded fallback
+  const categoryData = { ...hardcodedFallback };
+  dbCategories.forEach(cat => {
     if (!categoryData[cat.name]) {
       categoryData[cat.name] = {
         subCategories: cat.subCategories || [],
@@ -147,19 +147,30 @@ const AddProduct = () => {
     }
   });
 
-  // Get all unique brands from dynamic + hardcoded
+  // Get all unique brands from db + hardcoded fallback
   const allBrands = [...new Set([
-    ...dynamicBrands.map(b => b.name),
-    ...Object.values(hardcodedCategoryData).flatMap(c => c.brands)
+    ...dbCategories.flatMap(c => c.brands || []),
+    ...Object.values(hardcodedFallback).flatMap(c => c.brands)
   ])];
 
-  // Handle input changes
+  // Handle input changes - with state reset for category changes
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }));
+    
+    // Reset subCategory and brand when category changes
+    if (name === 'category') {
+      setFormData(prev => ({
+        ...prev,
+        category: value,
+        subCategory: '',
+        brand: ''
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: type === 'checkbox' ? checked : value
+      }));
+    }
   };
 
   // Handle single image upload - uses separate input to allow adding one at a time
@@ -352,7 +363,7 @@ const AddProduct = () => {
       description: '',
       price: '',
       originalPrice: '',
-      category: 'Sneakers',
+      category: 'SNEKERS',
       subCategory: '',
       brand: '',
       stock: '',
@@ -546,7 +557,7 @@ const AddProduct = () => {
                 >
                   {Object.keys(categoryData).map(cat => (
                     <option key={cat} value={cat} style={{ backgroundColor: '#1f2937', color: 'white' }}>
-                      {cat}
+                      {cat.charAt(0) + cat.slice(1).toLowerCase()}
                     </option>
                   ))}
                 </select>
@@ -567,7 +578,7 @@ const AddProduct = () => {
                   }}
                 >
                   <option value="" style={{ backgroundColor: '#1f2937', color: 'white' }}>Select Brand</option>
-                  {allBrands.map(brand => (
+                  {categoryData[formData.category?.toUpperCase()]?.brands?.map(brand => (
                     <option key={brand} value={brand} style={{ backgroundColor: '#1f2937', color: 'white' }}>
                       {brand}
                     </option>
@@ -592,7 +603,7 @@ const AddProduct = () => {
                 }}
               >
                 <option value="" style={{ backgroundColor: '#1f2937', color: 'white' }}>Select Subcategory</option>
-                {categoryData[formData.category]?.subCategories.map(subCat => (
+                {categoryData[formData.category?.toUpperCase()]?.subCategories?.map(subCat => (
                   <option key={subCat} value={subCat} style={{ backgroundColor: '#1f2937', color: 'white' }}>
                     {subCat}
                   </option>
