@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { useLocation, Link } from 'react-router-dom';
 import { FiArrowLeft, FiClock, FiZap } from 'react-icons/fi';
 import ProductCard from '../components/ProductCard';
+import ProductSkeleton from '../components/ProductSkeleton';
 import PromotionalBanner from '../components/PromotionalBanner';
 import FlashSaleCountdown from '../components/FlashSaleCountdown';
 import RecentlyViewed from '../components/RecentlyViewed';
@@ -274,16 +275,8 @@ const Home = () => {
     </div>
   );
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-[#00A676] mx-auto mb-4"></div>
-          <h2 className="text-xl font-semibold text-gray-900">Loading Seekon Apparel...</h2>
-        </div>
-      </div>
-    );
-  }
+  // Generate 8 skeleton items for loading state
+  const skeletonItems = Array.from({ length: 8 }, (_, i) => i);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -349,7 +342,12 @@ const Home = () => {
             </div>
             
             <motion.div variants={containerVariants} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-              {flashSaleProducts.map((product) => {
+              {isLoading ? (
+                skeletonItems.slice(0, 4).map((index) => (
+                  <ProductSkeleton key={`skeleton-flash-${index}`} />
+                ))
+              ) : (
+                flashSaleProducts.map((product) => {
                 const discount = product.price > product.flashSalePrice 
                   ? Math.round((1 - product.flashSalePrice / product.price) * 100)
                   : 0;
@@ -395,7 +393,8 @@ const Home = () => {
                     </motion.div>
                   </Link>
                 );
-              })}
+              })
+              )}
             </motion.div>
             <div className="text-center mt-6">
               <Link to="/flash-sale" className="inline-flex items-center gap-2 bg-red-600 text-white px-6 py-3 rounded-full font-bold hover:bg-red-700 transition-colors shadow-lg">
@@ -415,11 +414,17 @@ const Home = () => {
             <Link to="/collection?filter=featured" className="text-[#00A676] hover:text-[#008A5E] font-medium ml-4">See All →</Link>
           </div>
           <motion.div variants={containerVariants} className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-            {trendingProducts.map((product) => (
-              <motion.div key={product._id} variants={itemVariants}>
-                <ProductCard product={product} />
-              </motion.div>
-            ))}
+            {isLoading ? (
+              skeletonItems.map((index) => (
+                <ProductSkeleton key={`skeleton-trending-${index}`} />
+              ))
+            ) : (
+              trendingProducts.map((product) => (
+                <motion.div key={product._id} variants={itemVariants}>
+                  <ProductCard product={product} />
+                </motion.div>
+              ))
+            )}
           </motion.div>
         </motion.section>
 
@@ -436,9 +441,15 @@ const Home = () => {
                 <Link to="/collection/sneakers" className="text-[#00A676] hover:text-[#008A5E] text-sm font-medium">See All →</Link>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                {sneakers.map((product) => (
-                  <ProductCard key={product._id} product={product} />
-                ))}
+                {isLoading ? (
+                  skeletonItems.slice(0, 4).map((index) => (
+                    <ProductSkeleton key={`skeleton-sneakers-${index}`} />
+                  ))
+                ) : (
+                  sneakers.map((product) => (
+                    <ProductCard key={product._id} product={product} />
+                  ))
+                )}
               </div>
             </motion.div>
             <motion.div variants={itemVariants} className="bg-white rounded-xl p-6 shadow-lg">
@@ -447,9 +458,15 @@ const Home = () => {
                 <Link to="/collection/apparel" className="text-[#00A676] hover:text-[#008A5E] text-sm font-medium">See All →</Link>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                {apparel.map((product) => (
-                  <ProductCard key={product._id} product={product} />
-                ))}
+                {isLoading ? (
+                  skeletonItems.slice(0, 4).map((index) => (
+                    <ProductSkeleton key={`skeleton-apparel-${index}`} />
+                  ))
+                ) : (
+                  apparel.map((product) => (
+                    <ProductCard key={product._id} product={product} />
+                  ))
+                )}
               </div>
             </motion.div>
           </div>
@@ -462,11 +479,17 @@ const Home = () => {
             <Link to="/collection?filter=new" className="text-[#00A676] hover:text-[#008A5E] font-medium">See All →</Link>
           </div>
           <motion.div variants={containerVariants} className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-            {newProducts.map((product) => (
-              <motion.div key={product._id} variants={itemVariants}>
-                <ProductCard product={product} />
-              </motion.div>
-            ))}
+            {isLoading ? (
+              skeletonItems.map((index) => (
+                <ProductSkeleton key={`skeleton-new-${index}`} />
+              ))
+            ) : (
+              newProducts.map((product) => (
+                <motion.div key={product._id} variants={itemVariants}>
+                  <ProductCard product={product} />
+                </motion.div>
+              ))
+            )}
           </motion.div>
         </motion.section>
 
@@ -477,11 +500,17 @@ const Home = () => {
             <Link to="/collection?filter=sale" className="text-[#00A676] hover:text-[#008A5E] font-medium">See All →</Link>
           </div>
           <motion.div variants={containerVariants} className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-            {saleProducts.map((product) => (
-              <motion.div key={product._id} variants={itemVariants}>
-                <ProductCard product={product} />
-              </motion.div>
-            ))}
+            {isLoading ? (
+              skeletonItems.map((index) => (
+                <ProductSkeleton key={`skeleton-sale-${index}`} />
+              ))
+            ) : (
+              saleProducts.map((product) => (
+                <motion.div key={product._id} variants={itemVariants}>
+                  <ProductCard product={product} />
+                </motion.div>
+              ))
+            )}
           </motion.div>
         </motion.section>
 
