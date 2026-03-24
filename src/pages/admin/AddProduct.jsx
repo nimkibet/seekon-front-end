@@ -54,6 +54,31 @@ const AddProduct = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   
+  // Dynamic categories and brands from API
+  const [dynamicCategories, setDynamicCategories] = useState([]);
+  const [dynamicBrands, setDynamicBrands] = useState([]);
+  
+  // Fetch dynamic categories and brands on mount
+  useEffect(() => {
+    const fetchDynamicData = async () => {
+      try {
+        const token = getAuthToken();
+        const [catRes, brandRes] = await Promise.all([
+          fetch(`${API_URL}/api/categories`),
+          fetch(`${API_URL}/api/brands`)
+        ]);
+        const catData = await catRes.json();
+        const brandData = await brandRes.json();
+        
+        if (catData.success) setDynamicCategories(catData.categories);
+        if (brandData.success) setDynamicBrands(brandData.brands);
+      } catch (err) {
+        console.log('Using hardcoded categories/brands');
+      }
+    };
+    fetchDynamicData();
+  }, []);
+  
   // Form state
   const [formData, setFormData] = useState({
     name: '',
@@ -81,8 +106,8 @@ const AddProduct = () => {
   const singleImageInputRef = useRef(null);
   const multipleImageInputRef = useRef(null);
 
-  // Category data
-  const categoryData = {
+  // Hardcoded fallback category data
+  const hardcodedCategoryData = {
     Sneakers: {
       subCategories: ['All Sneakers', 'Running', 'Basketball', 'Lifestyle', 'High Tops', 'Low Tops'],
       brands: ['Nike', 'Adidas', 'Jordan', 'Puma', 'New Balance', 'Converse', 'Vans', 'Reebok']
@@ -112,6 +137,30 @@ const AddProduct = () => {
       brands: ['Nike', 'Adidas', 'Puma', 'Jordan', 'Restyle', 'Casio']
     }
   };
+
+  // Build categoryData combining dynamic + hardcoded
+  const categoryData = { ...hardcodedCategoryData };
+  dynamicCategories.forEach(cat => {
+    if (!categoryData[cat.name]) {
+      categoryData[cat.name] = {
+        subCategories: cat.subCategories || [],
+        brands: []
+      };
+    } else if (cat.subCategories) {
+      // Add dynamic subcategories to existing category
+      cat.subCategories.forEach(sub => {
+        if (!categoryData[cat.name].subCategories.includes(sub)) {
+          categoryData[cat.name].subCategories.push(sub);
+        }
+      });
+    }
+  });
+
+  // Get all unique brands from dynamic + hardcoded
+  const allBrands = [...new Set([
+    ...dynamicBrands.map(b => b.name),
+    ...Object.values(hardcodedCategoryData).flatMap(c => c.brands)
+  ])];
 
   // Handle input changes
   const handleChange = (e) => {
@@ -527,7 +576,7 @@ const AddProduct = () => {
                   }}
                 >
                   <option value="" style={{ backgroundColor: '#1f2937', color: 'white' }}>Select Brand</option>
-                  {categoryData[formData.category]?.brands.map(brand => (
+                  {allBrands.map(brand => (
                     <option key={brand} value={brand} style={{ backgroundColor: '#1f2937', color: 'white' }}>
                       {brand}
                     </option>
