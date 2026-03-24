@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FiStar, FiHeart, FiShare2, FiMinus, FiPlus, FiShoppingCart, FiArrowLeft, FiX, FiCheckCircle } from 'react-icons/fi';
@@ -79,39 +79,49 @@ const ProductDetail = () => {
     }
   }, [dispatch, products.length]);
 
+  // Set initial size and color when product loads
   useEffect(() => {
     if (product) {
-      setSelectedSize(product.sizes[0] || '');
-      setSelectedColor(product.colors[0] || '');
-      
-      // Track recently viewed products
-      try {
-        const stored = localStorage.getItem('recentlyViewed');
-        let viewed = stored ? JSON.parse(stored) : [];
-        
-        // Remove current product if already in list (to avoid duplicates)
-        viewed = viewed.filter(p => p._id !== product._id && p.id !== product.id);
-        
-        // Add current product to the front
-        viewed.unshift({
-          _id: product._id,
-          id: product.id,
-          name: product.name,
-          price: product.price,
-          image: product.images?.[0] || product.image,
-          brand: product.brand,
-          category: product.category
-        });
-        
-        // Keep only top 4 items
-        viewed = viewed.slice(0, 4);
-        
-        localStorage.setItem('recentlyViewed', JSON.stringify(viewed));
-      } catch (e) {
-        console.error('Error tracking recently viewed:', e);
-      }
+      setSelectedSize(product.sizes?.[0] || '');
+      setSelectedColor(product.colors?.[0] || '');
     }
   }, [product]);
+
+  // Track recently viewed products
+  const trackRef = useRef(null);
+  useEffect(() => {
+    if (!product || !product._id) return;
+    
+    // Prevent double-tracking by checking if we've already tracked this product
+    if (trackRef.current === product._id) return;
+    trackRef.current = product._id;
+    
+    try {
+      const stored = localStorage.getItem('recentlyViewed');
+      let viewed = stored ? JSON.parse(stored) : [];
+      
+      // Remove current product if already in list (to avoid duplicates)
+      viewed = viewed.filter(p => p._id !== product._id && p.id !== product.id);
+      
+      // Add current product to the front
+      viewed.unshift({
+        _id: product._id,
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        image: product.images?.[0] || product.image,
+        brand: product.brand,
+        category: product.category
+      });
+      
+      // Keep only top 4 items
+      viewed = viewed.slice(0, 4);
+      
+      localStorage.setItem('recentlyViewed', JSON.stringify(viewed));
+    } catch (e) {
+      console.error('Error tracking recently viewed:', e);
+    }
+  }, [product?._id]);
 
   // Check if product is in wishlist
   useEffect(() => {

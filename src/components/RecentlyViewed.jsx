@@ -50,7 +50,7 @@ const RecentlyViewed = () => {
       {/* Horizontal scrolling container */}
       <div className="relative">
         <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x">
-          {recentlyViewed.map((product, index) => (
+          {recentlyViewed.slice(0, 4).map((product, index) => (
             <div 
               key={`${product._id}-${index}`} 
               className="flex-shrink-0 w-64 snap-start"
