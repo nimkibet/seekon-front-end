@@ -103,8 +103,8 @@ const ProductDetail = () => {
           category: product.category
         });
         
-        // Keep only top 10 items
-        viewed = viewed.slice(0, 10);
+        // Keep only top 4 items
+        viewed = viewed.slice(0, 4);
         
         localStorage.setItem('recentlyViewed', JSON.stringify(viewed));
       } catch (e) {
