@@ -4,7 +4,15 @@ import { FiX, FiSave, FiPlus, FiTrash2, FiZap, FiClock, FiArrowRight } from 'rea
 import ImageUpload from './ImageUpload';
 import toast from 'react-hot-toast';
 
+const API_URL = import.meta.env.VITE_API_URL || 'https://seekonbackend-production.up.railway.app';
+
+const getAuthToken = () => {
+  return localStorage.getItem('adminToken') || localStorage.getItem('token');
+};
+
 const ProductModal = ({ isOpen, onClose, product, onSave }) => {
+  // Dynamic categories from API - hierarchical structure
+  const [dbCategories, setDbCategories] = useState([]);
   const [formData, setFormData] = useState({
     name: '',
     category: 'Sneakers',
@@ -30,37 +38,61 @@ const ProductModal = ({ isOpen, onClose, product, onSave }) => {
   const [errors, setErrors] = useState({});
   const [currentImages, setCurrentImages] = useState([]);
 
-  // Category hierarchy matching navbar structure
-  const categoryData = {
-    Sneakers: {
-      subCategories: ['All Sneakers', 'Running', 'Basketball', 'Lifestyle', 'High Tops', 'Low Tops'],
-      brands: ['Nike', 'Adidas', 'Jordan', 'Puma', 'New Balance']
-    },
-    Apparel: {
-      subCategories: ['All Clothing', 'T-Shirts', 'Hoodies', 'Jackets', 'Pants', 'Shorts'],
-      brands: ['Nike', 'Adidas', 'Puma', 'Jordan', 'The North Face']
-    },
-    Boots: {
-      subCategories: ['All Boots', 'Hiking', 'Casual', 'Winter'],
-      brands: ['Timberland', 'Dr. Martens', 'UGG']
-    },
-    Men: {
-      subCategories: ['All Men', 'Shoes', 'Clothing', 'Accessories'],
-      brands: ['Nike', 'Adidas', 'Jordan', 'Puma']
-    },
-    Women: {
-      subCategories: ['All Women', 'Shoes', 'Clothing', 'Accessories'],
-      brands: ['Nike', 'Adidas', 'Jordan', 'Puma']
-    },
-    Kids: {
-      subCategories: ['All Kids', 'Boys', 'Girls', 'Shoes', 'Clothing'],
-      brands: ['Nike', 'Adidas', 'Jordan', 'Puma']
-    },
-    Accessories: {
-      subCategories: ['All Accessories', 'Bags', 'Hats', 'Socks', 'Watches', 'Wallets', 'Sunglasses'],
-      brands: ['Nike', 'Adidas', 'Puma', 'Jordan', 'Restyle']
-    }
+  // Fetch categories from database on mount
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const token = getAuthToken();
+        const res = await fetch(`${API_URL}/api/categories/all`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success) setDbCategories(data.categories);
+      } catch (err) {
+        console.log('Using hardcoded categories/brands');
+      }
+    };
+    fetchCategories();
+  }, []);
+
+  // Hardcoded fallback data (UPPERCASE to match DB)
+  const hardcodedFallback = {
+    SNEKERS: { subCategories: ['ALL SNEAKERS', 'RUNNING', 'BASKETBALL', 'LIFESTYLE', 'HIGH TOPS', 'LOW TOPS'], brands: ['NIKE', 'ADIDAS', 'JORDAN', 'PUMA', 'NEW BALANCE', 'CONVERSE', 'VANS', 'REEBOK'] },
+    APPAREL: { subCategories: ['ALL CLOTHING', 'T-SHIRTS', 'SHIRTS', 'HOODIES', 'JACKETS', 'PANTS', 'SHORTS'], brands: ['NIKE', 'ADIDAS', 'PUMA', 'JORDAN', 'THE NORTH FACE', 'ESSENTIALS', 'UNDER ARMOUR'] },
+    BOOTS: { subCategories: ['ALL BOOTS', 'HIKING', 'CASUAL', 'WINTER'], brands: ['TIMBERLAND', 'DR. MARTENS', 'UGG', 'COLUMBIA', 'SOREL'] },
+    MEN: { subCategories: ['ALL MEN', 'SHOES', 'CLOTHING', 'ACCESSORIES'], brands: ['NIKE', 'ADIDAS', 'JORDAN', 'PUMA', 'NEW BALANCE'] },
+    WOMEN: { subCategories: ['ALL WOMEN', 'SHOES', 'CLOTHING', 'ACCESSORIES'], brands: ['NIKE', 'ADIDAS', 'JORDAN', 'PUMA', 'NEW BALANCE'] },
+    KIDS: { subCategories: ['ALL KIDS', 'BOYS', 'GIRLS', 'SHOES', 'CLOTHING'], brands: ['NIKE', 'ADIDAS', 'JORDAN', 'PUMA'] },
+    ACCESSORIES: { subCategories: ['ALL ACCESSORIES', 'BAGS', 'HATS', 'SOCKS', 'WATCHES', 'WALLETS', 'SUNGLASSES'], brands: ['NIKE', 'ADIDAS', 'PUMA', 'JORDAN', 'RESTYLE', 'CASIO'] }
   };
+
+  // Build categoryData combining db categories + hardcoded fallback
+  const categoryData = { ...hardcodedFallback };
+  dbCategories.forEach(cat => {
+    if (!categoryData[cat.name]) {
+      categoryData[cat.name] = {
+        subCategories: cat.subCategories || [],
+        brands: cat.brands || []
+      };
+    } else {
+      // Add dynamic subcategories to existing category
+      if (cat.subCategories) {
+        cat.subCategories.forEach(sub => {
+          if (!categoryData[cat.name].subCategories.includes(sub)) {
+            categoryData[cat.name].subCategories.push(sub);
+          }
+        });
+      }
+      // Add dynamic brands to existing category
+      if (cat.brands) {
+        cat.brands.forEach(brand => {
+          if (!categoryData[cat.name].brands.includes(brand)) {
+            categoryData[cat.name].brands.push(brand);
+          }
+        });
+      }
+    }
+  });
 
   useEffect(() => {
     if (product) {
@@ -428,7 +460,7 @@ const ProductModal = ({ isOpen, onClose, product, onSave }) => {
               </div>
 
               {/* Subcategory (appears when category is selected) */}
-              {categoryData[formData.category] && (
+              {categoryData[formData.category?.toUpperCase()] && (
                 <div>
                   <label htmlFor="subCategory" className="block text-gray-300 text-sm font-medium mb-2">
                     Subcategory
@@ -442,7 +474,7 @@ const ProductModal = ({ isOpen, onClose, product, onSave }) => {
                     style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
                   >
                     <option value="" className="bg-gray-800 text-white" style={{ backgroundColor: '#1f2937', color: 'white' }}>Select Subcategory</option>
-                    {categoryData[formData.category].subCategories.map(subCat => (
+                    {categoryData[formData.category?.toUpperCase()]?.subCategories?.map(subCat => (
                       <option key={subCat} value={subCat} className="bg-gray-800 text-white" style={{ backgroundColor: '#1f2937', color: 'white' }}>
                         {subCat}
                       </option>
@@ -456,7 +488,7 @@ const ProductModal = ({ isOpen, onClose, product, onSave }) => {
                 <label htmlFor="brand" className="block text-gray-300 text-sm font-medium mb-2">
                   Brand <span className="text-red-500">*</span>
                 </label>
-                {categoryData[formData.category] ? (
+                {categoryData[formData.category?.toUpperCase()] ? (
                   <select
                     id="brand"
                     name="brand"
@@ -466,7 +498,7 @@ const ProductModal = ({ isOpen, onClose, product, onSave }) => {
                     style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
                   >
                     <option value="" className="bg-gray-800 text-white" style={{ backgroundColor: '#1f2937', color: 'white' }}>Select Brand</option>
-                    {categoryData[formData.category].brands.map(brand => (
+                    {categoryData[formData.category?.toUpperCase()]?.brands?.map(brand => (
                       <option key={brand} value={brand} className="bg-gray-800 text-white" style={{ backgroundColor: '#1f2937', color: 'white' }}>
                         {brand}
                       </option>

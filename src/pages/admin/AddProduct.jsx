@@ -135,15 +135,25 @@ const AddProduct = () => {
     if (!categoryData[cat.name]) {
       categoryData[cat.name] = {
         subCategories: cat.subCategories || [],
-        brands: []
+        brands: cat.brands || []
       };
-    } else if (cat.subCategories) {
+    } else {
       // Add dynamic subcategories to existing category
-      cat.subCategories.forEach(sub => {
-        if (!categoryData[cat.name].subCategories.includes(sub)) {
-          categoryData[cat.name].subCategories.push(sub);
-        }
-      });
+      if (cat.subCategories) {
+        cat.subCategories.forEach(sub => {
+          if (!categoryData[cat.name].subCategories.includes(sub)) {
+            categoryData[cat.name].subCategories.push(sub);
+          }
+        });
+      }
+      // Add dynamic brands to existing category
+      if (cat.brands) {
+        cat.brands.forEach(brand => {
+          if (!categoryData[cat.name].brands.includes(brand)) {
+            categoryData[cat.name].brands.push(brand);
+          }
+        });
+      }
     }
   });
 
