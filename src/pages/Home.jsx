@@ -93,10 +93,21 @@ const Home = () => {
         const flashSaleIds = new Set(saleItems.map(p => p._id));
         const remainingProducts = allProducts.filter(p => !flashSaleIds.has(p._id));
         
-        // Helper function to check category match (handles both uppercase and lowercase)
+        // Helper function to check category match (handles both uppercase and lowercase and common typos)
         const matchesCategory = (productCat, targetCat) => {
           if (!productCat) return false;
-          return productCat.toUpperCase() === targetCat.toUpperCase();
+          const normalizedProductCat = productCat.toUpperCase();
+          const normalizedTargetCat = targetCat.toUpperCase();
+          
+          // Exact match
+          if (normalizedProductCat === normalizedTargetCat) return true;
+          
+          // Handle common typo: 'snekers' -> 'sneakers'/'snekers'
+          if (normalizedTargetCat === 'SNEKERS' || normalizedTargetCat === 'SNEAKERS') {
+            return normalizedProductCat === 'SNEKERS' || normalizedProductCat === 'SNEAKERS';
+          }
+          
+          return false;
         };
         
         setTrendingProducts(remainingProducts.filter(p => p?.isFeatured).slice(0, 8));
