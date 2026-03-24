@@ -426,10 +426,10 @@ const AdminUsers = () => {
               className="bg-gray-800/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 w-full max-w-md p-4 sm:p-6"
               onClick={(e) => e.stopPropagation()}
             >
-              <h2 className="text-xl sm:text-2xl font-bold text-white mb-3 sm:mb-4">Delete User</h2>
+              <h2 className="text-xl sm:text-2xl font-bold text-white mb-3 sm:mb-4">Deactivate User</h2>
               <p className="text-sm sm:text-base text-gray-300 mb-4 sm:mb-6">
-                Are you sure you want to delete <span className="font-semibold text-white">{selectedUser.name}</span>? 
-                This action cannot be undone.
+                Are you sure you want to deactivate <span className="font-semibold text-white">{selectedUser.name}</span>? 
+                The user will be logged out and unable to log in until reactivated.
               </p>
               <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-3">
                 <button
@@ -442,7 +442,7 @@ const AdminUsers = () => {
                   onClick={handleDeleteUser}
                   className="w-full sm:w-auto px-4 sm:px-6 py-2 text-sm sm:text-base bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
                 >
-                  Delete User
+                  Deactivate
                 </button>
               </div>
             </motion.div>
