@@ -693,8 +693,8 @@ const ProductDetail = () => {
               {/* Individual Reviews */}
               <div className="space-y-4">
                 {product.reviewDetails?.slice().reverse().map((review, index) => {
-                  // Compute display name: user.name -> firstName -> email prefix -> Anonymous
-                  const displayName = review.user?.name || review.user?.firstName || (review.user?.email ? review.user.email.split('@')[0] : "Anonymous");
+                  // Compute display name: userName (from backend) -> user.name -> firstName -> email prefix -> Anonymous
+                  const displayName = review.userName || review.user?.name || review.user?.firstName || (review.user?.email ? review.user.email.split('@')[0] : "Anonymous");
                   return (
                     <div
                       key={index}
