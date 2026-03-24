@@ -22,9 +22,14 @@ const ProductCard = ({ product, viewMode = 'grid' }) => {
   const wishlist = useSelector(state => state.wishlist.items) || [];
   const cart = useSelector(state => state.cart.items) || [];
   
+  // 👇 SAFETY CHECK: Prevent crashes if product is null/undefined
+  if (!product) {
+    return null;
+  }
+  
   // 👇 SAFETY CHECK: Prevent crashes if data is missing
   const safeColors = product?.colors || []; 
-  const safeImage = product?.image || '/images/sample.jpg'; // Fallback image
+  const safeImage = product?.image || '/seekon_bg-removebg-preview.png'; // Fallback image
   
   const [isWishlisted, setIsWishlisted] = useState(false);
   const [selectedColor, setSelectedColor] = useState(safeColors[0] || 'black');
@@ -43,10 +48,10 @@ const ProductCard = ({ product, viewMode = 'grid' }) => {
   const flashSaleEndTime = product?.saleEndTime || product?.flashSaleEndTime || null;
 
   // 1. Safely extract the discount number (fallback to 0)
-  const discountVal = Number(product.discountPercentage || product.discount || 0);
+  const discountVal = Number(product?.discountPercentage || product?.discount || 0);
 
   // 2. Mathematically calculate the original price and force it to be a whole number
-  const originalCalculatedPrice = discountVal > 0 
+  const originalCalculatedPrice = discountVal > 0 && product?.price
     ? Math.round(product.price / (1 - (discountVal / 100))) 
     : null;
 

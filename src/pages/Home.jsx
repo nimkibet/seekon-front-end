@@ -81,10 +81,10 @@ const Home = () => {
         const allProducts = productsRes.data.products || productsRes.data || [];
         console.log("Total Real Products Fetched:", allProducts.length);
 
-        // 4. FILTER FOR FLASH SALE
+        // 4. FILTER FOR FLASH SALE (with safety checks)
         const saleItems = allProducts.filter(p => 
-          p.onFlashSale === true || 
-          (p.flashSalePrice && p.flashSalePrice > 0 && p.flashSalePrice < p.price)
+          p?.onFlashSale === true || 
+          (p?.flashSalePrice && p.flashSalePrice > 0 && p.flashSalePrice < p.price)
         );
         console.log("Real Flash Sale Items:", saleItems.length);
         setFlashSaleProducts(saleItems.slice(0, 4));
@@ -93,11 +93,17 @@ const Home = () => {
         const flashSaleIds = new Set(saleItems.map(p => p._id));
         const remainingProducts = allProducts.filter(p => !flashSaleIds.has(p._id));
         
-        setTrendingProducts(remainingProducts.filter(p => p.isFeatured).slice(0, 8));
-        setNewProducts(remainingProducts.filter(p => p.newProduct).slice(0, 8));
-        setSaleProducts(remainingProducts.filter(p => p.discount > 0).slice(0, 8));
-        setSneakers(remainingProducts.filter(p => p.category?.toLowerCase() === 'sneakers').slice(0, 4));
-        setApparel(remainingProducts.filter(p => p.category?.toLowerCase() === 'apparel').slice(0, 4));
+        // Helper function to check category match (handles both uppercase and lowercase)
+        const matchesCategory = (productCat, targetCat) => {
+          if (!productCat) return false;
+          return productCat.toUpperCase() === targetCat.toUpperCase();
+        };
+        
+        setTrendingProducts(remainingProducts.filter(p => p?.isFeatured).slice(0, 8));
+        setNewProducts(remainingProducts.filter(p => p?.newProduct).slice(0, 8));
+        setSaleProducts(remainingProducts.filter(p => p?.discount > 0).slice(0, 8));
+        setSneakers(remainingProducts.filter(p => matchesCategory(p?.category, 'SNEKERS')).slice(0, 4));
+        setApparel(remainingProducts.filter(p => matchesCategory(p?.category, 'APPAREL')).slice(0, 4));
 
       } catch (error) {
         console.error("Home fetch error:", error);
