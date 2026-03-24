@@ -81,6 +81,7 @@ export const adminApi = {
     body: JSON.stringify(updateData),
   }),
   deleteUser: (id) => apiCall(`/users/${id}`, { method: 'DELETE' }),
+  reactivateUser: (id) => apiCall(`/users/${id}/reactivate`, { method: 'PUT' }),
 
   // Products
   getProducts: (params = {}) => {

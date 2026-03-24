@@ -64,14 +64,26 @@ const AdminUsers = () => {
     if (!selectedUser) return;
     
     try {
+      // Use soft delete (deactivate) instead of hard delete
       await adminApi.deleteUser(selectedUser._id);
-      toast.success('User deleted successfully');
+      toast.success('User deactivated successfully');
       setIsDeleteModalOpen(false);
       setSelectedUser(null);
       fetchUsers();
     } catch (error) {
-      console.error('Error deleting user:', error);
-      toast.error('Failed to delete user');
+      console.error('Error deactivating user:', error);
+      toast.error('Failed to deactivate user');
+    }
+  };
+
+  const handleReactivateUser = async (userId) => {
+    try {
+      await adminApi.reactivateUser(userId);
+      toast.success('User reactivated successfully');
+      fetchUsers();
+    } catch (error) {
+      console.error('Error reactivating user:', error);
+      toast.error('Failed to reactivate user');
     }
   };
 
@@ -173,17 +185,29 @@ const AdminUsers = () => {
                       animate={{ opacity: 1 }}
                       className="hover:bg-white/5 transition-colors"
                     >
-                      <td className="px-4 lg:px-6 py-3 sm:py-4 whitespace-nowrap pr-8">
-                        <button 
-                          onClick={() => {
-                            setSelectedUser(user);
-                            setIsDeleteModalOpen(true);
-                          }}
-                          className="text-red-400 hover:text-red-300 transition-colors"
-                          title="Delete user"
-                        >
-                          <FiTrash2 className="w-4 h-4 sm:w-5 sm:h-5" />
-                        </button>
+                      <td className="px-4 lg:px-6 py-3 sm:py-4 whitespace-nowrap">
+                        <div className="flex items-center space-x-2">
+                          {user.isActive ? (
+                            <button 
+                              onClick={() => {
+                                setSelectedUser(user);
+                                setIsDeleteModalOpen(true);
+                              }}
+                              className="text-red-400 hover:text-red-300 transition-colors"
+                              title="Deactivate user"
+                            >
+                              <FiTrash2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                            </button>
+                          ) : (
+                            <button 
+                              onClick={() => handleReactivateUser(user._id)}
+                              className="text-green-400 hover:text-green-300 transition-colors"
+                              title="Reactivate user"
+                            >
+                              <FiCheckCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+                            </button>
+                          )}
+                        </div>
                       </td>
                       <td className="px-4 lg:px-6 py-3 sm:py-4 whitespace-nowrap text-white font-medium text-sm sm:text-base">{user.name || 'N/A'}</td>
                       <td className="px-4 lg:px-6 py-3 sm:py-4 whitespace-nowrap text-gray-300 text-xs sm:text-sm">{user.email}</td>
@@ -199,16 +223,15 @@ const AdminUsers = () => {
                         </button>
                       </td>
                       <td className="px-4 lg:px-6 py-3 sm:py-4 whitespace-nowrap">
-                        <button
-                          onClick={() => handleStatusToggle(user._id, user.status)}
+                        <span
                           className={`px-2 sm:px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
-                            user.status === 'active'
+                            user.isActive
                               ? 'bg-green-500/20 text-green-400 border-green-500/50'
                               : 'bg-red-500/20 text-red-400 border-red-500/50'
                           }`}
                         >
-                          {user.status === 'active' ? 'Active' : 'Inactive'}
-                        </button>
+                          {user.isActive ? 'Active' : 'Deactivated'}
+                        </span>
                       </td>
                       <td className="px-4 lg:px-6 py-3 sm:py-4 whitespace-nowrap text-gray-400 text-xs sm:text-sm hidden xl:table-cell">
                         {new Date(user.createdAt).toLocaleDateString()}
@@ -237,16 +260,28 @@ const AdminUsers = () => {
                         <p className="text-gray-500 text-xs mt-1">{user.phone}</p>
                       )}
                     </div>
-                    <button 
-                      onClick={() => {
-                        setSelectedUser(user);
-                        setIsDeleteModalOpen(true);
-                      }}
-                      className="text-red-400 hover:text-red-300 transition-colors ml-2"
-                      title="Delete user"
-                    >
-                      <FiTrash2 className="w-5 h-5" />
-                    </button>
+                    <div className="flex items-center space-x-2">
+                      {user.isActive ? (
+                        <button 
+                          onClick={() => {
+                            setSelectedUser(user);
+                            setIsDeleteModalOpen(true);
+                          }}
+                          className="text-red-400 hover:text-red-300 transition-colors ml-2"
+                          title="Deactivate user"
+                        >
+                          <FiTrash2 className="w-5 h-5" />
+                        </button>
+                      ) : (
+                        <button 
+                          onClick={() => handleReactivateUser(user._id)}
+                          className="text-green-400 hover:text-green-300 transition-colors ml-2"
+                          title="Reactivate user"
+                        >
+                          <FiCheckCircle className="w-5 h-5" />
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <div className="flex flex-wrap gap-2 mt-2">
                     <button
@@ -257,16 +292,15 @@ const AdminUsers = () => {
                       <FiShield className="inline w-3 h-3 mr-1" />
                       {user.role || 'user'}
                     </button>
-                    <button
-                      onClick={() => handleStatusToggle(user._id, user.status)}
+                    <span
                       className={`px-2 py-1 rounded-full text-xs font-medium border transition-colors ${
-                        user.status === 'active'
+                        user.isActive
                           ? 'bg-green-500/20 text-green-400 border-green-500/50'
                           : 'bg-red-500/20 text-red-400 border-red-500/50'
                       }`}
                     >
-                      {user.status === 'active' ? 'Active' : 'Inactive'}
-                    </button>
+                      {user.isActive ? 'Active' : 'Deactivated'}
+                    </span>
                   </div>
                 </motion.div>
               ))}
