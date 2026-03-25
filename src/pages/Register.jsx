@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { FiEye, FiEyeOff, FiMail, FiLock, FiUser, FiArrowRight, FiMenu, FiX, FiCheck, FiShield } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import { useDispatch, useSelector } from 'react-redux';
-import { registerUser } from '../store/slices/userSlice';
+import { registerUser, validateToken } from '../store/slices/userSlice';
 import toast from 'react-hot-toast';
 import Logo3D from '../components/Logo3D';
 import axios from 'axios';
@@ -135,6 +135,9 @@ const Register = () => {
         // Store token and user data
         localStorage.setItem('token', response.data.token);
         localStorage.setItem('user', JSON.stringify(response.data.user));
+
+        // Dispatch validateToken to update Redux state and trigger Navbar update
+        dispatch(validateToken());
 
         toast.success('Account created successfully!', { id: 'google-signup' });
         navigate('/');

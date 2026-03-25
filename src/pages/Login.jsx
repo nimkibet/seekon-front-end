@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FiEye, FiEyeOff, FiMail, FiLock, FiArrowRight, FiMenu, FiX, FiSend, FiShield, FiCheck } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import { useDispatch } from 'react-redux';
-import { loginUser, registerUser, resendVerificationEmail } from '../store/slices/userSlice';
+import { loginUser, registerUser, resendVerificationEmail, validateToken } from '../store/slices/userSlice';
 import { addToWishlistLocal } from '../store/slices/wishlistSlice';
 import { addToCart, addToCartAPI } from '../store/slices/cartSlice';
 import toast from 'react-hot-toast';
@@ -327,6 +327,9 @@ const Login = () => {
       const redirectPath = localStorage.getItem('redirectAfterLogin');
       localStorage.removeItem('redirectAfterLogin');
       
+      // Dispatch validateToken to update Redux state and trigger Navbar update
+      dispatch(validateToken());
+      
       // Check user role from response and redirect
       if (result.role === 'admin' || result.role === 'superadmin') {
         toast.success('Welcome back Admin!', { id: 'login-submit' });
@@ -385,6 +388,9 @@ const Login = () => {
         // Store token and user data
         localStorage.setItem('token', response.data.token);
         localStorage.setItem('user', JSON.stringify(response.data.user));
+
+        // Dispatch validateToken to update Redux state and trigger Navbar update
+        dispatch(validateToken());
 
         // Check for pending cart item and add it
         const pendingCartItem = sessionStorage.getItem('pendingCartItem');
