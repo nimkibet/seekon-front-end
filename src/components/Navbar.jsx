@@ -109,10 +109,10 @@ const Navbar = () => {
       try {
         const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://seekonbackend-production.up.railway.app'}/api/categories`);
         const data = await res.json();
-        if (data && Array.isArray(data)) {
+        if (data && data.categories && Array.isArray(data.categories)) {
           // Filter out the hardcoded ones to avoid duplicates
           const existingNames = ['sneakers', 'apparel', 'accessories'];
-          const newCats = data.filter(c => !existingNames.includes(c.name.toLowerCase()));
+          const newCats = data.categories.filter(c => !existingNames.includes(c.name.toLowerCase()));
           setDynamicCategories(newCats);
         }
       } catch (error) {
@@ -152,7 +152,7 @@ const Navbar = () => {
   };
 
   // Navigation Structure
-  const navItems = [
+  const baseNavItems = [
     { name: 'Home', path: '/' },
     { 
       name: 'Footwear', 
@@ -321,7 +321,7 @@ const Navbar = () => {
   ];
 
   // Build final nav items with dynamic categories inserted before Flash Sale
-  const finalNavItems = [...navItems];
+  const finalNavItems = [...baseNavItems];
   // Insert dynamic categories before the last item (Flash Sale)
   const flashSaleItem = finalNavItems.pop();
   
@@ -329,7 +329,7 @@ const Navbar = () => {
     finalNavItems.push({
       name: cat.name.charAt(0).toUpperCase() + cat.name.slice(1).toLowerCase(),
       path: `/collection?category=${cat.name.toLowerCase()}`,
-      dropdown: cat.subcategories?.length > 0 ? cat.subcategories.map(sub => ({
+      dropdown: cat.subCategories?.length > 0 ? cat.subCategories.map(sub => ({
         name: sub,
         path: `/collection?category=${cat.name.toLowerCase()}&subcategory=${sub}`
       })) : null
