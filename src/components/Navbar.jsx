@@ -32,7 +32,6 @@ const Navbar = () => {
   const [mobileExpanded, setMobileExpanded] = useState({});
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeOrdersCount, setActiveOrdersCount] = useState(0);
-  const [dynamicCategories, setDynamicCategories] = useState([]);
   const location = useLocation();
   
   const navigate = useNavigate();
@@ -103,25 +102,6 @@ const Navbar = () => {
     fetchActiveOrders();
   }, [isAuthenticated]);
 
-  // Fetch dynamic categories from backend
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://seekonbackend-production.up.railway.app'}/api/categories`);
-        const data = await res.json();
-        if (data && data.categories && Array.isArray(data.categories)) {
-          // Filter out the hardcoded ones to avoid duplicates
-          const existingNames = ['sneakers', 'apparel', 'accessories'];
-          const newCats = data.categories.filter(c => !existingNames.includes(c.name.toLowerCase()));
-          setDynamicCategories(newCats);
-        }
-      } catch (error) {
-        console.error("Failed to fetch dynamic categories for navbar");
-      }
-    };
-    fetchCategories();
-  }, []);
-
   // Animation variants for the navbar transitions
   const navbarAnimation = {
     initial: {
@@ -152,7 +132,7 @@ const Navbar = () => {
   };
 
   // Navigation Structure
-  const baseNavItems = [
+  const navItems = [
     { name: 'Home', path: '/' },
     { 
       name: 'Footwear', 
@@ -320,23 +300,6 @@ const Navbar = () => {
     },
   ];
 
-  // Build final nav items with dynamic categories inserted before Flash Sale
-  const finalNavItems = [...baseNavItems];
-  // Insert dynamic categories before the last item (Flash Sale)
-  const flashSaleItem = finalNavItems.pop();
-  
-  dynamicCategories.forEach(cat => {
-    finalNavItems.push({
-      name: cat.name.charAt(0).toUpperCase() + cat.name.slice(1).toLowerCase(),
-      path: `/collection?category=${cat.name.toLowerCase()}`,
-      dropdown: cat.subCategories?.length > 0 ? cat.subCategories.map(sub => ({
-        name: sub,
-        path: `/collection?category=${cat.name.toLowerCase()}&subcategory=${sub}`
-      })) : null
-    });
-  });
-  finalNavItems.push(flashSaleItem);
-
   return (
     <>
       {/* Flash Sale Banner */}
@@ -372,7 +335,7 @@ const Navbar = () => {
 
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center space-x-8">
-              {finalNavItems.filter(item => item.name !== 'Flash Sale' || isFlashSaleActive).map((item) => (
+              {navItems.filter(item => item.name !== 'Flash Sale' || isFlashSaleActive).map((item) => (
                 <div key={item.name} className={`group ${item.type === 'mega' ? '' : 'relative'}`}>
                   <Link 
                     to={item.path}
@@ -561,7 +524,7 @@ const Navbar = () => {
             >
               <div className="px-4 py-4 space-y-2">
                 {/* Mobile Nav Items */}
-                {finalNavItems.filter(item => item.name !== 'Flash Sale' || isFlashSaleActive).map((item) => (
+                {navItems.filter(item => item.name !== 'Flash Sale' || isFlashSaleActive).map((item) => (
                   <div key={item.name}>
                     <div className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 rounded-lg transition-colors">
                       <Link
