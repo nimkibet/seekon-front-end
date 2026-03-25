@@ -566,9 +566,10 @@ const Checkout = () => {
   };
 
   const calculateTotals = () => {
-    // Calculate from frozen order items to ensure accuracy
-    // Use defensive calculateSubtotal function to handle nested objects and string prices
-    const subtotal = calculateSubtotal(orderConfirmationItems);
+    // dynamically use the frozen cart only on the final step, otherwise use active cart items
+    const itemsToCalculate = currentStep === 3 ? orderConfirmationItems : items;
+    
+    const subtotal = calculateSubtotal(itemsToCalculate);
     const shippingCost = selectedShipping ? Number(selectedShipping.price) || 0 : 0;
     const total = subtotal + shippingCost - discountAmount;
     return { subtotal, shippingCost, total, discount: discountAmount };
