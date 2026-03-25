@@ -311,9 +311,6 @@ const AddProduct = () => {
     if (!formData.category) return toast.error('Category is required');
     if (!formData.brand.trim()) return toast.error('Brand is required');
     if (!formData.price || formData.price <= 0) return toast.error('Valid price is required');
-    if (formData.stock === '' || isNaN(Number(formData.stock)) || Number(formData.stock) < 0) {
-      return toast.error('Valid stock quantity is required');
-    }
     if (images.length === 0) return toast.error('At least one product image is required');
 
     // 2. CAPTURE STATE IN CLOSURE (Crucial for background processing)
@@ -345,7 +342,7 @@ const AddProduct = () => {
           category: currentFormData.category,
           subCategory: currentFormData.subCategory,
           brand: currentFormData.brand,
-          stock: Number(currentFormData.stock),
+          stock: Number(currentFormData.stock) || 0,
           sizes: currentFormData.sizes ? currentFormData.sizes.split(',').map(s => s.trim()).filter(s => s) : [],
           colors: currentFormData.colors ? currentFormData.colors.split(',').map(c => c.trim()).filter(c => c) : [],
           isFeatured: currentFormData.isFeatured,
