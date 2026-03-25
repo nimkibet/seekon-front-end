@@ -50,10 +50,13 @@ const ProductCard = ({ product, viewMode = 'grid' }) => {
   // 1. Safely extract the discount number (fallback to 0)
   const discountVal = Number(product?.discountPercentage || product?.discount || 0);
 
-  // 2. Mathematically calculate the original price and force it to be a whole number
-  const originalCalculatedPrice = discountVal > 0 && product?.price
-    ? Math.round(product.price / (1 - (discountVal / 100))) 
-    : null;
+  // 2. TUNNEL FIX: Prioritize the exact originalPrice from DB, fallback to math for older products
+  const displayOriginalPrice = 
+    (product?.originalPrice && product.originalPrice > product?.price) 
+      ? product.originalPrice 
+      : (discountVal > 0 && product?.price) 
+        ? Math.round(product.price / (1 - (discountVal / 100))) 
+        : null;
 
   // Check wishlist status
   useEffect(() => {
@@ -301,10 +304,10 @@ const ProductCard = ({ product, viewMode = 'grid' }) => {
               {formatPrice(product.price)}
             </span>
             
-            {/* Crossed-out Calculated Price (ONLY show if discount > 0) */}
-            {discountVal > 0 && originalCalculatedPrice && (
+            {/* Crossed-out Price */}
+            {displayOriginalPrice && (
               <span className="text-sm text-gray-400 dark:text-gray-500 line-through font-medium">
-                {formatPrice(originalCalculatedPrice)}
+                {formatPrice(displayOriginalPrice)}
               </span>
             )}
           </div>
