@@ -80,7 +80,7 @@ const AddProduct = () => {
     description: '',
     price: '',
     originalPrice: '',
-    category: 'SNEKERS',
+    category: '',
     subCategory: '',
     brand: '',
     stock: '',
@@ -103,7 +103,7 @@ const AddProduct = () => {
 
   // Hardcoded fallback data (UPPERCASE to match DB)
   const hardcodedFallback = {
-    SNEKERS: { subCategories: ['ALL SNEAKERS', 'RUNNING', 'BASKETBALL', 'LIFESTYLE', 'HIGH TOPS', 'LOW TOPS'], brands: ['NIKE', 'ADIDAS', 'JORDAN', 'PUMA', 'NEW BALANCE', 'CONVERSE', 'VANS', 'REEBOK'] },
+    SNEAKERS: { subCategories: ['ALL SNEAKERS', 'RUNNING', 'BASKETBALL', 'LIFESTYLE', 'HIGH TOPS', 'LOW TOPS'], brands: ['NIKE', 'ADIDAS', 'JORDAN', 'PUMA', 'NEW BALANCE', 'CONVERSE', 'VANS', 'REEBOK'] },
     APPAREL: { subCategories: ['ALL CLOTHING', 'T-SHIRTS', 'SHIRTS', 'HOODIES', 'JACKETS', 'PANTS', 'SHORTS'], brands: ['NIKE', 'ADIDAS', 'PUMA', 'JORDAN', 'THE NORTH FACE', 'ESSENTIALS', 'UNDER ARMOUR'] },
     BOOTS: { subCategories: ['ALL BOOTS', 'HIKING', 'CASUAL', 'WINTER'], brands: ['TIMBERLAND', 'DR. MARTENS', 'UGG', 'COLUMBIA', 'SOREL'] },
     MEN: { subCategories: ['ALL MEN', 'SHOES', 'CLOTHING', 'ACCESSORIES'], brands: ['NIKE', 'ADIDAS', 'JORDAN', 'PUMA', 'NEW BALANCE'] },
@@ -373,7 +373,7 @@ const AddProduct = () => {
       description: '',
       price: '',
       originalPrice: '',
-      category: 'SNEKERS',
+      category: '',
       subCategory: '',
       brand: '',
       stock: '',
