@@ -95,8 +95,8 @@ const Terms = () => {
           <section>
             <h2 className="text-2xl font-semibold text-gray-900 mb-4">Contact Us</h2>
             <p className="text-gray-600">
-              If you have any questions about these Terms of Service, please contact us at support@seekon.app 
-              or call our customer care at 0700-000-000.
+              If you have any questions about these Terms of Service, please contact us at seekonapparel77@gmail.com 
+              or call our customer care at +254 727 672 772.
             </p>
           </section>
         </motion.div>

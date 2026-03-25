@@ -545,8 +545,13 @@ const Checkout = () => {
 
   const calculateTotals = () => {
     // Calculate from frozen order items to ensure accuracy
-    const subtotal = orderConfirmationItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
-    const shippingCost = selectedShipping ? selectedShipping.price : 0;
+    // Strictly enforce numbers to prevent subtotal from evaluating to 0
+    const subtotal = orderConfirmationItems.reduce((acc, item) => {
+      const price = Number(item.price) || 0;
+      const qty = Number(item.qty || item.quantity) || 0;
+      return acc + (price * qty);
+    }, 0);
+    const shippingCost = selectedShipping ? Number(selectedShipping.price) || 0 : 0;
     const total = subtotal + shippingCost - discountAmount;
     return { subtotal, shippingCost, total, discount: discountAmount };
   };

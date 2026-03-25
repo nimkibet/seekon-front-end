@@ -67,9 +67,14 @@ const AdminUsers = () => {
       // Use soft delete (deactivate) instead of hard delete
       await adminApi.deleteUser(selectedUser._id);
       toast.success('User deactivated successfully');
+      
+      // Update local state directly for instant UI update
+      setUsers(users.map(user => 
+        user._id === selectedUser._id ? { ...user, isActive: false } : user
+      ));
+      
       setIsDeleteModalOpen(false);
       setSelectedUser(null);
-      fetchUsers();
     } catch (error) {
       console.error('Error deactivating user:', error);
       toast.error('Failed to deactivate user');
@@ -80,7 +85,11 @@ const AdminUsers = () => {
     try {
       await adminApi.reactivateUser(userId);
       toast.success('User reactivated successfully');
-      fetchUsers();
+      
+      // Update local state directly for instant UI update
+      setUsers(users.map(user => 
+        user._id === userId ? { ...user, isActive: true } : user
+      ));
     } catch (error) {
       console.error('Error reactivating user:', error);
       toast.error('Failed to reactivate user');
