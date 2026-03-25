@@ -22,10 +22,24 @@ export const AuthProvider = ({ children }) => {
 
   // Check for existing token on mount
   useEffect(() => {
-    const token = localStorage.getItem('token') || localStorage.getItem('adminToken');
-    if (token && !isAuthenticated) {
-      console.log('🔍 Token found, validating...');
+    // Check for token in URL query string (from OAuth redirect)
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlToken = urlParams.get('token');
+    
+    if (urlToken) {
+      console.log('🔍 Token found in URL, saving and validating...');
+      localStorage.setItem('token', urlToken);
+      // Clean the token from URL for security
+      window.history.replaceState({}, document.title, window.location.pathname);
+      // Validate the token
       dispatch(validateToken());
+    } else {
+      // Check for token in localStorage
+      const token = localStorage.getItem('token') || localStorage.getItem('adminToken');
+      if (token && !isAuthenticated) {
+        console.log('🔍 Token found in localStorage, validating...');
+        dispatch(validateToken());
+      }
     }
   }, [dispatch, isAuthenticated]);
 
