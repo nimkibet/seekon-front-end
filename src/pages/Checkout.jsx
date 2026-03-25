@@ -543,14 +543,32 @@ const Checkout = () => {
     }
   };
 
+  // Defensive calculation function to handle nested product objects and string prices
+  const calculateSubtotal = (items) => {
+    if (!items || items.length === 0) return 0;
+    
+    return items.reduce((total, item) => {
+      // 1. Safely find the price (handles both flat items and nested product objects)
+      const rawPrice = item.price || item.product?.price || 0;
+      
+      // 2. Clean the price (removes commas or currency symbols if it's a string)
+      const numericPrice = typeof rawPrice === 'string' 
+        ? Number(rawPrice.replace(/[^0-9.-]+/g, "")) 
+        : Number(rawPrice);
+
+      // 3. Safely find the quantity
+      const quantity = Number(item.qty || item.quantity || 1);
+
+      // 4. Add to total (fallback to 0 if something somehow still evaluates to NaN)
+      const lineTotal = numericPrice * quantity;
+      return total + (isNaN(lineTotal) ? 0 : lineTotal);
+    }, 0);
+  };
+
   const calculateTotals = () => {
     // Calculate from frozen order items to ensure accuracy
-    // Strictly enforce numbers to prevent subtotal from evaluating to 0
-    const subtotal = orderConfirmationItems.reduce((acc, item) => {
-      const price = Number(item.price) || 0;
-      const qty = Number(item.qty || item.quantity) || 0;
-      return acc + (price * qty);
-    }, 0);
+    // Use defensive calculateSubtotal function to handle nested objects and string prices
+    const subtotal = calculateSubtotal(orderConfirmationItems);
     const shippingCost = selectedShipping ? Number(selectedShipping.price) || 0 : 0;
     const total = subtotal + shippingCost - discountAmount;
     return { subtotal, shippingCost, total, discount: discountAmount };
