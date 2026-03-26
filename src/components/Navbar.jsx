@@ -155,7 +155,8 @@ const Navbar = () => {
             { name: 'Nike', path: '/collection?category=sneakers&brand=nike' },
             { name: 'New Balance', path: '/collection?category=sneakers&brand=new-balance' },
             { name: 'Puma', path: '/collection?category=sneakers&brand=puma' },
-            { name: 'Vans', path: '/collection?category=sneakers&brand=vans' }
+            { name: 'Vans', path: '/collection?category=sneakers&brand=vans' },
+            { name: 'Seekon', path: '/collection?category=sneakers&brand=seekon' }
           ]
         },
         {
@@ -173,7 +174,8 @@ const Navbar = () => {
           items: [
             { name: 'Performance', path: '/collection?category=sneakers&type=performance' },
             { name: 'Lifestyle', path: '/collection?category=sneakers&type=lifestyle' },
-            { name: 'Skateboarding', path: '/collection?category=sneakers&type=skateboarding' }
+            { name: 'Skateboarding', path: '/collection?category=sneakers&type=skateboarding' },
+            { name: 'Seekon', path: '/collection?category=sneakers&type=seekon' }
           ]
         },
         {
@@ -211,7 +213,8 @@ const Navbar = () => {
             { name: 'T-Shirts', path: '/collection?category=apparel&type=tshirts' },
             { name: 'Jackets', path: '/collection?category=apparel&type=jackets' },
             { name: 'Pants', path: '/collection?category=apparel&type=pants' },
-            { name: 'Shorts', path: '/collection?category=apparel&type=shorts' }
+            { name: 'Shorts', path: '/collection?category=apparel&type=shorts' },
+            { name: 'Seekon', path: '/collection?category=apparel&type=seekon' }
           ]
         },
         {
@@ -223,7 +226,8 @@ const Navbar = () => {
             { name: 'The North Face', path: '/collection?category=apparel&brand=the-north-face' },
             { name: 'Essentials', path: '/collection?category=apparel&brand=essentials' },
             { name: 'Puma', path: '/collection?category=apparel&brand=puma' },
-            { name: 'Under Armour', path: '/collection?category=apparel&brand=under-armour' }
+            { name: 'Under Armour', path: '/collection?category=apparel&brand=under-armour' },
+            { name: 'Seekon', path: '/collection?category=apparel&brand=seekon' }
           ]
         },
         {
