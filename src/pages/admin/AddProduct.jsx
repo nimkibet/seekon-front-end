@@ -103,13 +103,9 @@ const AddProduct = () => {
 
   // Hardcoded fallback data (UPPERCASE to match DB)
   const hardcodedFallback = {
-    SNEAKERS: { subCategories: ['ALL SNEAKERS', 'RUNNING', 'BASKETBALL', 'LIFESTYLE', 'HIGH TOPS', 'LOW TOPS'], brands: ['NIKE', 'ADIDAS', 'JORDAN', 'PUMA', 'NEW BALANCE', 'CONVERSE', 'VANS', 'REEBOK'] },
-    APPAREL: { subCategories: ['ALL CLOTHING', 'T-SHIRTS', 'SHIRTS', 'HOODIES', 'JACKETS', 'PANTS', 'SHORTS'], brands: ['NIKE', 'ADIDAS', 'PUMA', 'JORDAN', 'THE NORTH FACE', 'ESSENTIALS', 'UNDER ARMOUR'] },
-    BOOTS: { subCategories: ['ALL BOOTS', 'HIKING', 'CASUAL', 'WINTER'], brands: ['TIMBERLAND', 'DR. MARTENS', 'UGG', 'COLUMBIA', 'SOREL'] },
-    MEN: { subCategories: ['ALL MEN', 'SHOES', 'CLOTHING', 'ACCESSORIES'], brands: ['NIKE', 'ADIDAS', 'JORDAN', 'PUMA', 'NEW BALANCE'] },
-    WOMEN: { subCategories: ['ALL WOMEN', 'SHOES', 'CLOTHING', 'ACCESSORIES'], brands: ['NIKE', 'ADIDAS', 'JORDAN', 'PUMA', 'NEW BALANCE'] },
-    KIDS: { subCategories: ['ALL KIDS', 'BOYS', 'GIRLS', 'SHOES', 'CLOTHING'], brands: ['NIKE', 'ADIDAS', 'JORDAN', 'PUMA'] },
-    ACCESSORIES: { subCategories: ['ALL ACCESSORIES', 'BAGS', 'HATS', 'SOCKS', 'WATCHES', 'WALLETS', 'SUNGLASSES'], brands: ['NIKE', 'ADIDAS', 'PUMA', 'JORDAN', 'RESTYLE', 'CASIO'] }
+    SNEAKERS: { subCategories: ['ALL SNEAKERS', 'RUNNING', 'BASKETBALL', 'LIFESTYLE', 'HIGH TOPS', 'LOW TOPS', 'KIDS', 'MEN', 'WOMEN', 'SEEKON'], brands: ['NIKE', 'ADIDAS', 'JORDAN', 'PUMA', 'NEW BALANCE', 'CONVERSE', 'VANS', 'REEBOK', 'SEEKON'] },
+    APPAREL: { subCategories: ['ALL CLOTHING', 'T-SHIRTS', 'SHIRTS', 'HOODIES', 'JACKETS', 'PANTS', 'SHORTS', 'KIDS', 'MEN', 'WOMEN', 'SEEKON'], brands: ['NIKE', 'ADIDAS', 'PUMA', 'JORDAN', 'THE NORTH FACE', 'ESSENTIALS', 'UNDER ARMOUR', 'SEEKON'] },
+    ACCESSORIES: { subCategories: ['ALL ACCESSORIES', 'BAGS', 'HATS', 'SOCKS', 'WATCHES', 'WALLETS', 'SUNGLASSES', 'KIDS', 'MEN', 'WOMEN', 'SEEKON'], brands: ['NIKE', 'ADIDAS', 'PUMA', 'JORDAN', 'RESTYLE', 'CASIO', 'SEEKON'] }
   };
 
   // Get all categories for dropdown (DB + fallback)
