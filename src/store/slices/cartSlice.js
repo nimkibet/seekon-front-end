@@ -12,6 +12,22 @@ const initialState = {
 // API configuration
 const API_URL = import.meta.env.VITE_API_URL || 'https://seekonbackend-production.up.railway.app';
 
+// Helper to flatten nested API product data for the UI
+const normalizeCartItems = (items) => {
+  if (!Array.isArray(items)) return [];
+  return items.map(item => {
+    const p = item.product || {};
+    return {
+      ...item,
+      id: item.productId || p._id || item.id,
+      name: item.name || p.name || 'Unknown Product',
+      brand: item.brand || p.brand || 'Seekon',
+      price: Number(item.price !== undefined ? item.price : (p.price || 0)),
+      image: item.image || p.images?.[0]?.url || p.images?.[0] || p.image || '/placeholder.png'
+    };
+  });
+};
+
 /**
  * SECURITY FIX: Removed userId from API URLs
  * The backend now uses the JWT token to identify the user (req.user._id)
@@ -405,7 +421,7 @@ const cartSlice = createSlice({
       })
       .addCase(fetchCart.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.items = action.payload.items || [];
+        state.items = normalizeCartItems(action.payload.items);
         state.totalItems = action.payload.totalItems || 0;
         state.totalPrice = action.payload.totalPrice || 0;
         // Sync to localStorage to prevent ghost data
@@ -423,7 +439,7 @@ const cartSlice = createSlice({
       })
       .addCase(addToCartAPI.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.items = action.payload.items || [];
+        state.items = normalizeCartItems(action.payload.items);
         state.totalItems = action.payload.totalItems || 0;
         state.totalPrice = action.payload.totalPrice || 0;
         // Sync to localStorage
@@ -441,7 +457,7 @@ const cartSlice = createSlice({
       })
       .addCase(updateQuantityAPI.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.items = action.payload.items || [];
+        state.items = normalizeCartItems(action.payload.items);
         state.totalItems = action.payload.totalItems || 0;
         state.totalPrice = action.payload.totalPrice || 0;
         // Sync to localStorage
@@ -459,7 +475,7 @@ const cartSlice = createSlice({
       })
       .addCase(removeFromCartAPI.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.items = action.payload.items || [];
+        state.items = normalizeCartItems(action.payload.items);
         state.totalItems = action.payload.totalItems || 0;
         state.totalPrice = action.payload.totalPrice || 0;
         // Sync to localStorage
@@ -477,7 +493,7 @@ const cartSlice = createSlice({
       })
       .addCase(clearCartAPI.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.items = action.payload.items || [];
+        state.items = normalizeCartItems(action.payload.items);
         state.totalItems = action.payload.totalItems || 0;
         state.totalPrice = action.payload.totalPrice || 0;
         // Sync to localStorage
@@ -495,7 +511,7 @@ const cartSlice = createSlice({
       })
       .addCase(updateCartItemVariantAPI.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.items = action.payload.items || [];
+        state.items = normalizeCartItems(action.payload.items);
         state.totalItems = action.payload.totalItems || 0;
         state.totalPrice = action.payload.totalPrice || 0;
         // Sync to localStorage
