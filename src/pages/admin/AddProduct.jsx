@@ -561,6 +561,7 @@ const AddProduct = () => {
                     backgroundColor: '#1f2937'
                   }}
                 >
+                  <option value="" disabled style={{ backgroundColor: '#1f2937', color: 'white' }}>Select a Category</option>
                   {Object.keys(categoryData).map(cat => (
                     <option key={cat} value={cat} style={{ backgroundColor: '#1f2937', color: 'white' }}>
                       {cat.charAt(0) + cat.slice(1).toLowerCase()}
@@ -583,7 +584,7 @@ const AddProduct = () => {
                     backgroundColor: '#1f2937'
                   }}
                 >
-                  <option value="" style={{ backgroundColor: '#1f2937', color: 'white' }}>Select Brand</option>
+                  <option value="" disabled style={{ backgroundColor: '#1f2937', color: 'white' }}>Select Brand</option>
                   {categoryData[formData.category?.toUpperCase()]?.brands?.map(brand => (
                     <option key={brand} value={brand} style={{ backgroundColor: '#1f2937', color: 'white' }}>
                       {brand}
