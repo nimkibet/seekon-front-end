@@ -81,7 +81,7 @@ const AdminSidebar = ({ isFlashSaleActive = false, isMobileMenuOpen: propIsMobil
     { path: '/admin/shop', label: 'Shop View', icon: FiEye, external: true },
     { path: '/admin/products', label: 'Products', icon: FiPackage },
     { path: '/admin/add-product', label: 'Add Product', icon: FiPlus },
-    { path: '/admin/manage-categories', label: 'Categories & Brands', icon: FiLayers },
+    // { path: '/admin/manage-categories', label: 'Categories & Brands', icon: FiLayers }, // Temporarily disabled
     { path: '/admin/flash-sale', label: 'Flash Sale', icon: FiZap },
     { path: '/admin/web-settings', label: 'Website Settings', icon: FiLayout },
     { path: '/admin/inventory', label: 'Inventory', icon: FiBox },
