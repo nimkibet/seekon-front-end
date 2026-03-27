@@ -52,6 +52,7 @@ const AllApparel = lazy(() => import('./pages/AllApparel'));
 const AllAccessories = lazy(() => import('./pages/AllAccessories'));
 const FlashSale = lazy(() => import('./pages/FlashSale'));
 const MyOrders = lazy(() => import('./pages/MyOrders'));
+const OrderSuccess = lazy(() => import('./pages/OrderSuccess'));
 
 // Components
 import Layout from './components/Layout';
@@ -250,6 +251,22 @@ const App = () => {
                 <ProtectedRoute>
                   <AppLayout>
                     <Checkout />
+                  </AppLayout>
+                </ProtectedRoute>
+              } />
+
+              <Route path="/success" element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <OrderSuccess />
+                  </AppLayout>
+                </ProtectedRoute>
+              } />
+
+              <Route path="/order-confirmation/:id" element={
+                <ProtectedRoute>
+                  <AppLayout>
+                    <OrderSuccess />
                   </AppLayout>
                 </ProtectedRoute>
               } />
