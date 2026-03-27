@@ -140,7 +140,13 @@ const Register = () => {
         dispatch(validateToken());
 
         toast.success('Account created successfully!', { id: 'google-signup' });
-        navigate('/');
+        
+        // Check user role and redirect
+        if (response.data.user.role === 'admin' || response.data.user.role === 'superadmin') {
+          navigate('/admin/dashboard', { replace: true });
+        } else {
+          navigate('/', { replace: true });
+        }
       }
     } catch (error) {
       const message = error.response?.data?.message || 'Google signup failed';

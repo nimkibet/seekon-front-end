@@ -434,7 +434,7 @@ const Login = () => {
           navigate('/admin/dashboard', { replace: true });
         } else {
           toast.success('Welcome back!', { id: 'google-login' });
-          navigate(from, { replace: true });
+          navigate('/', { replace: true });
         }
       }
     } catch (error) {
