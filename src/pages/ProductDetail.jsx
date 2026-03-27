@@ -376,11 +376,11 @@ const ProductDetail = () => {
             className="space-y-4"
           >
             {/* Main Image */}
-            <div className="aspect-square bg-white dark:bg-gray-800 rounded-xl overflow-hidden shadow-lg">
+            <div className="relative aspect-square w-full bg-gray-50 dark:bg-gray-900 rounded-2xl overflow-hidden flex items-center justify-center border border-gray-100 dark:border-gray-800 shadow-lg">
               <img
                 src={getOptimizedImageUrl(product.images?.[selectedImage] || product.image, { width: 800, height: 800, quality: 'auto' })}
                 alt={product.name}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-contain p-8 mix-blend-multiply dark:mix-blend-normal"
                 onError={(e) => {
                   e.target.src = '/placeholder-image.png';
                 }}
@@ -402,7 +402,7 @@ const ProductDetail = () => {
                   <img
                     src={getOptimizedImageUrl(image, { width: 200, height: 200, quality: 'auto' })}
                     alt={`${product.name} ${index + 1}`}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-contain p-2 mix-blend-multiply dark:mix-blend-normal"
                   />
                 </button>
               ))}

@@ -203,13 +203,13 @@ const ProductCard = ({ product, viewMode = 'grid' }) => {
     >
       <Link to={`/product/${productId}`} className="block">
         {/* Image Container */}
-        <div className="relative aspect-square overflow-hidden bg-gray-100">
+        <div className="relative aspect-[4/5] w-full bg-gray-50 dark:bg-gray-800 flex items-center justify-center overflow-hidden group">
           <img
-            src={getOptimizedImageUrl(safeImage, { width: 400, height: 400, quality: 'auto' })}
+            src={getOptimizedImageUrl(safeImage, { width: 400, height: 500, quality: 'auto' })}
             alt={product.name}
             loading="lazy"
             decoding="async"
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            className="w-full h-full object-contain p-4 transition-transform duration-500 group-hover:scale-110 mix-blend-multiply dark:mix-blend-normal"
           />
           
           {/* Badges */}

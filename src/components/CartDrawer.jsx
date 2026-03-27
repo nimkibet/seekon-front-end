@@ -174,11 +174,11 @@ const CartDrawer = () => {
                       className="flex items-center space-x-2 sm:space-x-3 md:space-x-4 p-3 sm:p-4 bg-gray-50 dark:bg-gray-800 rounded-lg"
                     >
                       {/* Product Image */}
-                      <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden flex-shrink-0">
+                      <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gray-50 dark:bg-gray-800 rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center">
                         <img
                           src={item.image}
                           alt={item.name}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-contain p-1 mix-blend-multiply dark:mix-blend-normal"
                         />
                       </div>
 

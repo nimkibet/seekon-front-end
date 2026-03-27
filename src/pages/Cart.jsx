@@ -330,11 +330,11 @@ const Cart = () => {
                 >
                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                     {/* Product Image */}
-                      <div className="relative w-20 h-20 sm:w-28 sm:h-28 bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden flex-shrink-0">
+                      <div className="relative w-20 h-20 sm:w-28 sm:h-28 bg-gray-50 dark:bg-gray-800 rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center">
                       <img
                         src={item.image}
                         alt={item.name}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-contain p-1 mix-blend-multiply dark:mix-blend-normal"
                       />
                     </div>
 
@@ -580,7 +580,7 @@ const Cart = () => {
                         <img 
                           src={item.image || '/placeholder.jpg'} 
                           alt={item.name} 
-                          className="w-12 h-12 rounded object-cover"
+                          className="w-12 h-12 rounded object-contain bg-gray-50 dark:bg-gray-800 p-1 mix-blend-multiply dark:mix-blend-normal"
                         />
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium dark:text-white truncate">{item.name}</p>
