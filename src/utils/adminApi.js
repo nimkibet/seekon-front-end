@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.VITE_API_URL || 'https://seekonbackend-production.up.railway.app';
+const API_URL = import.meta.env.VITE_API_URL || 'https://seekon-backend.railway.internal';
 
 // Helper function to get auth token
 const getAuthToken = () => {

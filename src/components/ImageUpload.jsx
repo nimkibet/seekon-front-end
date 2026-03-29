@@ -3,7 +3,7 @@ import { FiUpload, FiX, FiImage, FiLoader } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://seekonbackend-production.up.railway.app';
+const API_URL = import.meta.env.VITE_API_URL || 'https://seekon-backend.railway.internal';
 
 // Helper function to get auth token
 const getAuthToken = () => {

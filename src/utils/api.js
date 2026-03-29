@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Use environment variable for deployment, fallback to production URL for development
 // Ensure baseURL always ends with /api for correct routing
-let apiUrl = import.meta.env.VITE_API_URL || 'https://seekonbackend-production.up.railway.app/api';
+let apiUrl = import.meta.env.VITE_API_URL || 'https://seekon-backend.railway.internal/api';
 if (!apiUrl.endsWith('/api')) {
   apiUrl = apiUrl + '/api';
 }
@@ -148,7 +148,7 @@ export const api = {
   // HARDCODED FIX for Flash Sale - directly calling verified backend endpoint
   getFlashSaleSettings: async () => {
     try {
-      const response = await axios.get('https://seekonbackend-production.up.railway.app/api/settings/flash-sale');
+      const response = await axios.get('https://seekon-backend.railway.internal/api/settings/flash-sale');
       console.log('Flash Sale Settings Response:', response.data);
       return response.data || { isActive: false, endTime: null };
     } catch (error) {

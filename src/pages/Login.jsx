@@ -103,7 +103,7 @@ const Login = () => {
     setIsCodeSending(true);
     
     try {
-      const response = await axios.post(`${import.meta.env.VITE_API_URL || 'https://seekonbackend-production.up.railway.app'}/api/auth/send-code`, {
+      const response = await axios.post(`${import.meta.env.VITE_API_URL || 'https://seekon-backend.railway.internal'}/api/auth/send-code`, {
         email
       });
       
@@ -265,7 +265,7 @@ const Login = () => {
       
       if (isSignUp) {
         // Use axios for registration with verification code
-        const response = await axios.post(`${import.meta.env.VITE_API_URL || 'https://seekonbackend-production.up.railway.app'}/api/auth/register`, {
+        const response = await axios.post(`${import.meta.env.VITE_API_URL || 'https://seekon-backend.railway.internal'}/api/auth/register`, {
           name: formData.name,
           email: formData.email,
           password: formData.password,
@@ -380,7 +380,7 @@ const Login = () => {
     try {
       toast.loading('Signing in with Google...', { id: 'google-login' });
       
-      const response = await axios.post(`${import.meta.env.VITE_API_URL || 'https://seekonbackend-production.up.railway.app'}/api/auth/google`, {
+      const response = await axios.post(`${import.meta.env.VITE_API_URL || 'https://seekon-backend.railway.internal'}/api/auth/google`, {
         credential: credentialResponse.credential
       });
 

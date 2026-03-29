@@ -65,7 +65,7 @@ const AIChatAssistant = () => {
     try {
       // Send the message to our secure backend API
       // Ensure /api is always in the path
-      const BASE_URL = import.meta.env.VITE_API_URL || 'https://seekonbackend-production.up.railway.app';
+      const BASE_URL = import.meta.env.VITE_API_URL || 'https://seekon-backend.railway.internal';
       const API_URL = BASE_URL.endsWith('/api') ? BASE_URL : `${BASE_URL}/api`;
       const response = await fetch(`${API_URL}/ai/chat`, {
         method: 'POST',
@@ -117,7 +117,7 @@ const AIChatAssistant = () => {
     setIsLoading(true);
 
     try {
-      const BASE_URL = import.meta.env.VITE_API_URL || 'https://seekonbackend-production.up.railway.app';
+      const BASE_URL = import.meta.env.VITE_API_URL || 'https://seekon-backend.railway.internal';
       const API_URL = BASE_URL.endsWith('/api') ? BASE_URL : `${BASE_URL}/api`;
       const response = await fetch(`${API_URL}/ai/chat`, {
         method: 'POST',
