@@ -7,7 +7,7 @@ const initialState = {
 };
 
 // API configuration
-const API_URL = import.meta.env.VITE_API_URL || 'https://seekon-backend.railway.internal';
+const API_URL = import.meta.env.VITE_API_URL || 'https://seekonbackend-production-5aa7.up.railway.app';
 
 // Async thunks for API calls
 export const fetchWishlist = createAsyncThunk(

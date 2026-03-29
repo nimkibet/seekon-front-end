@@ -23,7 +23,7 @@ const AdminNewsletter = () => {
     try {
       const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
       const response = await axios.get(
-        `${import.meta.env.VITE_API_URL || 'https://seekon-backend.railway.internal'}/api/admin/subscribers`,
+        `${import.meta.env.VITE_API_URL || 'https://seekonbackend-production-5aa7.up.railway.app'}/api/admin/subscribers`,
         {
           headers: { Authorization: `Bearer ${token}` }
         }
@@ -49,7 +49,7 @@ const AdminNewsletter = () => {
     try {
       const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
       const response = await axios.post(
-        `${import.meta.env.VITE_API_URL || 'https://seekon-backend.railway.internal'}/api/admin/newsletter/broadcast`,
+        `${import.meta.env.VITE_API_URL || 'https://seekonbackend-production-5aa7.up.railway.app'}/api/admin/newsletter/broadcast`,
         {
           subject: formData.subject,
           htmlBody: formData.htmlBody

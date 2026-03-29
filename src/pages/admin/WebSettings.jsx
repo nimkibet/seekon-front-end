@@ -19,8 +19,8 @@ const WebSettings = () => {
     showHeroBadge: true
   });
 
-  const API_URL = 'https://seekon-backend.railway.internal/api/settings/home';
-  const EXCHANGE_RATE_API = 'https://seekon-backend.railway.internal/api/settings/exchange-rate';
+  const API_URL = 'https://seekonbackend-production-5aa7.up.railway.app/api/settings/home';
+  const EXCHANGE_RATE_API = 'https://seekonbackend-production-5aa7.up.railway.app/api/settings/exchange-rate';
 
   // Currency Settings State
   const [exchangeRate, setExchangeRate] = useState('');

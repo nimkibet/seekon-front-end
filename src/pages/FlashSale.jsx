@@ -11,8 +11,8 @@ const FlashSale = () => {
   const [endTime, setEndTime] = useState(null);
 
   // USE THE MAIN PRODUCT ENDPOINT (Safety Net)
-  const SETTINGS_URL = 'https://seekon-backend.railway.internal/api/settings/flash-sale';
-  const ALL_PRODUCTS_URL = 'https://seekon-backend.railway.internal/api/products';
+  const SETTINGS_URL = 'https://seekonbackend-production-5aa7.up.railway.app/api/settings/flash-sale';
+  const ALL_PRODUCTS_URL = 'https://seekonbackend-production-5aa7.up.railway.app/api/products';
 
   useEffect(() => {
     const fetchData = async () => {

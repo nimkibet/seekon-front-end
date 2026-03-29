@@ -7,7 +7,7 @@ import axios from 'axios';
 
 class ProductRecommendationService {
   constructor() {
-    this.baseURL = import.meta.env.VITE_API_URL || 'https://seekon-backend.railway.internal/api';
+    this.baseURL = import.meta.env.VITE_API_URL || 'https://seekonbackend-production-5aa7.up.railway.app/api';
     
     this.client = axios.create({
       baseURL: this.baseURL,

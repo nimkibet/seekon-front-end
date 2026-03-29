@@ -36,7 +36,7 @@ const AdminFlashSale = () => {
   useEffect(() => {
     const fetchFlashSaleSettings = async () => {
       try {
-        const response = await axios.get('https://seekon-backend.railway.internal/api/settings/flash-sale');
+        const response = await axios.get('https://seekonbackend-production-5aa7.up.railway.app/api/settings/flash-sale');
         console.log("NUCLEAR FIX SUCCESS:", response.data);
         if (response.data) {
           setGlobalSettings({

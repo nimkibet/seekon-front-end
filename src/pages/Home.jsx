@@ -11,7 +11,7 @@ import { useCurrency } from '../context/CurrencyContext';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
-const API_URL = 'https://seekon-backend.railway.internal';
+const API_URL = 'https://seekonbackend-production-5aa7.up.railway.app';
 
 const Home = () => {
   const location = useLocation();
