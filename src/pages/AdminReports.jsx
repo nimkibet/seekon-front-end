@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FiFileText, FiDownload, FiPrinter, FiUsers, FiShoppingCart, FiPackage, FiCreditCard } from 'react-icons/fi';
 import { exportUsers, exportOrders, exportProducts, exportTransactions } from '../utils/csvExport';
+import { generateAllReportsPDF } from '../utils/pdfExport';
 import { adminApi } from '../utils/adminApi';
 import toast from 'react-hot-toast';
 
@@ -79,6 +80,10 @@ const AdminReports = () => {
           }
           exportTransactions(reportData.transactions);
           toast.success('Transactions exported successfully!');
+          break;
+        case 'all':
+          generateAllReportsPDF(reportData);
+          toast.success('Full report PDF generated!');
           break;
         default:
           toast.error('Invalid export type');
@@ -200,7 +205,9 @@ const AdminReports = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
-          className="bg-white/10 backdrop-blur-xl rounded-xl p-6 border border-white/20 hover:border-white/40 transition-all text-left group"
+          onClick={() => handleExport('all')}
+          disabled={loading}
+          className={`bg-white/10 backdrop-blur-xl rounded-xl p-6 border border-white/20 hover:border-white/40 transition-all text-left group cursor-pointer ${loading ? 'opacity-50' : ''}`}
         >
           <div className="flex items-center space-x-3 mb-4">
             <div className="w-12 h-12 rounded-lg bg-teal-500/20 flex items-center justify-center">
@@ -208,12 +215,12 @@ const AdminReports = () => {
             </div>
             <div className="flex-1">
               <h3 className="text-lg font-bold text-white">Print Reports</h3>
-              <p className="text-sm text-gray-400">Generate printable reports</p>
+              <p className="text-sm text-gray-400">Generate PDF with all reports</p>
             </div>
           </div>
           <div className="flex items-center space-x-2 text-[#00A676]">
             <FiPrinter className="w-4 h-4" />
-            <span className="text-sm">Print</span>
+            <span className="text-sm">Generate PDF</span>
           </div>
         </motion.button>
       </div>
