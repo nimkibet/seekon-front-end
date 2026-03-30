@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { FiFileText, FiDownload, FiPrinter } from 'react-icons/fi';
 import { exportUsers, exportOrders, exportProducts, exportTransactions } from '../utils/csvExport';
 import toast from 'react-hot-toast';
 
 const AdminReports = () => {
+  const [activeReport, setActiveReport] = useState('products');
+  
   // Mock data
   const mockUsers = [
     { name: 'John Doe', email: 'john@example.com', role: 'user', createdAt: '2024-01-15', status: 'active' },
@@ -60,8 +62,8 @@ const AdminReports = () => {
         <motion.button
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          onClick={() => handleExport('products')}
-          className="bg-white/10 backdrop-blur-xl rounded-xl p-6 border border-white/20 hover:border-white/40 transition-all text-left group cursor-pointer"
+          onClick={() => { setActiveReport('products'); handleExport('products'); }}
+          className={`bg-white/10 backdrop-blur-xl rounded-xl p-6 border transition-all text-left group cursor-pointer ${activeReport === 'products' ? 'border-[#00A676] ring-2 ring-[#00A676]/30' : 'border-white/20 hover:border-white/40'}`}
         >
           <div className="flex items-center space-x-3 mb-4">
             <div className="w-12 h-12 rounded-lg bg-blue-500/20 flex items-center justify-center">
@@ -82,8 +84,8 @@ const AdminReports = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          onClick={() => handleExport('orders')}
-          className="bg-white/10 backdrop-blur-xl rounded-xl p-6 border border-white/20 hover:border-white/40 transition-all text-left group cursor-pointer"
+          onClick={() => { setActiveReport('orders'); handleExport('orders'); }}
+          className={`bg-white/10 backdrop-blur-xl rounded-xl p-6 border transition-all text-left group cursor-pointer ${activeReport === 'orders' ? 'border-[#00A676] ring-2 ring-[#00A676]/30' : 'border-white/20 hover:border-white/40'}`}
         >
           <div className="flex items-center space-x-3 mb-4">
             <div className="w-12 h-12 rounded-lg bg-green-500/20 flex items-center justify-center">
@@ -104,8 +106,8 @@ const AdminReports = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          onClick={() => handleExport('users')}
-          className="bg-white/10 backdrop-blur-xl rounded-xl p-6 border border-white/20 hover:border-white/40 transition-all text-left group cursor-pointer"
+          onClick={() => { setActiveReport('users'); handleExport('users'); }}
+          className={`bg-white/10 backdrop-blur-xl rounded-xl p-6 border transition-all text-left group cursor-pointer ${activeReport === 'users' ? 'border-[#00A676] ring-2 ring-[#00A676]/30' : 'border-white/20 hover:border-white/40'}`}
         >
           <div className="flex items-center space-x-3 mb-4">
             <div className="w-12 h-12 rounded-lg bg-purple-500/20 flex items-center justify-center">

@@ -26,6 +26,7 @@ export const exportUsers = (users) => {
   const data = users.map(user => ({
     Name: user.name || 'N/A',
     Email: user.email || 'N/A',
+    Phone: user.phoneNumber ? '="' + user.phoneNumber + '"' : '',
     Role: user.role || 'N/A',
     'Date Created': user.createdAt || 'N/A',
     Status: user.status || 'active'
@@ -38,6 +39,7 @@ export const exportOrders = (orders) => {
   const data = orders.map(order => ({
     'Order ID': order.id || 'N/A',
     Customer: order.customer || 'N/A',
+    Phone: order.phone ? '="' + order.phone + '"' : '',
     Amount: order.amount || 0,
     Status: order.status || 'N/A',
     Date: order.date || 'N/A',
