@@ -1,24 +1,18 @@
-import Papa from 'papaparse';
+import * as XLSX from 'xlsx';
 
-// Export data to CSV
-export const exportToCSV = (data, filename = 'export.csv') => {
+// Export data to XLSX
+export const exportToXLSX = (data, filename = 'export.xlsx') => {
   if (!data || data.length === 0) {
     console.error('No data to export');
     return;
   }
 
-  const csv = Papa.unparse(data);
-  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement('a');
-  const url = URL.createObjectURL(blob);
+  const worksheet = XLSX.utils.json_to_sheet(data);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Data');
   
-  link.setAttribute('href', url);
-  link.setAttribute('download', filename);
-  link.style.visibility = 'hidden';
-  
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+  // Generate buffer and download
+  XLSX.writeFile(workbook, filename);
 };
 
 // Export Users
@@ -26,26 +20,28 @@ export const exportUsers = (users) => {
   const data = users.map(user => ({
     Name: user.name || 'N/A',
     Email: user.email || 'N/A',
-    Phone: user.phoneNumber ? '="' + user.phoneNumber + '"' : '',
+    Phone: user.phoneNumber || '',
     Role: user.role || 'N/A',
-    'Date Created': user.createdAt || 'N/A',
-    Status: user.status || 'active'
+    'Date Created': user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A',
+    Status: user.isActive ? 'active' : 'inactive'
   }));
-  exportToCSV(data, `users_${new Date().getTime()}.csv`);
+  exportToXLSX(data, `users_${new Date().getTime()}.xlsx`);
 };
 
 // Export Orders
 export const exportOrders = (orders) => {
   const data = orders.map(order => ({
-    'Order ID': order.id || 'N/A',
-    Customer: order.customer || 'N/A',
-    Phone: order.phone ? '="' + order.phone + '"' : '',
-    Amount: order.amount || 0,
+    'Order ID': order._id ? order._id.substring(0, 8) : 'N/A',
+    Customer: order.userEmail || order.customer || 'N/A',
+    Phone: order.shippingAddress?.phone || order.phone || '',
+    Items: order.items?.length || 0,
+    Amount: order.totalAmount || 0,
     Status: order.status || 'N/A',
-    Date: order.date || 'N/A',
+    'Payment Status': order.isPaid ? 'Paid' : 'Pending',
+    Date: order.createdAt ? new Date(order.createdAt).toLocaleDateString() : 'N/A',
     Payment: order.paymentMethod || 'N/A'
   }));
-  exportToCSV(data, `orders_${new Date().getTime()}.csv`);
+  exportToXLSX(data, `orders_${new Date().getTime()}.xlsx`);
 };
 
 // Export Products
@@ -56,22 +52,26 @@ export const exportProducts = (products) => {
     Brand: product.brand || 'N/A',
     Price: product.price || 0,
     Stock: product.stock || 0,
-    Status: product.status || 'active'
+    Sold: product.sold || 0,
+    Status: product.inStock ? 'In Stock' : 'Out of Stock'
   }));
-  exportToCSV(data, `products_${new Date().getTime()}.csv`);
+  exportToXLSX(data, `products_${new Date().getTime()}.xlsx`);
 };
 
 // Export Transactions
 export const exportTransactions = (transactions) => {
   const data = transactions.map(transaction => ({
-    'Transaction ID': transaction.id || 'N/A',
-    'Customer Email': transaction.customerEmail || 'N/A',
+    'Transaction ID': transaction._id ? transaction._id.substring(0, 8) : 'N/A',
+    'Customer Email': transaction.userEmail || transaction.customerEmail || 'N/A',
+    Phone: transaction.phoneNumber || '',
     Amount: transaction.amount || 0,
     Method: transaction.method || 'N/A',
     Status: transaction.status || 'N/A',
-    Date: transaction.date || 'N/A'
+    Reference: transaction.reference || '',
+    Date: transaction.createdAt ? new Date(transaction.createdAt).toLocaleDateString() : 'N/A'
   }));
-  exportToCSV(data, `transactions_${new Date().getTime()}.csv`);
+  exportToXLSX(data, `transactions_${new Date().getTime()}.xlsx`);
 };
 
-
+// Legacy CSV exports (kept for backward compatibility)
+export const exportToCSV = exportToXLSX;

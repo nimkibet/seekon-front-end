@@ -1,47 +1,83 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { FiFileText, FiDownload, FiPrinter } from 'react-icons/fi';
+import { FiFileText, FiDownload, FiPrinter, FiUsers, FiShoppingCart, FiPackage, FiCreditCard } from 'react-icons/fi';
 import { exportUsers, exportOrders, exportProducts, exportTransactions } from '../utils/csvExport';
+import { adminApi } from '../utils/adminApi';
 import toast from 'react-hot-toast';
 
 const AdminReports = () => {
   const [activeReport, setActiveReport] = useState('products');
-  
-  // Mock data
-  const mockUsers = [
-    { name: 'John Doe', email: 'john@example.com', role: 'user', createdAt: '2024-01-15', status: 'active' },
-    { name: 'Jane Smith', email: 'jane@example.com', role: 'user', createdAt: '2024-02-10', status: 'active' }
-  ];
+  const [loading, setLoading] = useState(false);
+  const [reportData, setReportData] = useState({
+    users: [],
+    orders: [],
+    products: [],
+    transactions: []
+  });
 
-  const mockOrders = [
-    { id: 'ORD-001', customer: 'John Doe', amount: 12499, status: 'completed', date: '2024-01-20', paymentMethod: 'M-Pesa' }
-  ];
+  // Fetch real-time data from API
+  useEffect(() => {
+    const fetchReportData = async () => {
+      setLoading(true);
+      try {
+        // Fetch all data in parallel
+        const [usersRes, ordersRes, productsRes, transactionsRes] = await Promise.all([
+          adminApi.getUsers({ limit: 1000 }),
+          adminApi.getOrders({ limit: 1000 }),
+          adminApi.getProducts({ limit: 1000 }),
+          adminApi.getTransactions({ limit: 1000 })
+        ]);
 
-  const mockProducts = [
-    { name: 'Nike Air Max', category: 'Footwear', brand: 'Nike', price: 12500, stock: 45, status: 'active' }
-  ];
+        setReportData({
+          users: usersRes?.users || usersRes || [],
+          orders: ordersRes?.orders || ordersRes || [],
+          products: productsRes?.products || productsRes || [],
+          transactions: transactionsRes?.transactions || transactionsRes || []
+        });
+      } catch (error) {
+        console.error('Error fetching report data:', error);
+        toast.error('Failed to load report data');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const mockTransactions = [
-    { id: 'TXN-001', customerEmail: 'john@example.com', amount: 12499, method: 'M-Pesa', status: 'completed', date: '2024-01-20' }
-  ];
+    fetchReportData();
+  }, []);
 
   const handleExport = (type) => {
     try {
       switch(type) {
         case 'users':
-          exportUsers(mockUsers);
+          if (reportData.users.length === 0) {
+            toast.error('No users data to export');
+            return;
+          }
+          exportUsers(reportData.users);
           toast.success('Users exported successfully!');
           break;
         case 'orders':
-          exportOrders(mockOrders);
+          if (reportData.orders.length === 0) {
+            toast.error('No orders data to export');
+            return;
+          }
+          exportOrders(reportData.orders);
           toast.success('Orders exported successfully!');
           break;
         case 'products':
-          exportProducts(mockProducts);
+          if (reportData.products.length === 0) {
+            toast.error('No products data to export');
+            return;
+          }
+          exportProducts(reportData.products);
           toast.success('Products exported successfully!');
           break;
         case 'transactions':
-          exportTransactions(mockTransactions);
+          if (reportData.transactions.length === 0) {
+            toast.error('No transactions data to export');
+            return;
+          }
+          exportTransactions(reportData.transactions);
           toast.success('Transactions exported successfully!');
           break;
         default:
@@ -49,13 +85,21 @@ const AdminReports = () => {
       }
     } catch (error) {
       toast.error('Export failed. Please try again.');
+      console.error('Export error:', error);
     }
   };
+
+  const getReportStats = (type) => {
+    const count = reportData[type]?.length || 0;
+    return `${count} records`;
+  };
+
   return (
     <div className="p-4 sm:p-6 lg:p-8 min-h-screen">
       <div className="mb-6 sm:mb-8">
         <h1 className="text-3xl sm:text-4xl font-bold text-white mb-2">Reports & Exports</h1>
         <p className="text-gray-400">Generate and download business reports</p>
+        {loading && <p className="text-yellow-400 mt-2">Loading data...</p>}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
@@ -63,20 +107,21 @@ const AdminReports = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           onClick={() => { setActiveReport('products'); handleExport('products'); }}
-          className={`bg-white/10 backdrop-blur-xl rounded-xl p-6 border transition-all text-left group cursor-pointer ${activeReport === 'products' ? 'border-[#00A676] ring-2 ring-[#00A676]/30' : 'border-white/20 hover:border-white/40'}`}
+          disabled={loading}
+          className={`bg-white/10 backdrop-blur-xl rounded-xl p-6 border transition-all text-left group cursor-pointer ${activeReport === 'products' ? 'border-[#00A676] ring-2 ring-[#00A676]/30' : 'border-white/20 hover:border-white/40'} ${loading ? 'opacity-50' : ''}`}
         >
           <div className="flex items-center space-x-3 mb-4">
             <div className="w-12 h-12 rounded-lg bg-blue-500/20 flex items-center justify-center">
-              <FiFileText className="w-6 h-6 text-blue-400" />
+              <FiPackage className="w-6 h-6 text-blue-400" />
             </div>
             <div className="flex-1">
               <h3 className="text-lg font-bold text-white">Products Report</h3>
-              <p className="text-sm text-gray-400">Product inventory data</p>
+              <p className="text-sm text-gray-400">{getReportStats('products')}</p>
             </div>
           </div>
           <div className="flex items-center space-x-2 text-[#00A676]">
             <FiDownload className="w-4 h-4" />
-            <span className="text-sm">Export CSV</span>
+            <span className="text-sm">Export XLSX</span>
           </div>
         </motion.button>
 
@@ -85,20 +130,21 @@ const AdminReports = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
           onClick={() => { setActiveReport('orders'); handleExport('orders'); }}
-          className={`bg-white/10 backdrop-blur-xl rounded-xl p-6 border transition-all text-left group cursor-pointer ${activeReport === 'orders' ? 'border-[#00A676] ring-2 ring-[#00A676]/30' : 'border-white/20 hover:border-white/40'}`}
+          disabled={loading}
+          className={`bg-white/10 backdrop-blur-xl rounded-xl p-6 border transition-all text-left group cursor-pointer ${activeReport === 'orders' ? 'border-[#00A676] ring-2 ring-[#00A676]/30' : 'border-white/20 hover:border-white/40'} ${loading ? 'opacity-50' : ''}`}
         >
           <div className="flex items-center space-x-3 mb-4">
             <div className="w-12 h-12 rounded-lg bg-green-500/20 flex items-center justify-center">
-              <FiFileText className="w-6 h-6 text-green-400" />
+              <FiShoppingCart className="w-6 h-6 text-green-400" />
             </div>
             <div className="flex-1">
               <h3 className="text-lg font-bold text-white">Orders Report</h3>
-              <p className="text-sm text-gray-400">Order history & status</p>
+              <p className="text-sm text-gray-400">{getReportStats('orders')}</p>
             </div>
           </div>
           <div className="flex items-center space-x-2 text-[#00A676]">
             <FiDownload className="w-4 h-4" />
-            <span className="text-sm">Export CSV</span>
+            <span className="text-sm">Export XLSX</span>
           </div>
         </motion.button>
 
@@ -107,20 +153,21 @@ const AdminReports = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
           onClick={() => { setActiveReport('users'); handleExport('users'); }}
-          className={`bg-white/10 backdrop-blur-xl rounded-xl p-6 border transition-all text-left group cursor-pointer ${activeReport === 'users' ? 'border-[#00A676] ring-2 ring-[#00A676]/30' : 'border-white/20 hover:border-white/40'}`}
+          disabled={loading}
+          className={`bg-white/10 backdrop-blur-xl rounded-xl p-6 border transition-all text-left group cursor-pointer ${activeReport === 'users' ? 'border-[#00A676] ring-2 ring-[#00A676]/30' : 'border-white/20 hover:border-white/40'} ${loading ? 'opacity-50' : ''}`}
         >
           <div className="flex items-center space-x-3 mb-4">
             <div className="w-12 h-12 rounded-lg bg-purple-500/20 flex items-center justify-center">
-              <FiFileText className="w-6 h-6 text-purple-400" />
+              <FiUsers className="w-6 h-6 text-purple-400" />
             </div>
             <div className="flex-1">
               <h3 className="text-lg font-bold text-white">Users Report</h3>
-              <p className="text-sm text-gray-400">User data & analytics</p>
+              <p className="text-sm text-gray-400">{getReportStats('users')}</p>
             </div>
           </div>
           <div className="flex items-center space-x-2 text-[#00A676]">
             <FiDownload className="w-4 h-4" />
-            <span className="text-sm">Export CSV</span>
+            <span className="text-sm">Export XLSX</span>
           </div>
         </motion.button>
       </div>
@@ -130,21 +177,22 @@ const AdminReports = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          onClick={() => handleExport('transactions')}
-          className="bg-white/10 backdrop-blur-xl rounded-xl p-6 border border-white/20 hover:border-white/40 transition-all text-left group cursor-pointer"
+          onClick={() => { setActiveReport('transactions'); handleExport('transactions'); }}
+          disabled={loading}
+          className={`bg-white/10 backdrop-blur-xl rounded-xl p-6 border transition-all text-left group cursor-pointer ${activeReport === 'transactions' ? 'border-[#00A676] ring-2 ring-[#00A676]/30' : 'border-white/20 hover:border-white/40'} ${loading ? 'opacity-50' : ''}`}
         >
           <div className="flex items-center space-x-3 mb-4">
             <div className="w-12 h-12 rounded-lg bg-yellow-500/20 flex items-center justify-center">
-              <FiFileText className="w-6 h-6 text-yellow-400" />
+              <FiCreditCard className="w-6 h-6 text-yellow-400" />
             </div>
             <div className="flex-1">
               <h3 className="text-lg font-bold text-white">Transactions Report</h3>
-              <p className="text-sm text-gray-400">Payment & transaction history</p>
+              <p className="text-sm text-gray-400">{getReportStats('transactions')}</p>
             </div>
           </div>
           <div className="flex items-center space-x-2 text-[#00A676]">
             <FiDownload className="w-4 h-4" />
-            <span className="text-sm">Export CSV</span>
+            <span className="text-sm">Export XLSX</span>
           </div>
         </motion.button>
 
@@ -174,4 +222,3 @@ const AdminReports = () => {
 };
 
 export default AdminReports;
-
