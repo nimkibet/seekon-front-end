@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FiSearch, FiDownload, FiEye, FiX } from 'react-icons/fi';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import toast from 'react-hot-toast';
 import { adminApi } from '../utils/adminApi';
 
@@ -74,13 +76,40 @@ const AdminTransactions = () => {
     });
   };
 
-  const handleExport = async () => {
+  const handleExportPDF = () => {
     try {
-      await adminApi.exportTransactions();
+      if (transactions.length === 0) {
+        toast.error('No transactions to export');
+        return;
+      }
+
+      const tableHeaders = ['Transaction ID', 'Phone', 'Email', 'Amount', 'Reference', 'Status', 'Date'];
+      const tableRows = transactions.map(transaction => [
+        transaction._id ? transaction._id.substring(0, 8) : 'N/A',
+        transaction.phoneNumber || 'N/A',
+        transaction.userEmail || 'N/A',
+        `KSh ${transaction.amount || 0}`,
+        transaction.reference || 'N/A',
+        transaction.status || 'N/A',
+        transaction.createdAt ? new Date(transaction.createdAt).toLocaleDateString() : 'N/A'
+      ]);
+
+      const doc = new jsPDF();
+      doc.text('Seekon Transactions Report', 14, 15);
+      
+      autoTable(doc, {
+        startY: 20,
+        head: [tableHeaders],
+        body: tableRows,
+        theme: 'grid',
+        headStyles: { fillColor: [17, 24, 39] }
+      });
+      
+      doc.save('Seekon_Transactions_Report.pdf');
       toast.success('Transactions exported successfully!');
     } catch (error) {
-      console.error('Error exporting transactions:', error);
-      toast.error('Failed to export transactions');
+      toast.error('Export failed. Please try again.');
+      console.error('Export error:', error);
     }
   };
 
@@ -122,11 +151,11 @@ const AdminTransactions = () => {
 
           {/* Export Button */}
           <button
-            onClick={handleExport}
+            onClick={handleExportPDF}
             className="px-4 py-2 bg-[#00A676] hover:bg-[#008A5E] text-white font-medium rounded-lg transition-colors flex items-center justify-center space-x-2"
           >
             <FiDownload />
-            <span>Export CSV</span>
+            <span>Export PDF</span>
           </button>
         </div>
       </div>

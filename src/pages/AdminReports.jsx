@@ -47,10 +47,10 @@ const AdminReports = () => {
     fetchReportData();
   }, []);
 
-  // Universal PDF Export Function
-  const handleExportPDF = () => {
+  // Universal PDF Export Function - pass report type directly to avoid state timing issues
+  const handleExportPDF = (reportType) => {
     try {
-      const activeTab = activeReport;
+      const activeTab = reportType || activeReport;
       let tableHeaders = [];
       let tableRows = [];
 
@@ -91,14 +91,14 @@ const AdminReports = () => {
           break;
         case 'transactions':
           // Transactions Report
-          tableHeaders = ['Transaction ID', 'Date', 'Customer', 'Amount', 'Method', 'Receipt No', 'Status'];
+          tableHeaders = ['Transaction ID', 'Date', 'Customer', 'Amount', 'Method', 'Reference', 'Status'];
           tableRows = reportData.transactions.map(transaction => [
             transaction._id ? transaction._id.substring(0, 8) : 'N/A',
             transaction.createdAt ? new Date(transaction.createdAt).toLocaleDateString() : 'N/A',
             transaction.userEmail || 'N/A',
             `KSh ${transaction.amount || 0}`,
             transaction.method || 'N/A',
-            transaction.mpesaReceiptNumber || transaction.paymentResult?.receiptNumber || transaction.receiptNumber || 'N/A',
+            transaction.reference || transaction.mpesaReceiptNumber || 'N/A',
             transaction.status || 'N/A'
           ]);
           break;
@@ -245,7 +245,7 @@ const AdminReports = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
-          onClick={() => handleExport('all')}
+          onClick={() => generateAllReportsPDF(reportData)}
           disabled={loading}
           className={`bg-white/10 backdrop-blur-xl rounded-xl p-6 border border-white/20 hover:border-white/40 transition-all text-left group cursor-pointer ${loading ? 'opacity-50' : ''}`}
         >
