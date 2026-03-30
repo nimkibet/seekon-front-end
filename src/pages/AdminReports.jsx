@@ -73,7 +73,7 @@ const AdminReports = () => {
             order._id ? order._id.substring(0, 8) : 'N/A',
             order.createdAt ? new Date(order.createdAt).toLocaleDateString() : 'N/A',
             order.userEmail || 'N/A',
-            order.phoneNumber || 'N/A',
+            order.shippingAddress?.phone || order.user?.phone || 'N/A',
             `KSh ${order.totalAmount || 0}`,
             order.status || 'pending'
           ]);
@@ -91,13 +91,14 @@ const AdminReports = () => {
           break;
         case 'transactions':
           // Transactions Report
-          tableHeaders = ['Transaction ID', 'Date', 'Customer', 'Amount', 'Method', 'Status'];
+          tableHeaders = ['Transaction ID', 'Date', 'Customer', 'Amount', 'Method', 'Receipt No', 'Status'];
           tableRows = reportData.transactions.map(transaction => [
             transaction._id ? transaction._id.substring(0, 8) : 'N/A',
             transaction.createdAt ? new Date(transaction.createdAt).toLocaleDateString() : 'N/A',
             transaction.userEmail || 'N/A',
             `KSh ${transaction.amount || 0}`,
             transaction.method || 'N/A',
+            transaction.mpesaReceiptNumber || transaction.paymentResult?.receiptNumber || transaction.receiptNumber || 'N/A',
             transaction.status || 'N/A'
           ]);
           break;
