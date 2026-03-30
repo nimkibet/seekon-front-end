@@ -1,5 +1,8 @@
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import jsPDFAutoTable from 'jspdf-autotable';
+
+// Register the autoTable plugin
+jsPDF.autoTable = jsPDFAutoTable;
 
 // Generate comprehensive PDF with all reports
 export const generateAllReportsPDF = (reportData) => {
