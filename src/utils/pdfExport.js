@@ -1,8 +1,5 @@
-import jsPDF from 'jspdf';
-import jsPDFAutoTable from 'jspdf-autotable';
-
-// Register the autoTable plugin
-jsPDF.autoTable = jsPDFAutoTable;
+import { jsPDF } from 'jspdf';
+import { jsPDF as jsPDFAdapter } from 'jspdf-autotable';
 
 // Generate comprehensive PDF with all reports
 export const generateAllReportsPDF = (reportData) => {
@@ -64,7 +61,7 @@ export const generateAllReportsPDF = (reportData) => {
     doc.autoTable({
       startY: yPosition,
       head: [['Name', 'Email', 'Phone', 'Role', 'Status']],
-      body: usersData.slice(0, 30), // Limit to 30 rows per section
+      body: usersData.slice(0, 30),
       theme: 'striped',
       headStyles: { fillColor: [0, 166, 118] },
       margin: { left: 14, right: 14 }
@@ -75,7 +72,6 @@ export const generateAllReportsPDF = (reportData) => {
 
   // Orders Section
   if (reportData.orders && reportData.orders.length > 0) {
-    // Check if we need a new page
     if (yPosition > 220) {
       doc.addPage();
       yPosition = 20;
