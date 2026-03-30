@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FiFileText, FiDownload, FiPrinter, FiUsers, FiShoppingCart, FiPackage, FiCreditCard } from 'react-icons/fi';
-import { exportUsers, exportOrders, exportProducts, exportTransactions } from '../utils/csvExport';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { generateAllReportsPDF } from '../utils/pdfExport';
 import { adminApi } from '../utils/adminApi';
 import toast from 'react-hot-toast';
@@ -46,48 +47,86 @@ const AdminReports = () => {
     fetchReportData();
   }, []);
 
-  const handleExport = (type) => {
+  // Universal PDF Export Function
+  const handleExportPDF = () => {
     try {
-      switch(type) {
-        case 'users':
-          if (reportData.users.length === 0) {
-            toast.error('No users data to export');
-            return;
-          }
-          exportUsers(reportData.users);
-          toast.success('Users exported successfully!');
+      const activeTab = activeReport;
+      let tableHeaders = [];
+      let tableRows = [];
+
+      switch (activeTab) {
+        case 'products':
+          // Inventory Report
+          tableHeaders = ['Product Name', 'Brand', 'Category', 'Price', 'Stock'];
+          tableRows = reportData.products.map(product => [
+            product.name || 'N/A',
+            product.brand || 'N/A',
+            product.category || 'N/A',
+            `KSh ${product.price || 0}`,
+            product.stock || 0
+          ]);
           break;
         case 'orders':
-          if (reportData.orders.length === 0) {
-            toast.error('No orders data to export');
-            return;
-          }
-          exportOrders(reportData.orders);
-          toast.success('Orders exported successfully!');
+          // Sales Report
+          tableHeaders = ['Order ID', 'Date', 'Customer', 'Phone', 'Total', 'Status'];
+          tableRows = reportData.orders.map(order => [
+            order._id ? order._id.substring(0, 8) : 'N/A',
+            order.createdAt ? new Date(order.createdAt).toLocaleDateString() : 'N/A',
+            order.userEmail || 'N/A',
+            order.phoneNumber || 'N/A',
+            `KSh ${order.totalAmount || 0}`,
+            order.status || 'pending'
+          ]);
           break;
-        case 'products':
-          if (reportData.products.length === 0) {
-            toast.error('No products data to export');
-            return;
-          }
-          exportProducts(reportData.products);
-          toast.success('Products exported successfully!');
+        case 'users':
+          // Users/Customers Report
+          tableHeaders = ['Name', 'Email', 'Phone', 'Role', 'Joined Date'];
+          tableRows = reportData.users.map(user => [
+            user.name || 'N/A',
+            user.email || 'N/A',
+            user.phoneNumber || 'N/A',
+            user.role || 'user',
+            user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'
+          ]);
           break;
         case 'transactions':
-          if (reportData.transactions.length === 0) {
-            toast.error('No transactions data to export');
-            return;
-          }
-          exportTransactions(reportData.transactions);
-          toast.success('Transactions exported successfully!');
-          break;
-        case 'all':
-          generateAllReportsPDF(reportData);
-          toast.success('Full report PDF generated!');
+          // Transactions Report
+          tableHeaders = ['Transaction ID', 'Date', 'Customer', 'Amount', 'Method', 'Status'];
+          tableRows = reportData.transactions.map(transaction => [
+            transaction._id ? transaction._id.substring(0, 8) : 'N/A',
+            transaction.createdAt ? new Date(transaction.createdAt).toLocaleDateString() : 'N/A',
+            transaction.userEmail || 'N/A',
+            `KSh ${transaction.amount || 0}`,
+            transaction.method || 'N/A',
+            transaction.status || 'N/A'
+          ]);
           break;
         default:
-          toast.error('Invalid export type');
+          toast.error('Invalid report type');
+          return;
       }
+
+      // Check if data exists
+      if (tableRows.length === 0) {
+        toast.error(`No ${activeTab} data to export`);
+        return;
+      }
+
+      // Generate PDF
+      const doc = new jsPDF();
+      const reportTitle = activeTab.charAt(0).toUpperCase() + activeTab.slice(1);
+      doc.text(`Seekon ${reportTitle} Report`, 14, 15);
+      
+      autoTable(doc, {
+        startY: 20,
+        head: [tableHeaders],
+        body: tableRows,
+        theme: 'grid',
+        headStyles: { fillColor: [17, 24, 39] } // Dark gray/black to match Seekon branding
+      });
+      
+      doc.save(`Seekon_${activeTab}_Report.pdf`);
+      toast.success(`${reportTitle} report exported successfully!`);
     } catch (error) {
       toast.error('Export failed. Please try again.');
       console.error('Export error:', error);
@@ -111,7 +150,7 @@ const AdminReports = () => {
         <motion.button
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          onClick={() => { setActiveReport('products'); handleExport('products'); }}
+          onClick={() => { setActiveReport('products'); handleExportPDF(); }}
           disabled={loading}
           className={`bg-white/10 backdrop-blur-xl rounded-xl p-6 border transition-all text-left group cursor-pointer ${activeReport === 'products' ? 'border-[#00A676] ring-2 ring-[#00A676]/30' : 'border-white/20 hover:border-white/40'} ${loading ? 'opacity-50' : ''}`}
         >
@@ -126,7 +165,7 @@ const AdminReports = () => {
           </div>
           <div className="flex items-center space-x-2 text-[#00A676]">
             <FiDownload className="w-4 h-4" />
-            <span className="text-sm">Export XLSX</span>
+            <span className="text-sm">Export PDF</span>
           </div>
         </motion.button>
 
@@ -134,7 +173,7 @@ const AdminReports = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          onClick={() => { setActiveReport('orders'); handleExport('orders'); }}
+          onClick={() => { setActiveReport('orders'); handleExportPDF(); }}
           disabled={loading}
           className={`bg-white/10 backdrop-blur-xl rounded-xl p-6 border transition-all text-left group cursor-pointer ${activeReport === 'orders' ? 'border-[#00A676] ring-2 ring-[#00A676]/30' : 'border-white/20 hover:border-white/40'} ${loading ? 'opacity-50' : ''}`}
         >
@@ -149,7 +188,7 @@ const AdminReports = () => {
           </div>
           <div className="flex items-center space-x-2 text-[#00A676]">
             <FiDownload className="w-4 h-4" />
-            <span className="text-sm">Export XLSX</span>
+            <span className="text-sm">Export PDF</span>
           </div>
         </motion.button>
 
@@ -157,7 +196,7 @@ const AdminReports = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          onClick={() => { setActiveReport('users'); handleExport('users'); }}
+          onClick={() => { setActiveReport('users'); handleExportPDF(); }}
           disabled={loading}
           className={`bg-white/10 backdrop-blur-xl rounded-xl p-6 border transition-all text-left group cursor-pointer ${activeReport === 'users' ? 'border-[#00A676] ring-2 ring-[#00A676]/30' : 'border-white/20 hover:border-white/40'} ${loading ? 'opacity-50' : ''}`}
         >
@@ -172,7 +211,7 @@ const AdminReports = () => {
           </div>
           <div className="flex items-center space-x-2 text-[#00A676]">
             <FiDownload className="w-4 h-4" />
-            <span className="text-sm">Export XLSX</span>
+            <span className="text-sm">Export PDF</span>
           </div>
         </motion.button>
       </div>
@@ -182,7 +221,7 @@ const AdminReports = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          onClick={() => { setActiveReport('transactions'); handleExport('transactions'); }}
+          onClick={() => { setActiveReport('transactions'); handleExportPDF(); }}
           disabled={loading}
           className={`bg-white/10 backdrop-blur-xl rounded-xl p-6 border transition-all text-left group cursor-pointer ${activeReport === 'transactions' ? 'border-[#00A676] ring-2 ring-[#00A676]/30' : 'border-white/20 hover:border-white/40'} ${loading ? 'opacity-50' : ''}`}
         >
@@ -197,7 +236,7 @@ const AdminReports = () => {
           </div>
           <div className="flex items-center space-x-2 text-[#00A676]">
             <FiDownload className="w-4 h-4" />
-            <span className="text-sm">Export XLSX</span>
+            <span className="text-sm">Export PDF</span>
           </div>
         </motion.button>
 
