@@ -1,5 +1,5 @@
-import { jsPDF } from 'jspdf';
-import { jsPDF as jsPDFAdapter } from 'jspdf-autotable';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 // Generate comprehensive PDF with all reports
 export const generateAllReportsPDF = (reportData) => {
@@ -32,7 +32,7 @@ export const generateAllReportsPDF = (reportData) => {
     ['Total Transactions', String(reportData.transactions?.length || 0)]
   ];
 
-  doc.autoTable({
+  autoTable(doc, {
     startY: yPosition,
     head: [['Metric', 'Count']],
     body: summaryData,
@@ -58,7 +58,7 @@ export const generateAllReportsPDF = (reportData) => {
       user.isActive ? 'Active' : 'Inactive'
     ]);
 
-    doc.autoTable({
+    autoTable(doc, {
       startY: yPosition,
       head: [['Name', 'Email', 'Phone', 'Role', 'Status']],
       body: usersData.slice(0, 30),
@@ -90,7 +90,7 @@ export const generateAllReportsPDF = (reportData) => {
       order.isPaid ? 'Paid' : 'Pending'
     ]);
 
-    doc.autoTable({
+    autoTable(doc, {
       startY: yPosition,
       head: [['Order ID', 'Customer', 'Amount', 'Status', 'Payment']],
       body: ordersData.slice(0, 30),
@@ -122,7 +122,7 @@ export const generateAllReportsPDF = (reportData) => {
       product.inStock ? 'In Stock' : 'Out of Stock'
     ]);
 
-    doc.autoTable({
+    autoTable(doc, {
       startY: yPosition,
       head: [['Name', 'Category', 'Price', 'Stock', 'Status']],
       body: productsData.slice(0, 30),
@@ -154,7 +154,7 @@ export const generateAllReportsPDF = (reportData) => {
       transaction.status || 'N/A'
     ]);
 
-    doc.autoTable({
+    autoTable(doc, {
       startY: yPosition,
       head: [['Transaction ID', 'Customer', 'Amount', 'Method', 'Status']],
       body: transactionsData.slice(0, 30),
