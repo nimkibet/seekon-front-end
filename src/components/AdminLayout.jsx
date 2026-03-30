@@ -53,6 +53,67 @@ const AdminLayout = ({ children }) => {
     fetchSettings();
   }, []);
 
+  // Push notification subscription for admins
+  useEffect(() => {
+    const initPushNotifications = async () => {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        console.log('Push notifications not supported');
+        return;
+      }
+
+      try {
+        // Register service worker
+        const registration = await navigator.serviceWorker.register('/sw.js');
+        console.log('Service Worker registered:', registration);
+
+        // Request notification permission
+        const permission = await Notification.requestPermission();
+        if (permission !== 'granted') {
+          console.log('Notification permission not granted');
+          return;
+        }
+
+        // Get VAPID public key from backend
+        const response = await adminApi.getVapidPublicKey();
+        const publicKey = response.publicKey;
+        
+        if (!publicKey) {
+          console.log('VAPID public key not configured');
+          return;
+        }
+
+        // Subscribe to push notifications
+        const subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(publicKey)
+        });
+
+        // Send subscription to backend
+        await adminApi.subscribeToPush(subscription);
+        console.log('Push subscription successful');
+      } catch (error) {
+        console.error('Error initializing push notifications:', error);
+      }
+    };
+
+    // Only run for admin users
+    if (user?.role === 'admin' || user?.isAdmin) {
+      initPushNotifications();
+    }
+  }, [user]);
+
+  // Helper function to convert VAPID key
+  const urlBase64ToUint8Array = (base64String) => {
+    const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+      outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+  };
+
   const markAsRead = (id, orderId) => {
     // Call API to mark as read
     adminApi.markNotificationRead(id).catch(err => console.error('Error marking notification as read:', err));

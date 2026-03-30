@@ -180,6 +180,30 @@ export const adminApi = {
   }),
   deleteCoupon: (id) => apiCall(`/coupons/${id}`, { method: 'DELETE' }),
   toggleCouponStatus: (id) => apiCall(`/coupons/${id}/toggle`, { method: 'PATCH' }),
+
+  // Push Notifications
+  getVapidPublicKey: async () => {
+    const token = getAuthToken();
+    const response = await fetch(`${API_URL}/api/notifications/push/vapid-public-key`, {
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` }),
+      },
+    });
+    if (!response.ok) throw new Error('Failed to fetch VAPID public key');
+    return response.json();
+  },
+  subscribeToPush: (subscription) => {
+    const token = getAuthToken();
+    return fetch(`${API_URL}/api/notifications/push/subscribe`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token && { 'Authorization': `Bearer ${token}` }),
+      },
+      body: JSON.stringify({ subscription }),
+    }).then(res => res.json());
+  },
 };
 
 export default adminApi;
