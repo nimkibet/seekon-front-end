@@ -455,7 +455,7 @@ const Home = () => {
             <motion.div variants={itemVariants} className="bg-white rounded-xl p-6 shadow-lg">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xl font-semibold text-gray-900">Sneakers</h3>
-                <Link to="/collection/sneakers" className="text-[#00A676] hover:text-[#008A5E] text-sm font-medium">See All →</Link>
+                <Link to="/collection?category=sneakers" className="text-[#00A676] hover:text-[#008A5E] text-sm font-medium">See All →</Link>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 {isLoading ? (
@@ -472,7 +472,7 @@ const Home = () => {
             <motion.div variants={itemVariants} className="bg-white rounded-xl p-6 shadow-lg">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-xl font-semibold text-gray-900">Apparel</h3>
-                <Link to="/collection/apparel" className="text-[#00A676] hover:text-[#008A5E] text-sm font-medium">See All →</Link>
+                <Link to="/collection?category=apparel" className="text-[#00A676] hover:text-[#008A5E] text-sm font-medium">See All →</Link>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 {isLoading ? (
