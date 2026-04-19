@@ -57,6 +57,7 @@ const AllAccessories = lazy(() => import('./pages/AllAccessories'));
 const FlashSale = lazy(() => import('./pages/FlashSale'));
 const MyOrders = lazy(() => import('./pages/MyOrders'));
 const OrderSuccess = lazy(() => import('./pages/OrderSuccess'));
+const OutfitBuilder = lazy(() => import('./components/outfit/OutfitBuilder'));
 
 // Components
 import Layout from './components/Layout';
@@ -313,6 +314,12 @@ const App = () => {
                     <Wishlist />
                   </AppLayout>
                 </ProtectedRoute>
+              } />
+
+              <Route path="/build-outfit" element={
+                <AppLayout>
+                  <OutfitBuilder />
+                </AppLayout>
               } />
 
               {/* Admin Routes */}
