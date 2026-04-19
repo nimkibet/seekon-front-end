@@ -2,7 +2,9 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/seekon_bg-removebg-preview.png" />
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Seekon Apparel | Premium Sneakers & Streetwear</title>
     <meta name="description" content="Shop premium sneakers, apparel, and streetwear at Seekon Apparel Global. Find the latest drops from Nike, Adidas, Jordan, and more. Fast shipping in Kenya." />
@@ -31,11 +33,19 @@
     <!-- Theme color for mobile browsers -->
     <meta name="theme-color" content="#0ea5e9" />
     
-    <!-- Apple Touch Icon -->
-    <link rel="apple-touch-icon" href="/apple-touch-icon.svg" />
-    
     <!-- Manifest for PWA -->
     <link rel="manifest" href="/manifest.json" />
+    
+    <!-- JSON-LD Schema for Organization -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "Seekon",
+      "url": "https://www.seekonapparelglobal.com",
+      "logo": "https://www.seekonapparelglobal.com/square-image.png"
+    }
+    </script>
   </head>
   <body>
     <div id="root"></div>

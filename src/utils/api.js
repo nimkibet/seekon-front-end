@@ -31,10 +31,19 @@ client.interceptors.request.use(
   }
 );
 
-// Response interceptor to handle 401 errors (token expiration/invalid)
+// Response interceptor to handle 401 errors (token expiration/invalid) and 503 (maintenance)
 client.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Handle 503 Service Unavailable (database maintenance)
+    if (error.response?.status === 503) {
+      console.warn('🛑 503 Service Unavailable - Database maintenance detected');
+      // Redirect to maintenance page
+      window.location.href = '/maintenance';
+      return Promise.reject(error);
+    }
+    
+    // Handle 401 Unauthorized (token expiration/invalid)
     if (error.response?.status === 401) {
       console.warn('🚨 401 Unauthorized - Clearing tokens');
       // Clear all auth tokens

@@ -6,6 +6,9 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { SettingsProvider, useSettings } from './context/SettingsContext';
 import toast from 'react-hot-toast';
 
+// Maintenance page - lazy loaded
+const Maintenance = lazy(() => import('./pages/Maintenance'));
+
 // Pages - Lazy loaded for code splitting
 const Home = lazy(() => import('./pages/Home'));
 const Login = lazy(() => import('./pages/Login'));
@@ -488,38 +491,45 @@ const App = () => {
                 </AppLayout>
               } />
 
-              {/* Corporate Pages */}
-              <Route path="/about" element={
-                <AppLayout>
-                  <CorporatePage />
-                </AppLayout>
-              } />
+               {/* Corporate Pages */}
+               <Route path="/about" element={
+                 <AppLayout>
+                   <CorporatePage />
+                 </AppLayout>
+               } />
 
-              <Route path="/careers" element={
-                <AppLayout>
-                  <CorporatePage />
-                </AppLayout>
-              } />
+               <Route path="/careers" element={
+                 <AppLayout>
+                   <CorporatePage />
+                 </AppLayout>
+               } />
 
-              <Route path="/press" element={
-                <AppLayout>
-                  <CorporatePage />
-                </AppLayout>
-              } />
+               <Route path="/press" element={
+                 <AppLayout>
+                   <CorporatePage />
+                 </AppLayout>
+               } />
 
-              <Route path="/sustainability" element={
-                <AppLayout>
-                  <CorporatePage />
-                </AppLayout>
-              } />
+               <Route path="/sustainability" element={
+                 <AppLayout>
+                   <CorporatePage />
+                 </AppLayout>
+               } />
 
-              <Route path="/investors" element={
-                <AppLayout>
-                  <CorporatePage />
-                </AppLayout>
-              } />
+               <Route path="/investors" element={
+                 <AppLayout>
+                   <CorporatePage />
+                 </AppLayout>
+               } />
 
-              {/* Catch all route */}
+               {/* Maintenance Route */}
+               <Route path="/maintenance" element={
+                 <AppLayout>
+                   <Maintenance />
+                 </AppLayout>
+               } />
+
+               {/* Catch all route */}
               <Route path="*" element={
                 <AppLayout>
                   <div className="min-h-screen flex items-center justify-center">
