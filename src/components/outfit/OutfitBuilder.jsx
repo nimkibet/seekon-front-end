@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchProducts } from '../../store/slices/productSlice';
@@ -23,6 +23,7 @@ const OUTFIT_SLOTS = [
 const OutfitBuilder = () => {
   const dispatch = useDispatch();
   const location = useLocation();
+  const canvasRef = useRef(null);
   const { filteredProducts, isLoading, products } = useSelector((state) => state.products);
 
   const [activeTab, setActiveTab] = useState('tops');
@@ -139,6 +140,12 @@ const OutfitBuilder = () => {
         toast.success(`${product.name} added as accessory`);
         break;
     }
+
+    if (window.innerWidth < 1024) {
+      setTimeout(() => {
+        canvasRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    }
   };
 
   const handleRemoveItem = (slotKey) => {
@@ -225,7 +232,7 @@ const OutfitBuilder = () => {
         </div>
 
         <div className="flex flex-col lg:flex-row gap-8">
-          <div className="flex-1 bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden">
+          <div className="order-2 lg:order-1 flex-1 bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden">
             <div className="border-b border-gray-200 dark:border-gray-700">
               <div className="flex overflow-x-auto">
                 {CATEGORIES.map((category) => (
@@ -304,8 +311,8 @@ const OutfitBuilder = () => {
             </div>
           </div>
 
-          <div className="w-full lg:w-[420px] shrink-0 space-y-6">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6">
+          <div className="order-1 lg:order-2 w-full lg:w-[420px] shrink-0 space-y-6">
+            <div ref={canvasRef} className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white">Your Outfit</h2>
                 <span className="text-sm text-gray-500 dark:text-gray-400">
