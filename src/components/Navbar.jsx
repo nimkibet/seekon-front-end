@@ -134,8 +134,8 @@ const Navbar = () => {
   // Navigation Structure
   const navItems = [
     { name: 'Home', path: '/' },
-    { 
-      name: 'Footwear', 
+    {
+      name: 'Footwear',
       path: '/collection?category=sneakers',
       type: 'mega',
       sections: [
@@ -195,8 +195,8 @@ const Navbar = () => {
         path: '/collection?category=sneakers'
       }
     },
-    { 
-      name: 'Apparel', 
+    {
+      name: 'Apparel',
       path: '/collection?category=apparel',
       type: 'mega',
       sections: [
@@ -256,8 +256,8 @@ const Navbar = () => {
         path: '/collection?category=apparel'
       }
     },
-    { 
-      name: 'Accessories', 
+    {
+      name: 'Accessories',
       path: '/collection?category=accessories',
       type: 'mega',
       icon: <FiShoppingBag className="w-4 h-4" />,
@@ -295,12 +295,18 @@ const Navbar = () => {
         label: "ALL ACCESSORIES",
         path: '/collection?category=accessories'
       }
-    }, 
-    { 
-      name: 'Flash Sale', 
+    },
+    {
+      name: 'Flash Sale',
       path: '/flash-sale',
       highlight: true,
       icon: <FiZap className="w-4 h-4" />
+    },
+    {
+      name: 'Build Your Outfit',
+      path: '/build-outfit',
+      highlight: true,
+      className: 'bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent font-semibold border-b-2 border-purple-600'
     },
   ];
 
@@ -341,9 +347,9 @@ const Navbar = () => {
             <div className="hidden md:flex items-center space-x-8">
               {navItems.filter(item => item.name !== 'Flash Sale' || isFlashSaleActive).map((item) => (
                 <div key={item.name} className={`group ${item.type === 'mega' ? '' : 'relative'}`}>
-                  <Link 
+                  <Link
                     to={item.path}
-                    className="text-base font-bold text-gray-800 hover:text-black transition-colors flex items-center gap-1 py-4"
+                    className={`text-base font-bold text-gray-800 hover:text-black transition-colors flex items-center gap-1 py-4 ${item.className || ''}`}
                   >
                     {item.icon && <span className="text-gray-500">{item.icon}</span>}
                     {item.name}

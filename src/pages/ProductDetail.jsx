@@ -659,11 +659,30 @@ const ProductDetail = () => {
                     ✗ Currently out of stock
                   </span>
                 )}
-              </div>
-            </div>
-          </motion.div>
+               </div>
+             </div>
 
-          {/* Customer Reviews Section */}
+             {/* Complete the Look CTA */}
+             <div className="mt-8">
+               <div className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 border border-purple-200 dark:border-purple-800 rounded-xl p-6 md:p-8 text-center">
+                 <h3 className="text-lg md:text-xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                   Want to style this item?
+                 </h3>
+                 <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 mb-4">
+                   Create the perfect outfit with our AI-powered builder
+                 </p>
+                 <Link
+                   to="/build-outfit"
+                   className="inline-flex items-center gap-2 px-6 py-3 border-2 border-purple-600 text-purple-600 hover:bg-purple-600 hover:text-white font-semibold rounded-lg transition-all duration-200 text-sm md:text-base"
+                 >
+                   <span>✨</span>
+                   <span>Build Your Outfit</span>
+                 </Link>
+               </div>
+             </div>
+           </motion.div>
+
+           {/* Customer Reviews Section */}
           {(product.reviewDetails?.length > 0 || product.reviews > 0) && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
