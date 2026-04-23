@@ -40,6 +40,18 @@ const ProductDetail = () => {
   const [apiProduct, setApiProduct] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [activeImage, setActiveImage] = useState(null);
+
+  useEffect(() => {
+    if (product?.images?.length > 0) {
+      const firstImage = typeof product.images[0] === 'string'
+        ? product.images[0]
+        : product.images[0].url;
+      setActiveImage(firstImage);
+    } else if (product?.image) {
+      setActiveImage(product.image);
+    }
+  }, [product]);
 
   // Fetch product directly from API for robust handling
   useEffect(() => {
@@ -378,7 +390,7 @@ const ProductDetail = () => {
             {/* Main Image */}
             <div className="relative aspect-square w-full bg-gray-50 dark:bg-gray-900 rounded-2xl overflow-hidden flex items-center justify-center border border-gray-100 dark:border-gray-800 shadow-lg">
               <img
-                src={getOptimizedImageUrl(product.images?.[selectedImage] || product.image, { width: 800, height: 800, quality: 'auto' })}
+                src={getOptimizedImageUrl(activeImage || product.images?.[0] || product.image, { width: 800, height: 800, quality: 'auto' })}
                 alt={product.name}
                 className="w-full h-full object-contain p-8 mix-blend-multiply dark:mix-blend-normal"
                 onError={(e) => {
@@ -388,24 +400,27 @@ const ProductDetail = () => {
             </div>
 
             {/* Thumbnail Images */}
-            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-              {(product.images || [product.image]).map((image, index) => (
-                <button
-                  key={index}
-                  onClick={() => setSelectedImage(index)}
-                  className={`aspect-square rounded-lg overflow-hidden border-2 transition-colors duration-200 ${
-                    selectedImage === index
-                      ? 'border-primary-600'
-                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                  }`}
-                >
-                  <img
-                    src={getOptimizedImageUrl(image, { width: 200, height: 200, quality: 'auto' })}
-                    alt={`${product.name} ${index + 1}`}
-                    className="w-full h-full object-contain p-2 mix-blend-multiply dark:mix-blend-normal"
-                  />
-                </button>
-              ))}
+            <div className="flex gap-2 overflow-x-auto pb-2">
+              {(product.images || [product.image]).map((image, index) => {
+                const imageUrl = typeof image === 'string' ? image : image.url;
+                return (
+                  <button
+                    key={index}
+                    onClick={() => setActiveImage(imageUrl)}
+                    className={`flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden border-2 transition-all ${
+                      activeImage === imageUrl
+                        ? 'border-[#00A676] ring-2 ring-[#00A676]/30'
+                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                    }`}
+                  >
+                    <img
+                      src={getOptimizedImageUrl(imageUrl, { width: 200, height: 200, quality: 'auto' })}
+                      alt={`${product.name} ${index + 1}`}
+                      className="w-full h-full object-contain p-1 mix-blend-multiply dark:mix-blend-normal"
+                    />
+                  </button>
+                );
+              })}
             </div>
           </motion.div>
 
