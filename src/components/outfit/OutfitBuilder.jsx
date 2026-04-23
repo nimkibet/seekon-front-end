@@ -30,8 +30,10 @@ const OutfitBuilder = () => {
   const [selectedAccessory, setSelectedAccessory] = useState(null);
 
   useEffect(() => {
-    dispatch(fetchProducts());
-  }, [dispatch]);
+    if (!products || products.length === 0) {
+      dispatch(fetchProducts());
+    }
+  }, [dispatch, products]);
 
   const getFilteredItems = () => {
     const tabConfig = CATEGORIES.find((c) => c.id === activeTab);
