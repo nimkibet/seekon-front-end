@@ -671,12 +671,13 @@ const ProductDetail = () => {
                  <p className="text-sm md:text-base text-gray-600 dark:text-gray-400 mb-4">
                    Create the perfect outfit with our AI-powered builder
                  </p>
-                 <Link
-                   to="/build-outfit"
-                   className="inline-flex items-center gap-2 px-6 py-3 border-2 border-purple-600 text-purple-600 hover:bg-purple-600 hover:text-white font-semibold rounded-lg transition-all duration-200 text-sm md:text-base"
-                 >
-                   <span>✨</span>
-                   <span>Build Your Outfit</span>
+                  <Link
+                    to="/build-outfit"
+                    state={{ preselectedItem: product }}
+                    className="inline-flex items-center gap-2 px-6 py-3 border-2 border-purple-600 text-purple-600 hover:bg-purple-600 hover:text-white font-semibold rounded-lg transition-all duration-200 text-sm md:text-base"
+                  >
+                    <span>✨</span>
+                    <span>Build Your Outfit</span>
                  </Link>
                </div>
              </div>

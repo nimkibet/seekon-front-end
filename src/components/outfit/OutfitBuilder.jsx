@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchProducts } from '../../store/slices/productSlice';
 import { addToCart } from '../../store/slices/cartSlice';
@@ -6,10 +7,10 @@ import { formatPrice } from '../../utils/formatPrice';
 import toast from 'react-hot-toast';
 
 const CATEGORIES = [
-  { id: 'tops', label: 'Tops', filter: { category: 'apparel' } },
-  { id: 'bottoms', label: 'Bottoms', filter: { category: 'apparel' } },
-  { id: 'shoes', label: 'Shoes', filter: { category: 'sneakers' } },
-  { id: 'accessories', label: 'Accessories', filter: { category: 'accessories' } },
+  { id: 'tops', label: 'Tops' },
+  { id: 'bottoms', label: 'Bottoms' },
+  { id: 'shoes', label: 'Shoes' },
+  { id: 'accessories', label: 'Accessories' },
 ];
 
 const OUTFIT_SLOTS = [
@@ -21,8 +22,9 @@ const OUTFIT_SLOTS = [
 
 const OutfitBuilder = () => {
   const dispatch = useDispatch();
+  const location = useLocation();
   const { filteredProducts, isLoading, products } = useSelector((state) => state.products);
-  
+
   const [activeTab, setActiveTab] = useState('tops');
   const [selectedTop, setSelectedTop] = useState(null);
   const [selectedBottom, setSelectedBottom] = useState(null);
@@ -34,6 +36,40 @@ const OutfitBuilder = () => {
       dispatch(fetchProducts());
     }
   }, [dispatch, products]);
+
+  useEffect(() => {
+    const preselectedItem = location.state?.preselectedItem;
+    if (!preselectedItem) return;
+
+    const cat = (preselectedItem.category || '').toLowerCase();
+    const name = (preselectedItem.name || '').toLowerCase();
+    const productData = {
+      id: preselectedItem.id || preselectedItem._id,
+      _id: preselectedItem._id,
+      name: preselectedItem.name,
+      brand: preselectedItem.brand,
+      price: preselectedItem.price,
+      image: preselectedItem.image || preselectedItem.images?.[0],
+      category: preselectedItem.category,
+    };
+
+    if (cat === 'apparel') {
+      if (name.includes('pant') || name.includes('short') || name.includes('jean') ||
+          name.includes('trouser') || name.includes('jogger') || name.includes('bottom')) {
+        setSelectedBottom(productData);
+        toast.success(`${preselectedItem.name} pre-selected as bottom`);
+      } else {
+        setSelectedTop(productData);
+        toast.success(`${preselectedItem.name} pre-selected as top`);
+      }
+    } else if (cat === 'footwear' || cat === 'sneakers') {
+      setSelectedShoes(productData);
+      toast.success(`${preselectedItem.name} pre-selected as shoes`);
+    } else if (cat === 'accessories') {
+      setSelectedAccessory(productData);
+      toast.success(`${preselectedItem.name} pre-selected as accessory`);
+    }
+  }, [location.state]);
 
   const getFilteredItems = () => {
     const tabConfig = CATEGORIES.find((c) => c.id === activeTab);
@@ -149,7 +185,7 @@ const OutfitBuilder = () => {
 
   const handleAddEntireOutfitToCart = async () => {
     const items = [selectedTop, selectedBottom, selectedShoes, selectedAccessory].filter(Boolean);
-    
+
     if (items.length === 0) {
       toast.error('Please select at least one item for your outfit');
       return;
@@ -188,8 +224,8 @@ const OutfitBuilder = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden">
+        <div className="flex flex-col lg:flex-row gap-8">
+          <div className="flex-1 bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden">
             <div className="border-b border-gray-200 dark:border-gray-700">
               <div className="flex overflow-x-auto">
                 {CATEGORIES.map((category) => (
@@ -268,7 +304,7 @@ const OutfitBuilder = () => {
             </div>
           </div>
 
-          <div className="space-y-6">
+          <div className="w-full lg:w-[420px] shrink-0 space-y-6">
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white">Your Outfit</h2>
@@ -277,80 +313,95 @@ const OutfitBuilder = () => {
                 </span>
               </div>
 
-              <div className="space-y-4">
-                {OUTFIT_SLOTS.map((slot) => {
-                  const selectedItem = getSelectedItem(slot.key);
-                  return (
-                    <div
-                      key={slot.key}
-                      className={`relative rounded-xl border-2 transition-all ${
-                        selectedItem
-                          ? 'border-[#00A676] bg-[#00A676]/5'
-                          : 'border-dashed border-gray-300 dark:border-gray-600'
-                      }`}
-                    >
-                      {selectedItem ? (
-                        <div className="p-4">
-                          <div className="flex items-start gap-4">
-                            <div className="w-20 h-20 flex-shrink-0 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-700">
-                              <img
-                                src={selectedItem.image}
-                                alt={selectedItem.name}
-                                className="w-full h-full object-cover"
-                              />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-xs text-[#00A676] font-medium">{slot.label}</p>
-                              <p className="text-sm font-semibold text-gray-900 dark:text-white truncate">
-                                {selectedItem.name}
-                              </p>
-                              <p className="text-sm text-gray-600 dark:text-gray-400">
-                                {formatPrice(selectedItem.price)}
-                              </p>
-                            </div>
-                            <button
-                              onClick={() => handleRemoveItem(slot.key)}
-                              className="p-2 text-gray-400 hover:text-red-500 transition-colors"
-                              title="Remove item"
-                            >
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                              </svg>
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="p-6 text-center">
-                          <span className="text-3xl">{slot.icon}</span>
-                          <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-                            {slot.emptyMessage}
-                          </p>
-                        </div>
-                      )}
+              <div className="relative w-full h-[500px] md:h-[600px] bg-gray-100 dark:bg-gray-700 rounded-xl overflow-hidden flex justify-center items-center">
+                {selectedTop ? (
+                  <img
+                    src={selectedTop.image}
+                    alt={selectedTop.name}
+                    className="absolute top-[5%] w-3/4 h-2/5 object-contain z-30 drop-shadow-xl mix-blend-multiply"
+                  />
+                ) : (
+                  <div className="absolute top-[5%] w-3/4 h-2/5 flex flex-col items-center justify-center z-30">
+                    <div className="w-24 h-32 border-2 border-dashed border-gray-400 rounded-lg flex items-center justify-center">
+                      <span className="text-gray-400 text-4xl">👕</span>
                     </div>
-                  );
-                })}
-              </div>
+                    <span className="text-xs text-gray-500 mt-2">Top</span>
+                  </div>
+                )}
 
-              <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-                <div className="flex items-center justify-between mb-4">
-                  <span className="text-lg font-semibold text-gray-900 dark:text-white">Total</span>
-                  <span className="text-2xl font-bold text-[#00A676]">
-                    {formatPrice(calculateTotal())}
-                  </span>
-                </div>
-                <button
-                  onClick={handleAddEntireOutfitToCart}
-                  disabled={selectedCount === 0}
-                  className={`w-full py-4 rounded-xl font-semibold text-white transition-all ${
-                    selectedCount === 0
-                      ? 'bg-gray-300 dark:bg-gray-600 cursor-not-allowed'
-                      : 'bg-[#00A676] hover:bg-[#008f5f] active:scale-98 hover:shadow-lg'
-                  }`}
-                >
-                  Add Entire Outfit to Cart
-                </button>
+                {selectedBottom ? (
+                  <img
+                    src={selectedBottom.image}
+                    alt={selectedBottom.name}
+                    className="absolute top-[40%] w-3/4 h-2/5 object-contain z-20 drop-shadow-xl mix-blend-multiply"
+                  />
+                ) : (
+                  <div className="absolute top-[40%] w-3/4 h-2/5 flex flex-col items-center justify-center z-20">
+                    <div className="w-24 h-32 border-2 border-dashed border-gray-400 rounded-lg flex items-center justify-center">
+                      <span className="text-gray-400 text-4xl">👖</span>
+                    </div>
+                    <span className="text-xs text-gray-500 mt-2">Bottom</span>
+                  </div>
+                )}
+
+                {selectedShoes ? (
+                  <img
+                    src={selectedShoes.image}
+                    alt={selectedShoes.name}
+                    className="absolute bottom-[2%] w-3/4 h-1/5 object-contain z-10 drop-shadow-xl mix-blend-multiply"
+                  />
+                ) : (
+                  <div className="absolute bottom-[2%] w-3/4 h-1/5 flex flex-col items-center justify-center z-10">
+                    <div className="w-24 h-16 border-2 border-dashed border-gray-400 rounded-lg flex items-center justify-center">
+                      <span className="text-gray-400 text-4xl">👟</span>
+                    </div>
+                    <span className="text-xs text-gray-500 mt-2">Shoes</span>
+                  </div>
+                )}
+
+                {selectedAccessory ? (
+                  <img
+                    src={selectedAccessory.image}
+                    alt={selectedAccessory.name}
+                    className="absolute top-[5%] right-[5%] w-1/4 h-1/4 object-contain z-40 drop-shadow-xl"
+                  />
+                ) : (
+                  <div className="absolute top-[5%] right-[5%] w-1/4 h-1/4 flex flex-col items-center justify-center z-40">
+                    <div className="w-16 h-16 border-2 border-dashed border-gray-400 rounded-lg flex items-center justify-center">
+                      <span className="text-gray-400 text-3xl">👜</span>
+                    </div>
+                    <span className="text-xs text-gray-500 mt-1">Accessory</span>
+                  </div>
+                )}
+
+                {selectedCount === 0 && (
+                  <div className="absolute inset-0 flex items-center justify-center z-50 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm">
+                    <p className="text-gray-500 dark:text-gray-400 text-sm text-center px-4">
+                      Select items from the left to build your outfit
+                    </p>
+                  </div>
+                )}
               </div>
+            </div>
+
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6">
+              <div className="flex items-center justify-between mb-4">
+                <span className="text-lg font-semibold text-gray-900 dark:text-white">Total</span>
+                <span className="text-2xl font-bold text-[#00A676]">
+                  {formatPrice(calculateTotal())}
+                </span>
+              </div>
+              <button
+                onClick={handleAddEntireOutfitToCart}
+                disabled={selectedCount === 0}
+                className={`w-full py-4 rounded-xl font-semibold text-white transition-all ${
+                  selectedCount === 0
+                    ? 'bg-gray-300 dark:bg-gray-600 cursor-not-allowed'
+                    : 'bg-[#00A676] hover:bg-[#008f5f] active:scale-98 hover:shadow-lg'
+                }`}
+              >
+                Add Entire Outfit to Cart
+              </button>
             </div>
 
             <div className="bg-gradient-to-br from-[#00A676] to-[#008f5f] rounded-2xl shadow-xl p-6 text-white">
