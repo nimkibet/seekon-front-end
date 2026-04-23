@@ -39,25 +39,36 @@ const OutfitBuilder = () => {
     const tabConfig = CATEGORIES.find((c) => c.id === activeTab);
     if (!tabConfig) return [];
 
-    return filteredProducts.filter((product) => {
+    const sourceProducts = products || [];
+
+    return sourceProducts.filter((product) => {
+      const cat = (product.category || '').toLowerCase();
+      const name = (product.name || '').toLowerCase();
+
       if (activeTab === 'tops') {
-        return product.category === 'apparel' && 
-          (product.name.toLowerCase().includes('t-shirt') || 
-           product.name.toLowerCase().includes('shirt') ||
-           product.name.toLowerCase().includes('hoodie') ||
-           product.name.toLowerCase().includes('jacket'));
+        return cat === 'apparel' &&
+          (name.includes('t-shirt') ||
+           name.includes('shirt') ||
+           name.includes('tee') ||
+           name.includes('hoodie') ||
+           name.includes('jacket') ||
+           name.includes('sweater') ||
+           name.includes('top'));
       }
       if (activeTab === 'bottoms') {
-        return product.category === 'apparel' && 
-          (product.name.toLowerCase().includes('pants') || 
-           product.name.toLowerCase().includes('shorts') ||
-           product.name.toLowerCase().includes('jeans'));
+        return cat === 'apparel' &&
+          (name.includes('pant') ||
+           name.includes('short') ||
+           name.includes('jean') ||
+           name.includes('trouser') ||
+           name.includes('jogger') ||
+           name.includes('bottom'));
       }
       if (activeTab === 'shoes') {
-        return product.category === 'sneakers';
+        return cat === 'footwear' || cat === 'sneakers';
       }
       if (activeTab === 'accessories') {
-        return product.category === 'accessories';
+        return cat === 'accessories';
       }
       return true;
     });
