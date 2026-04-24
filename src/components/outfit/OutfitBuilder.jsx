@@ -343,11 +343,11 @@ const OutfitBuilder = () => {
                       className="w-full h-full object-contain drop-shadow-xl mix-blend-multiply group-hover:scale-105 transition-transform"
                     />
                   ) : (
-                    <div className="w-1/2 h-1/2 border-2 border-dashed border-gray-400 rounded-lg flex flex-col items-center justify-center text-gray-400 font-medium group-hover:bg-gray-200/50 transition-colors group-hover:text-blue-500 transition-colors duration-300">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 mb-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M20.38 3.46L16 2 12 6 8 2 3.62 3.46a2 2 0 00-1.34 1.89v.12a2 2 0 001.76 2l.54.1V20a2 2 0 002 2h10.16a2 2 0 002-2V7.57l.54-.1a2 2 0 001.76-2v-.12a2 2 0 00-1.34-1.89z" />
+                    <div className="w-1/2 h-1/2 border-2 border-dashed border-gray-400 rounded-lg flex flex-col items-center justify-center text-gray-900 group-hover:bg-gray-200/50 group-hover:text-gray-600 group-hover:border-gray-600 transition-all">
+                      <svg className="w-10 h-10 mb-2 opacity-50 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M21 8c-2.5 0-4-1-4-1l-3-3a3 3 0 00-4 0l-3 3s-1.5 1-4 1v4h3v8c0 .5.5 1 1 1h10c.5 0 1-.5 1-1v-8h3V8z" />
                       </svg>
-                      <span>+ Add Top</span>
+                      <span className="text-sm font-medium">+ Add Top</span>
                     </div>
                   )}
                 </div>
@@ -363,11 +363,11 @@ const OutfitBuilder = () => {
                       className="w-full h-full object-contain drop-shadow-xl mix-blend-multiply group-hover:scale-105 transition-transform"
                     />
                    ) : (
-                    <div className="w-1/2 h-1/2 border-2 border-dashed border-gray-400 rounded-lg flex flex-col items-center justify-center text-gray-400 font-medium group-hover:bg-gray-200/50 transition-colors group-hover:text-blue-500 transition-colors duration-300">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 mb-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M12 2v20M17 3a2 2 0 012 2v14a2 2 0 01-2 2h-2V5h2zM7 3a2 2 0 00-2 2v14a2 2 0 002 2h2V5H7z" />
+                    <div className="w-1/2 h-1/2 border-2 border-dashed border-gray-400 rounded-lg flex flex-col items-center justify-center text-gray-900 group-hover:bg-gray-200/50 group-hover:text-gray-600 group-hover:border-gray-600 transition-all">
+                      <svg className="w-10 h-10 mb-2 opacity-50 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 3h12l1.5 18H15l-3-9-3 9H4.5L6 3z" />
                       </svg>
-                      <span>+ Add Bottom</span>
+                      <span className="text-sm font-medium">+ Add Bottom</span>
                     </div>
                   )}
                 </div>
@@ -383,11 +383,11 @@ const OutfitBuilder = () => {
                       className="w-full h-full object-contain drop-shadow-xl mix-blend-multiply group-hover:scale-105 transition-transform"
                     />
                    ) : (
-                    <div className="w-1/2 h-1/2 border-2 border-dashed border-gray-400 rounded-lg flex flex-col items-center justify-center text-gray-400 font-medium group-hover:bg-gray-200/50 transition-colors group-hover:text-blue-500 transition-colors duration-300">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 mb-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M4 16l1.5-2.5L9 16l2-3 3 2 4-4 2 3v4a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM3 16h18" />
+                    <div className="w-1/2 h-1/2 border-2 border-dashed border-gray-400 rounded-lg flex flex-col items-center justify-center text-gray-900 group-hover:bg-gray-200/50 group-hover:text-gray-600 group-hover:border-gray-600 transition-all">
+                      <svg className="w-10 h-10 mb-2 opacity-50 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M4 16c0-1.1.9-2 2-2h1.5l3-4.5H16c1.5 0 3 .5 3 2.5 0 1-.5 2-1 2H6v2c0 1.1-.9 2-2 2H3v-2z" />
                       </svg>
-                      <span>+ Add Shoes</span>
+                      <span className="text-sm font-medium">+ Add Shoes</span>
                     </div>
                   )}
                 </div>
@@ -403,12 +403,11 @@ const OutfitBuilder = () => {
                       className="w-full h-full object-contain drop-shadow-xl group-hover:scale-105 transition-transform"
                     />
                    ) : (
-                    <div className="w-1/2 h-1/2 border-2 border-dashed border-gray-400 rounded-lg flex flex-col items-center justify-center text-gray-400 font-medium group-hover:bg-gray-200/50 transition-colors group-hover:text-blue-500 transition-colors duration-300">
-                      <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 mb-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                        <circle cx="12" cy="12" r="6" />
-                        <path d="M12 9v3l2 2M16 4l1-1h2l1 1v2l-1 1M8 4l-1-1H5l-1 1v2l1 1" />
+                    <div className="w-1/2 h-1/2 border-2 border-dashed border-gray-400 rounded-lg flex flex-col items-center justify-center text-gray-900 group-hover:bg-gray-200/50 group-hover:text-gray-600 group-hover:border-gray-600 transition-all">
+                      <svg className="w-8 h-8 mb-2 opacity-50 group-hover:opacity-100 transition-opacity" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 14h14M7 14v-2a5 5 0 0 1 10 0v2M3 14h18" />
                       </svg>
-                      <span>+ Add Accessory</span>
+                      <span className="text-sm font-medium">+ Add Accs.</span>
                     </div>
                   )}
                 </div>
