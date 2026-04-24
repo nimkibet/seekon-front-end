@@ -23,6 +23,7 @@ const OUTFIT_SLOTS = [
 const OutfitBuilder = () => {
   const dispatch = useDispatch();
   const location = useLocation();
+  const listRef = useRef(null);
   const canvasRef = useRef(null);
   const { filteredProducts, isLoading, products } = useSelector((state) => state.products);
 
@@ -109,6 +110,16 @@ const OutfitBuilder = () => {
       }
       return true;
     });
+  };
+
+  const handleSlotClick = (tabId) => {
+    setActiveTab(tabId);
+    
+    if (window.innerWidth < 1024) {
+      setTimeout(() => {
+        listRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    }
   };
 
   const handleSelectItem = (product) => {
@@ -232,7 +243,7 @@ const OutfitBuilder = () => {
         </div>
 
         <div className="flex flex-col lg:flex-row gap-8">
-          <div className="order-2 lg:order-1 flex-1 bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden">
+          <div ref={listRef} className="order-2 lg:order-1 flex-1 bg-white dark:bg-gray-800 rounded-2xl shadow-xl overflow-hidden">
             <div className="border-b border-gray-200 dark:border-gray-700">
               <div className="flex overflow-x-auto">
                 {CATEGORIES.map((category) => (
@@ -321,65 +332,73 @@ const OutfitBuilder = () => {
               </div>
 
               <div className="relative w-full h-[500px] md:h-[600px] bg-gray-100 dark:bg-gray-700 rounded-xl overflow-hidden flex justify-center items-center">
-                {selectedTop ? (
-                  <img
-                    src={selectedTop.image}
-                    alt={selectedTop.name}
-                    className="absolute top-[5%] w-3/4 h-2/5 object-contain z-30 drop-shadow-xl mix-blend-multiply"
-                  />
-                ) : (
-                  <div className="absolute top-[5%] w-3/4 h-2/5 flex flex-col items-center justify-center z-30">
-                    <div className="w-24 h-32 border-2 border-dashed border-gray-400 rounded-lg flex items-center justify-center">
-                      <span className="text-gray-400 text-4xl">👕</span>
+                <div
+                    className="absolute top-[5%] w-3/4 h-2/5 z-30 cursor-pointer flex justify-center items-center group"
+                    onClick={() => handleSlotClick('tops')}
+                  >
+                  {selectedTop ? (
+                    <img
+                      src={selectedTop.image}
+                      alt={selectedTop.name}
+                      className="w-full h-full object-contain drop-shadow-xl mix-blend-multiply group-hover:scale-105 transition-transform"
+                    />
+                  ) : (
+                    <div className="w-1/2 h-1/2 border-2 border-dashed border-gray-400 rounded-lg flex items-center justify-center text-gray-500 font-medium group-hover:bg-gray-200/50 transition-colors">
+                      + Add Top
                     </div>
-                    <span className="text-xs text-gray-500 mt-2">Top</span>
-                  </div>
-                )}
+                  )}
+                </div>
 
-                {selectedBottom ? (
-                  <img
-                    src={selectedBottom.image}
-                    alt={selectedBottom.name}
-                    className="absolute top-[40%] w-3/4 h-2/5 object-contain z-20 drop-shadow-xl mix-blend-multiply"
-                  />
-                ) : (
-                  <div className="absolute top-[40%] w-3/4 h-2/5 flex flex-col items-center justify-center z-20">
-                    <div className="w-24 h-32 border-2 border-dashed border-gray-400 rounded-lg flex items-center justify-center">
-                      <span className="text-gray-400 text-4xl">👖</span>
+                <div
+                    className="absolute top-[40%] w-3/4 h-2/5 z-20 cursor-pointer flex justify-center items-center group"
+                    onClick={() => handleSlotClick('bottoms')}
+                  >
+                  {selectedBottom ? (
+                    <img
+                      src={selectedBottom.image}
+                      alt={selectedBottom.name}
+                      className="w-full h-full object-contain drop-shadow-xl mix-blend-multiply group-hover:scale-105 transition-transform"
+                    />
+                  ) : (
+                    <div className="w-1/2 h-1/2 border-2 border-dashed border-gray-400 rounded-lg flex items-center justify-center text-gray-500 font-medium group-hover:bg-gray-200/50 transition-colors">
+                      + Add Bottom
                     </div>
-                    <span className="text-xs text-gray-500 mt-2">Bottom</span>
-                  </div>
-                )}
+                  )}
+                </div>
 
-                {selectedShoes ? (
-                  <img
-                    src={selectedShoes.image}
-                    alt={selectedShoes.name}
-                    className="absolute bottom-[2%] w-3/4 h-1/5 object-contain z-10 drop-shadow-xl mix-blend-multiply"
-                  />
-                ) : (
-                  <div className="absolute bottom-[2%] w-3/4 h-1/5 flex flex-col items-center justify-center z-10">
-                    <div className="w-24 h-16 border-2 border-dashed border-gray-400 rounded-lg flex items-center justify-center">
-                      <span className="text-gray-400 text-4xl">👟</span>
+                <div
+                    className="absolute bottom-[2%] w-3/4 h-1/5 z-10 cursor-pointer flex justify-center items-center group"
+                    onClick={() => handleSlotClick('shoes')}
+                  >
+                  {selectedShoes ? (
+                    <img
+                      src={selectedShoes.image}
+                      alt={selectedShoes.name}
+                      className="w-full h-full object-contain drop-shadow-xl mix-blend-multiply group-hover:scale-105 transition-transform"
+                    />
+                  ) : (
+                    <div className="w-1/2 h-1/2 border-2 border-dashed border-gray-400 rounded-lg flex items-center justify-center text-gray-500 font-medium group-hover:bg-gray-200/50 transition-colors">
+                      + Add Shoes
                     </div>
-                    <span className="text-xs text-gray-500 mt-2">Shoes</span>
-                  </div>
-                )}
+                  )}
+                </div>
 
-                {selectedAccessory ? (
-                  <img
-                    src={selectedAccessory.image}
-                    alt={selectedAccessory.name}
-                    className="absolute top-[5%] right-[5%] w-1/4 h-1/4 object-contain z-40 drop-shadow-xl"
-                  />
-                ) : (
-                  <div className="absolute top-[5%] right-[5%] w-1/4 h-1/4 flex flex-col items-center justify-center z-40">
-                    <div className="w-16 h-16 border-2 border-dashed border-gray-400 rounded-lg flex items-center justify-center">
-                      <span className="text-gray-400 text-3xl">👜</span>
+                <div
+                    className="absolute top-[5%] right-[5%] w-1/4 h-1/4 z-40 cursor-pointer flex justify-center items-center group"
+                    onClick={() => handleSlotClick('accessories')}
+                  >
+                  {selectedAccessory ? (
+                    <img
+                      src={selectedAccessory.image}
+                      alt={selectedAccessory.name}
+                      className="w-full h-full object-contain drop-shadow-xl group-hover:scale-105 transition-transform"
+                    />
+                  ) : (
+                    <div className="w-1/2 h-1/2 border-2 border-dashed border-gray-400 rounded-lg flex items-center justify-center text-gray-500 font-medium group-hover:bg-gray-200/50 transition-colors">
+                      + Add
                     </div>
-                    <span className="text-xs text-gray-500 mt-1">Accessory</span>
-                  </div>
-                )}
+                  )}
+                </div>
 
                 {selectedCount === 0 && (
                   <div className="absolute inset-0 flex items-center justify-center z-50 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm">
