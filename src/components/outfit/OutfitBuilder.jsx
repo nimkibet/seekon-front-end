@@ -87,21 +87,53 @@ const OutfitBuilder = () => {
       // Extract subcategory safely
       const subCategoryName = typeof product.subcategory === 'object' ? product.subcategory?.name : product.subcategory;
       const subCat = (subCategoryName || '').toLowerCase();
+      
+      // Fallback: use name matching if subcategory is not available
+      const name = (product.name || '').toLowerCase();
+      const hasSubcategory = subCat !== '';
 
       if (activeTab === 'tops') {
-        // Match Apparel category AND either 'tops' or 'outerwear' subcategories
-        return cat === 'apparel' && (subCat === 'tops' || subCat === 'outerwear');
+        // Match Apparel category
+        if (cat !== 'apparel') return false;
+        
+        // If subcategory exists, use it; otherwise fall back to name matching
+        if (hasSubcategory) {
+          return subCat === 'tops' || subCat === 'outerwear';
+        }
+        // Fallback to name matching
+        return name.includes('t-shirt') ||
+               name.includes('shirt') ||
+               name.includes('tee') ||
+               name.includes('hoodie') ||
+               name.includes('jacket') ||
+               name.includes('sweater') ||
+               name.includes('top');
       }
+      
       if (activeTab === 'bottoms') {
-        // Match Apparel category AND 'bottoms' subcategory
-        return cat === 'apparel' && subCat === 'bottoms';
+        // Match Apparel category
+        if (cat !== 'apparel') return false;
+        
+        // If subcategory exists, use it; otherwise fall back to name matching
+        if (hasSubcategory) {
+          return subCat === 'bottoms';
+        }
+        // Fallback to name matching
+        return name.includes('pant') ||
+               name.includes('short') ||
+               name.includes('jean') ||
+               name.includes('trouser') ||
+               name.includes('jogger') ||
+               name.includes('bottom');
       }
+      
       if (activeTab === 'shoes') {
-        // Match Footwear category (sneakers, slides, boots)
-        return cat === 'footwear';
+        // Match Footwear category (subcategory not needed for shoes)
+        return cat === 'footwear' || cat === 'sneakers';
       }
+      
       if (activeTab === 'accessories') {
-        // Match Accessories category (caps, bags, jewelry, etc.)
+        // Match Accessories category
         return cat === 'accessories';
       }
       
