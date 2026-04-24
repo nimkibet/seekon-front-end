@@ -23,7 +23,7 @@ import { useCurrency } from '../context/CurrencyContext';
 import toast from 'react-hot-toast';
 import ReviewModal from '../components/ReviewModal';
 import { useDispatch } from 'react-redux';
-import { addToCart } from '../store/slices/cartSlice';
+import { addToCart, addToCartAPI } from '../store/slices/cartSlice';
 
 const MyOrders = () => {
   const { user } = useAuth();
