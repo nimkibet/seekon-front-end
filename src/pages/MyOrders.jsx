@@ -75,25 +75,58 @@ const MyOrders = () => {
     return true;
   });
 
-  // Handle Buy Again - add items to cart
+  // Handle Buy Again - add items to cart with correct payload structure
   const handleBuyAgain = async (order) => {
+    if (!order?.items?.length) {
+      toast.error('No items to add to cart');
+      return;
+    }
+
     setBuyingAgain(order._id);
     try {
-      // Add all items from the order to cart
-      for (const item of order.items) {
-        dispatch(addToCart({
-          id: item.product?._id || item.product || item.id,
-          name: item.name,
-          price: item.price,
-          quantity: item.quantity,
-          image: item.image || '/placeholder.jpg',
-          size: item.size || 'M',
-          color: item.color || 'Default'
-        }));
-      }
-      toast.success('Items added to cart!');
+      const isAuthenticated = !!user;
+
+      // Process all items with correct payload structure
+      const addPromises = order.items.map(async (item) => {
+        // Extract product ID (handle all possible formats)
+        const productId = item.product?._id || item.product || item.id || item.productId;
+        if (!productId) {
+          console.error('Invalid product ID for item:', item);
+          return;
+        }
+
+        if (isAuthenticated) {
+          // Use addToCartAPI to sync with backend (same as ProductDetail.jsx)
+          return dispatch(addToCartAPI({
+            product: { id: productId },
+            size: item.size || null,
+            color: item.color || null,
+            quantity: item.quantity
+          })).unwrap();
+        } else {
+          // Use local addToCart with correct payload structure expected by cartSlice
+          return dispatch(addToCart({
+            product: {
+              id: productId,
+              name: item.name || 'Unknown Product',
+              price: item.price || 0,
+              image: item.image || '/placeholder.jpg',
+              brand: item.brand || 'Seekon'
+            },
+            size: item.size || null,
+            color: item.color || null,
+            quantity: item.quantity
+          }));
+        }
+      });
+
+      // Wait for all items to be processed
+      await Promise.all(addPromises.filter(Boolean));
+
+      toast.success(`${order.items.length} items added to cart!`);
       navigate('/cart');
     } catch (error) {
+      console.error('Error adding items to cart:', error);
       toast.error('Failed to add items to cart');
     } finally {
       setBuyingAgain(null);
