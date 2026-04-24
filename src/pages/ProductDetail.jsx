@@ -42,17 +42,6 @@ const ProductDetail = () => {
   const [error, setError] = useState(false);
   const [activeImage, setActiveImage] = useState(null);
 
-  useEffect(() => {
-    if (product?.images?.length > 0) {
-      const firstImage = typeof product.images[0] === 'string'
-        ? product.images[0]
-        : product.images[0].url;
-      setActiveImage(firstImage);
-    } else if (product?.image) {
-      setActiveImage(product.image);
-    }
-  }, [product]);
-
   // Fetch product directly from API for robust handling
   useEffect(() => {
     const fetchProductFromApi = async () => {
@@ -84,6 +73,17 @@ const ProductDetail = () => {
 
   // Use API fetched product, fallback to Redux product
   const product = apiProduct || products.find(p => p.id === id);
+
+  useEffect(() => {
+    if (product?.images?.length > 0) {
+      const firstImage = typeof product.images[0] === 'string'
+        ? product.images[0]
+        : product.images[0].url;
+      setActiveImage(firstImage);
+    } else if (product?.image) {
+      setActiveImage(product.image);
+    }
+  }, [product]);
 
   useEffect(() => {
     if (products.length === 0) {
