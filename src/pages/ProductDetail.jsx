@@ -190,6 +190,14 @@ const ProductDetail = () => {
     );
   }
 
+  // Handle Buy Now - adds to cart and redirects to checkout
+  const handleBuyNow = async () => {
+    if (!product) return;
+    
+    await handleAddToCart();
+    navigate('/checkout');
+  };
+
   // Handle Add to Cart - use flash sale price if applicable
   const handleAddToCart = async () => {
     // Check authentication FIRST - redirect to login if not authenticated
@@ -602,6 +610,16 @@ const ProductDetail = () => {
             {/* Action Buttons */}
             <div className="space-y-3 sm:space-y-4">
               <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-4">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleBuyNow}
+                  disabled={!product.inStock}
+                  className="flex-1 bg-[#00A676] text-white hover:bg-[#008f5f] font-semibold py-3 px-4 rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 text-sm sm:text-base shadow-lg"
+                >
+                  <span>Buy Now</span>
+                </motion.button>
+                
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
