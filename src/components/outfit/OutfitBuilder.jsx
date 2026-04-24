@@ -80,35 +80,32 @@ const OutfitBuilder = () => {
     const sourceProducts = products || [];
 
     return sourceProducts.filter((product) => {
-      const cat = (product.category || '').toLowerCase();
-      const name = (product.name || '').toLowerCase();
+      // Safely handle both string and object category structures depending on population
+      const categoryName = typeof product.category === 'object' ? product.category?.name : product.category;
+      const cat = (categoryName || '').toLowerCase();
+      
+      // Extract subcategory safely
+      const subCategoryName = typeof product.subcategory === 'object' ? product.subcategory?.name : product.subcategory;
+      const subCat = (subCategoryName || '').toLowerCase();
 
       if (activeTab === 'tops') {
-        return cat === 'apparel' &&
-          (name.includes('t-shirt') ||
-           name.includes('shirt') ||
-           name.includes('tee') ||
-           name.includes('hoodie') ||
-           name.includes('jacket') ||
-           name.includes('sweater') ||
-           name.includes('top'));
+        // Match Apparel category AND either 'tops' or 'outerwear' subcategories
+        return cat === 'apparel' && (subCat === 'tops' || subCat === 'outerwear');
       }
       if (activeTab === 'bottoms') {
-        return cat === 'apparel' &&
-          (name.includes('pant') ||
-           name.includes('short') ||
-           name.includes('jean') ||
-           name.includes('trouser') ||
-           name.includes('jogger') ||
-           name.includes('bottom'));
+        // Match Apparel category AND 'bottoms' subcategory
+        return cat === 'apparel' && subCat === 'bottoms';
       }
       if (activeTab === 'shoes') {
-        return cat === 'footwear' || cat === 'sneakers';
+        // Match Footwear category (sneakers, slides, boots)
+        return cat === 'footwear';
       }
       if (activeTab === 'accessories') {
+        // Match Accessories category (caps, bags, jewelry, etc.)
         return cat === 'accessories';
       }
-      return true;
+      
+      return false;
     });
   };
 
