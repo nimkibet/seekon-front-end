@@ -106,20 +106,17 @@ const OutfitBuilder = () => {
       }
       
       if (activeTab === 'bottoms') {
-        // Match Apparel category
-        if (cat !== 'apparel') return false;
-        
-        // If subcategory exists, use it; otherwise fall back to name matching
-        if (hasSubcategory) {
-          return subCat === 'bottoms';
-        }
-        // Fallback to name matching
-        return name.includes('pant') ||
-               name.includes('short') ||
-               name.includes('jean') ||
-               name.includes('trouser') ||
-               name.includes('jogger') ||
-               name.includes('bottom');
+        // Match Apparel category AND any of these bottom-related subcategories
+        return cat === 'apparel' && (
+          subCat === 'bottoms' || 
+          subCat === 'pants' || 
+          subCat === 'shorts' || 
+          subCat === 'jeans' || 
+          subCat === 'joggers' ||
+          subCat === 'trousers' ||
+          subCat === 'sweatpants' ||
+          subCat === 'cargos'
+        );
       }
       
       if (activeTab === 'shoes') {
