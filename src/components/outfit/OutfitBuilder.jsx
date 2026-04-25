@@ -77,37 +77,32 @@ const OutfitBuilder = () => {
     const tabConfig = CATEGORIES.find((c) => c.id === activeTab);
     if (!tabConfig) return [];
 
-    const sourceProducts = products || [];
+     const sourceProducts = products || [];
 
-    return sourceProducts.filter((product) => {
-      // Safely handle both string and object category structures depending on population
-      const categoryName = typeof product.category === 'object' ? product.category?.name : product.category;
-      const cat = (categoryName || '').toLowerCase();
-      
-      // Extract subcategory safely
-      const subCategoryName = typeof product.subcategory === 'object' ? product.subcategory?.name : product.subcategory;
-      const subCat = (subCategoryName || '').toLowerCase();
+     return sourceProducts.filter((product) => {
+       // Safely handle both string and object category structures depending on population
+       const categoryName = typeof product.category === 'object' ? product.category?.name : product.category;
+       const cat = (categoryName || '').toLowerCase();
+       
+       // Extract subCategory safely (Note the camelCase 'C' to match backend schema)
+       const subCategoryName = typeof product.subCategory === 'object' ? product.subCategory?.name : product.subCategory;
+       const subCat = (subCategoryName || '').toLowerCase();
       
       // Fallback: use name matching if subcategory is not available
       const name = (product.name || '').toLowerCase();
       const hasSubcategory = subCat !== '';
 
       if (activeTab === 'tops') {
-        // Match Apparel category
-        if (cat !== 'apparel') return false;
-        
-        // If subcategory exists, use it; otherwise fall back to name matching
-        if (hasSubcategory) {
-          return subCat === 'tops' || subCat === 'outerwear';
-        }
-        // Fallback to name matching
-        return name.includes('t-shirt') ||
-               name.includes('shirt') ||
-               name.includes('tee') ||
-               name.includes('hoodie') ||
-               name.includes('jacket') ||
-               name.includes('sweater') ||
-               name.includes('top');
+        // Match Apparel category AND any of these top-related subcategories
+        return cat === 'apparel' && (
+          subCat === 'tops' || 
+          subCat === 'outerwear' || 
+          subCat === 't shirts' || 
+          subCat === 't-shirts' || 
+          subCat === 'shirts' ||
+          subCat === 'hoodies' ||
+          subCat === 'sweaters'
+        );
       }
       
       if (activeTab === 'bottoms') {
