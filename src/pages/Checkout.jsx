@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { FiArrowLeft, FiCalendar, FiClock, FiTrash2, FiMinus, FiPlus, FiMapPin, FiSmartphone, FiCreditCard, FiCheckCircle, FiXCircle, FiX, FiTag } from 'react-icons/fi';
+import { FiArrowLeft, FiCalendar, FiClock, FiTrash2, FiMinus, FiPlus, FiMapPin, FiCreditCard, FiCheckCircle, FiXCircle, FiTag } from 'react-icons/fi';
 import { useSelector, useDispatch } from 'react-redux';
 import { formatPrice } from '../utils/formatPrice';
 import { useCurrency } from '../context/CurrencyContext';
@@ -11,6 +11,20 @@ import axios from 'axios';
 import { api } from '../utils/api';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://seekonbackend-production-da47.up.railway.app';
+const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || '';
+
+const loadPaystackScript = () =>
+  new Promise((resolve, reject) => {
+    if (window.PaystackPop) {
+      resolve(window.PaystackPop);
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = 'https://js.paystack.co/v1/inline.js';
+    script.onload = () => resolve(window.PaystackPop);
+    script.onerror = () => reject(new Error('Failed to load Paystack'));
+    document.body.appendChild(script);
+  });
 
 export const shippingOptions = [
   { id: 'nairobi_cbd', label: 'Nairobi CBD / Town', price: 100 },
@@ -103,12 +117,8 @@ const Checkout = () => {
   const [address, setAddress] = useState('');
   const [zipCode, setZipCode] = useState('');
   const [currentStep, setCurrentStep] = useState(1); // 1: Delivery, 2: Payment, 3: Confirmation
-  const [paymentMethod, setPaymentMethod] = useState('mpesa');
   const [paymentStatus, setPaymentStatus] = useState('idle'); // idle, loading, success, failed
   const [currentOrderId, setCurrentOrderId] = useState(null);
-  const [checkoutRequestId, setCheckoutRequestId] = useState(null);
-  const [isPolling, setIsPolling] = useState(false);
-  const pollingIntervalRef = useRef(null);
   
   // FIX ISSUE #3: Store order items before clearing cart for confirmation display
   const [orderConfirmationItems, setOrderConfirmationItems] = useState([]);
@@ -116,12 +126,6 @@ const Checkout = () => {
   // Freeze totals for the final confirmation page so they aren't lost when cart clears
   const [finalOrderTotals, setFinalOrderTotals] = useState({ total: 0, subtotal: 0, shippingCost: 0, discount: 0 });
   
-  // Card details state
-  const [cardNumber, setCardNumber] = useState('');
-  const [cardHolder, setCardHolder] = useState('');
-  const [expiryDate, setExpiryDate] = useState('');
-  const [cvv, setCvv] = useState('');
-
   // Shipping state
   const [selectedShipping, setSelectedShipping] = useState(shippingOptions[0]);
 
@@ -258,7 +262,7 @@ const Checkout = () => {
           };
         }),
         totalAmount: calculateTotals().total,
-        paymentMethod: paymentMethod === 'mpesa' ? 'M-Pesa' : 'Card',
+        paymentMethod: 'Paystack',
         shippingAddress: {
           firstName,
           lastName,
@@ -312,226 +316,84 @@ const Checkout = () => {
       const createdOrder = orderResult.order;
       setCurrentOrderId(createdOrder._id);
 
-      if (paymentMethod === 'mpesa') {
-        if (!phoneNumber) {
-          toast.error('Please enter your M-Pesa phone number');
-          setPaymentStatus('failed');
-          return;
-        }
-        
-        const response = await fetch(`${API_URL}/api/payment/mpesa`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify({
-            phoneNumber,
-            amount: calculateTotals().total,
-            userEmail: email,
-            orderId: createdOrder._id,
-            couponCode: appliedCoupon ? appliedCoupon.couponCode : null
-          })
-        });
+      const totals = calculateTotals();
+      const initResponse = await fetch(`${API_URL}/api/payment/paystack/initialize`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          orderId: createdOrder._id,
+          amount: totals.total,
+          email
+        })
+      });
 
-        const data = await response.json();
-        
-        if (data.success) {
-          // STK Push sent - start STRICT polling for payment status
-          // CRITICAL: Do NOT redirect here - wait for payment
-          if (createdOrder._id && !data.mock) {
-            // Store checkoutRequestId for manual verification
-            setCheckoutRequestId(data.checkoutRequestID);
-            toast.success('STK Prompt sent! Check your phone to enter PIN.');
-            // Start polling - this will handle the redirect when paid
-            await startStrictPolling(createdOrder._id, token);
-          } else {
-            // Mock mode - just show success
-            setPaymentStatus('success');
-            toast.success('Payment successful!');
-            // Auto-clear cart on successful payment
-            dispatch(clearCartAPI());
-            setTimeout(() => {
-              setCurrentStep(3); // Move to confirmation
-            }, 2000);
-          }
-        } else {
-          throw new Error(data.message);
-        }
-      } else if (paymentMethod === 'card') {
-        if (!cardNumber || !cardHolder || !expiryDate || !cvv) {
-          toast.error('Please fill in all card details');
-          setPaymentStatus('failed');
-          return;
-        }
-        
-        // Simulate card payment (replace with actual payment gateway integration)
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        setPaymentStatus('success');
-        toast.success('Payment successful!');
-        // Auto-clear cart on successful payment
-        dispatch(clearCartAPI());
-        setTimeout(() => {
-          setCurrentStep(3); // Move to confirmation
-        }, 2000);
+      const initData = await initResponse.json();
+      if (!initResponse.ok || !initData.success) {
+        throw new Error(initData.message || 'Failed to initialize payment');
       }
+
+      setPaymentStatus('idle');
+
+      if (!PAYSTACK_PUBLIC_KEY) {
+        window.location.href = initData.checkoutUrl;
+        return;
+      }
+
+      const PaystackPop = await loadPaystackScript();
+      const handler = PaystackPop.setup({
+        key: PAYSTACK_PUBLIC_KEY,
+        email,
+        amount: Math.round(totals.total * 100),
+        currency: 'KES',
+        ref: initData.reference,
+        onClose: () => {
+          clearPaymentFlag();
+          setPaymentStatus('idle');
+          toast.error('Payment cancelled');
+        },
+        callback: (response) => {
+          handlePaystackSuccess(response.reference, token);
+        }
+      });
+      handler.openIframe();
     } catch (error) {
       setPaymentStatus('failed');
-      stopPolling();
-      clearPaymentFlag(); // Clear the 3D background flag
+      clearPaymentFlag();
       toast.error(error.message || 'Payment failed. Please try again.');
     }
   };
 
-  // STRICT POLLING: Check every 3 seconds until payment is confirmed - timeout after 2 minutes
-  const startStrictPolling = async (orderId, token) => {
-    setIsPolling(true);
-    let attempts = 0;
-    const maxAttempts = 40; // Check for ~2 minutes (40 * 3 seconds = 120 seconds)
-    
-    // Clear any existing polling
-    stopPolling();
-    
-    pollingIntervalRef.current = setInterval(async () => {
-      attempts++;
-      try {
-        const { data } = await axios.get(`${API_URL}/api/orders/${orderId}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        
-        const order = data.order;
-        
-        // Check for cancelled status first (payment failed)
-        if (order && order.status === 'cancelled') {
-          stopPolling();
-          setPaymentStatus('failed');
-          clearPaymentFlag(); // Clear the 3D background flag
-          // Show the specific error message from M-Pesa callback
-          toast.error('Payment Failed: Invalid Initiator Information. Please check your M-Pesa PIN and try again.');
-          return; // Exit the polling loop
-        }
-        
-        // Check if payment is completed (isPaid is true)
-        // Note: Backend uses 'isPaid' flag, not status === 'completed'
-        if (order && order.isPaid) {
-          stopPolling();
-          setPaymentStatus('success');
-          clearPaymentFlag(); // Clear the 3D background flag
-          toast.success('Payment Received Successfully!');
-          // Auto-clear cart on successful payment
-          dispatch(clearCartAPI());
-          // Move to confirmation step (which acts as success page)
-          setTimeout(() => {
-            setCurrentStep(3); // Move to confirmation
-          }, 1500);
-          return; // Exit the polling loop
-        }
-      } catch (e) {
-        // Silently continue polling - don't show error for network issues
-        // Just wait patiently for the payment confirmation
-      }
-      
-      // Timeout after ~2 minutes - treat as failed but stay on page
-      if (attempts >= maxAttempts) {
-        stopPolling();
-        setPaymentStatus('failed');
-        clearPaymentFlag(); // Clear the 3D background flag
-        toast.error('Payment timed out. Please check your phone and try again, or use a different number.');
-        // User stays on this page to retry with different phone number
-      }
-    }, 3000); // Check every 3 seconds
-  };
-
-  // Manual M-Pesa Payment Verification - Fallback when callbacks fail
-  const handleVerifyPayment = async () => {
-    if (!checkoutRequestId || !currentOrderId) {
-      toast.error('No payment session found. Please try again.');
-      return;
-    }
-
-    // FIX: Check both 'token' and 'adminToken' keys for compatibility
-    const token = localStorage.getItem('token') || localStorage.getItem('adminToken');
-    
-    if (!token) {
-      console.error("🚨 AUTH ERROR: No token found in handleVerifyPayment!");
-      toast.error("Please log in to verify payment");
-      navigate('/login', { state: { from: { pathname: '/checkout' } } });
-      return;
-    }
-    
+  const handlePaystackSuccess = async (reference, token) => {
     try {
-      toast.loading('Verifying payment...', { id: 'verify' });
-      
-      const response = await axios.post(
-        `${API_URL}/api/payment/mpesa/query`,
-        {
-          checkoutRequestId,
-          orderId: currentOrderId
-        },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          }
-        }
-      );
+      setPaymentStatus('loading');
+      const { data } = await axios.get(`${API_URL}/api/payment/paystack/verify`, {
+        params: { reference }
+      });
 
-      toast.remove('verify');
-
-      if (response.data.success) {
-        stopPolling();
-        setPaymentStatus('success');
-        toast.success('Payment verified successfully!');
-        // Auto-clear cart on successful payment
-        dispatch(clearCartAPI());
-        setTimeout(() => {
-          setCurrentStep(3); // Move to confirmation
-        }, 1500);
-      } else {
-        toast.error(response.data.message || 'Payment verification failed');
+      if (!data.success) {
+        throw new Error(data.message || 'Payment verification failed');
       }
+
+      setPaymentStatus('success');
+      clearPaymentFlag();
+      toast.success('Payment successful!');
+      dispatch(clearCartAPI());
+      setTimeout(() => setCurrentStep(3), 500);
     } catch (error) {
-      toast.remove('verify');
-      console.error('Payment verification error:', error);
-      toast.error(error.response?.data?.message || 'Failed to verify payment. Please try again.');
+      console.error('Payment verification failed', error);
+      setPaymentStatus('failed');
+      clearPaymentFlag();
+      toast.error(error.response?.data?.message || error.message || 'Payment verification failed');
     }
   };
 
-  // Legacy polling function kept for backward compatibility
-  const startPolling = (orderId, token) => {
-    startStrictPolling(orderId, token);
-  };
-
-  const stopPolling = () => {
-    if (pollingIntervalRef.current) {
-      clearInterval(pollingIntervalRef.current);
-      pollingIntervalRef.current = null;
-    }
-    setIsPolling(false);
-  };
-  
-  // Clear payment processing flag from session storage
   const clearPaymentFlag = () => {
     sessionStorage.removeItem('isPaymentProcessing');
     window.dispatchEvent(new Event('paymentStateChange'));
   };
-
-  // Manual cancel - user wants to stop waiting for M-Pesa
-  const handleManualCancel = () => {
-    stopPolling();
-    clearPaymentFlag(); // Clear the 3D background flag
-    setCheckoutRequestId(null);
-    setPaymentStatus('idle');
-    toast.info("Payment verification stopped. You can try again.", { duration: 3000 });
-  };
-
-  // Cleanup polling on unmount
-  useEffect(() => {
-    return () => {
-      stopPolling();
-    };
-  }, []);
 
   const handleCompleteOrder = () => {
     toast.success('Order completed successfully!');
@@ -625,7 +487,7 @@ const Checkout = () => {
           {currentStep < 3 && (
             <button 
               onClick={() => currentStep === 2 ? setCurrentStep(1) : navigate('/cart')}
-              disabled={paymentStatus === 'loading' || isPolling}
+              disabled={paymentStatus === 'loading'}
               className="flex items-center space-x-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 mb-4 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <FiArrowLeft className="w-5 h-5" />
@@ -650,7 +512,7 @@ const Checkout = () => {
                   <div className="flex flex-col items-center">
                     <button
                       type="button"
-                      disabled={!isCompleted || currentStep === 3 || paymentStatus === 'loading' || isPolling}
+                      disabled={!isCompleted || currentStep === 3 || paymentStatus === 'loading'}
                       onClick={() => isCompleted && currentStep === 2 ? setCurrentStep(1) : null}
                       className={`w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all ${
                         isCompleted || isCurrent
@@ -1050,110 +912,19 @@ const Checkout = () => {
             >
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Payment</h2>
               
-              {/* Payment Methods */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                  Select Payment Method
-                </label>
-                <div className="grid grid-cols-2 gap-4">
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMethod('mpesa')}
-                    className={`flex flex-col items-center justify-center p-6 rounded-xl border-2 transition-all ${
-                      paymentMethod === 'mpesa'
-                        ? 'border-black bg-black/10'
-                        : 'border-gray-200 dark:border-gray-600 hover:border-gray-400'
-                    }`}
-                  >
-                    <FiSmartphone className="text-4xl mb-2" />
-                    <span className="font-semibold text-gray-900 dark:text-white">M-Pesa</span>
-                    <span className="text-xs text-gray-500 mt-1">Mobile Money</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setPaymentMethod('card')}
-                    disabled={true}
-                    className={`flex flex-col items-center justify-center p-6 rounded-xl border-2 transition-all opacity-60 cursor-not-allowed ${
-                      paymentMethod === 'card'
-                        ? 'border-black bg-black/10'
-                        : 'border-gray-200 dark:border-gray-600 hover:border-gray-400'
-                    }`}
-                  >
-                    <FiCreditCard className="text-4xl mb-2" />
-                    <span className="font-semibold text-gray-900 dark:text-white">Card</span>
-                    <span className="text-xs text-gray-500 mt-1">Credit/Debit <span className="text-xs text-gray-500 italic ml-1">(Coming Soon)</span></span>
-                  </button>
-                </div>
-              </div>
-
-              {paymentMethod === 'mpesa' && (
-                <div className="space-y-4">
+              <motion.div className="mb-6 p-6 rounded-xl border-2 border-black bg-black/5">
+                <div className="flex items-center gap-4">
+                  <FiCreditCard className="text-4xl text-gray-900 dark:text-white" />
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Phone Number (M-Pesa)
-                    </label>
-                    <input
-                      type="tel"
-                      value={phoneNumber}
-                      onChange={(e) => setPhoneNumber(e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#00A676] focus:border-[#00A676]"
-                      placeholder="254 712 345 678"
-                      disabled={paymentStatus === 'loading' || paymentStatus === 'success'}
-                    />
-                  </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Using test number: 254708374149 (Safaricom sandbox)
-                  </p>
-                </div>
-              )}
-
-              {paymentMethod === 'card' && (
-                <div className="space-y-4">
-                  {/* Coming Soon Notice */}
-                  <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-6 text-center">
-                    <p className="text-lg font-semibold text-amber-800 dark:text-amber-200 mb-2">🚧 Card Payments Coming Soon!</p>
-                    <p className="text-sm text-amber-700 dark:text-amber-300">
-                      We're currently working on integrating card payments. Please use M-Pesa for now.
+                    <p className="font-semibold text-gray-900 dark:text-white">Paystack</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Pay securely with card. Use test card 4084084084084081 in sandbox.
                     </p>
                   </div>
                 </div>
-              )}
+              </motion.div>
 
-              {/* Payment Status */}
-              {isPolling && paymentMethod === 'mpesa' && (
-                <div className="mt-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
-                  <div className="flex items-center space-x-3">
-                    <div className="animate-pulse rounded-full h-4 w-4 bg-yellow-500"></div>
-                    <div>
-                      <p className="text-yellow-800 dark:text-yellow-200 font-medium">
-                        Waiting for M-Pesa Payment...
-                      </p>
-                      <p className="text-yellow-600 dark:text-yellow-300 text-sm">
-                        Check your phone and enter your PIN to complete payment
-                      </p>
-                    </div>
-                  </div>
-                  {/* Verify Payment Status Button */}
-                  {checkoutRequestId && (
-                    <button
-                      onClick={handleVerifyPayment}
-                      className="w-full mt-4 bg-black hover:bg-gray-800 text-white font-medium py-3 px-4 rounded-lg transition-colors flex items-center justify-center space-x-2"
-                    >
-                      <FiSmartphone className="w-4 h-4" />
-                      <span>Verify Payment Status</span>
-                    </button>
-                  )}
-                  {/* Manual Cancel Button */}
-                  <button
-                    onClick={handleManualCancel}
-                    className="w-full mt-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 font-medium py-2 px-4 rounded-lg transition-colors text-sm"
-                  >
-                    Cancel or try again
-                  </button>
-                </div>
-              )}
-
-              {paymentStatus === 'loading' && !isPolling && (
+              {paymentStatus === 'loading' && (
                 <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                   <div className="flex items-center space-x-3">
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
@@ -1175,10 +946,10 @@ const Checkout = () => {
                 <div className="mt-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
                   <div className="flex items-center space-x-3 mb-3">
                     <FiXCircle className="text-red-600 w-5 h-5" />
-                    <p className="text-red-600 dark:text-red-400">Payment timed out. Please try again below.</p>
+                    <p className="text-red-600 dark:text-red-400">Payment failed. Please try again.</p>
                   </div>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                    Didn't receive the M-Pesa prompt? Check your phone number and try again, or use a different number.
+                    Your card was not charged, or verification did not complete.
                   </p>
                   <button
                     onClick={() => {
@@ -1191,29 +962,13 @@ const Checkout = () => {
                 </div>
               )}
 
-              {/* Quick Fill Button for Testing */}
-              {paymentMethod === 'card' && paymentStatus === 'idle' && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCardNumber('4111 1111 1111 1111');
-                    setCardHolder('John Doe');
-                    setExpiryDate('12/25');
-                    setCvv('123');
-                  }}
-                  className="w-full mt-4 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 font-medium py-3 px-6 rounded-lg transition-all"
-                >
-                  🎯 Quick Fill Demo Card
-                </button>
-              )}
-
               {/* Pay Now Button */}
               <button
                 onClick={handlePayment}
-                disabled={paymentStatus === 'loading' || paymentStatus === 'success' || isPolling}
+                disabled={paymentStatus === 'loading' || paymentStatus === 'success'}
                 className="w-full mt-6 bg-black hover:bg-gray-800 text-white transition-colors duration-300 font-bold py-4 px-6 rounded-lg shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isPolling ? 'Waiting for Payment...' : paymentStatus === 'loading' ? 'Processing...' : 'Pay Now'}
+                {paymentStatus === 'loading' ? 'Processing...' : 'Pay with Paystack'}
               </button>
             </motion.div>
 

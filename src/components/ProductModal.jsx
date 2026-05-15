@@ -10,6 +10,73 @@ const getAuthToken = () => {
   return localStorage.getItem('adminToken') || localStorage.getItem('token');
 };
 
+const mapProductToFormData = (product) => {
+  const parseDate = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return '';
+    return date.toISOString().slice(0, 16);
+  };
+
+  const toList = (value) => {
+    if (Array.isArray(value)) return value.filter(Boolean);
+    if (value == null || value === '') return [];
+    return [String(value)];
+  };
+
+  const sizes = toList(product.sizes?.length ? product.sizes : product.size);
+  const colors = toList(product.colors?.length ? product.colors : product.color);
+  const imagesArray = product.images?.length
+    ? product.images
+    : product.image
+      ? [product.image]
+      : [];
+
+  return {
+    name: product.name || '',
+    category: product.category || 'Sneakers',
+    subCategory: product.subCategory || '',
+    brand: product.brand || '',
+    price: product.price != null ? String(product.price) : '',
+    stock: product.stock != null ? String(product.stock) : '',
+    size: sizes.join(', '),
+    color: colors.join(', '),
+    description: product.description || '',
+    image: product.image || null,
+    images: imagesArray,
+    isTrending: product.isTrending || product.isFeatured || false,
+    isFeatured: product.isFeatured || false,
+    isNew: product.isNew || false,
+    isBestSeller: product.isBestSeller || false,
+    isFlashSale: product.isFlashSale || false,
+    flashSalePrice: product.flashSalePrice != null ? String(product.flashSalePrice) : '',
+    saleStartTime: parseDate(product.saleStartTime),
+    saleEndTime: parseDate(product.saleEndTime)
+  };
+};
+
+const emptyFormData = {
+  name: '',
+  category: 'Sneakers',
+  subCategory: '',
+  brand: '',
+  price: '',
+  stock: '',
+  size: '',
+  color: '',
+  description: '',
+  image: null,
+  images: [],
+  isTrending: false,
+  isFeatured: false,
+  isNew: false,
+  isBestSeller: false,
+  isFlashSale: false,
+  flashSalePrice: '',
+  saleStartTime: '',
+  saleEndTime: ''
+};
+
 const ProductModal = ({ isOpen, onClose, product, onSave }) => {
   // Dynamic categories from API - hierarchical structure
   const [dbCategories, setDbCategories] = useState([]);
@@ -95,76 +162,21 @@ const ProductModal = ({ isOpen, onClose, product, onSave }) => {
   });
 
   useEffect(() => {
+    if (!isOpen) return;
+
     if (product) {
-      console.log('[DEBUG] ProductModal - product data:', JSON.stringify(product, null, 2));
-      
-      // Safe date parsing with validation
-      const parseDate = (dateStr) => {
-        if (!dateStr) return '';
-        const date = new Date(dateStr);
-        if (isNaN(date.getTime())) {
-          console.warn('[DEBUG] Invalid date:', dateStr);
-          return '';
-        }
-        return date.toISOString().slice(0, 16);
-      };
-      
-      const imagesArray = product.images || (product.image ? [product.image] : []);
-      setFormData({
-        name: product.name || '',
-        category: product.category || 'Sneakers',
-        subCategory: product.subCategory || '',
-        brand: product.brand || '',
-        price: product.price || '',
-        stock: product.stock || '',
-        size: product.size || '',
-        color: product.color || '',
-        description: product.description || '',
-        image: product.image || null,
-        images: imagesArray,
-        isTrending: product.isTrending || product.isFeatured || false,
-        isFeatured: product.isFeatured || false,
-        isNew: product.isNew || false,
-        isBestSeller: product.isBestSeller || false,
-        // Flash Sale fields - use safe date parsing
-        isFlashSale: product.isFlashSale || false,
-        flashSalePrice: product.flashSalePrice || '',
-        saleStartTime: parseDate(product.saleStartTime),
-        saleEndTime: parseDate(product.saleEndTime)
-      });
-      setCurrentImages(imagesArray);
+      const mapped = mapProductToFormData(product);
+      setFormData(mapped);
+      setCurrentImages(mapped.images);
     } else {
-      setFormData({
-        name: '',
-        category: 'Sneakers',
-        subCategory: '',
-        brand: '',
-        price: '',
-        stock: '',
-        size: '',
-        color: '',
-        description: '',
-        image: null,
-        images: [],
-        isTrending: false,
-        isFeatured: false,
-        isNew: false,
-        isBestSeller: false,
-        // Flash Sale fields
-        isFlashSale: false,
-        flashSalePrice: '',
-        saleStartTime: '',
-        saleEndTime: ''
-      });
+      setFormData(emptyFormData);
       setCurrentImages([]);
     }
+    setErrors({});
 
-    // Scroll to top when modal opens
-    if (isOpen) {
-      setTimeout(() => {
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      }, 100);
-    }
+    setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 100);
   }, [product, isOpen]);
 
   const handleChange = (e) => {

@@ -565,7 +565,10 @@ const AdminProducts = () => {
       {/* Product Modal */}
       <ProductModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => {
+          setIsModalOpen(false);
+          setSelectedProduct(null);
+        }}
         product={selectedProduct}
         onSave={handleSaveProduct}
       />
