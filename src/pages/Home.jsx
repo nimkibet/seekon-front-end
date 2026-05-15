@@ -34,7 +34,7 @@ const Home = () => {
 
   // Dynamic hero settings from backend
   const [heroSettings, setHeroSettings] = useState({
-    heroVideoUrl: "https://res.cloudinary.com/demo/video/upload/v1689264426/running_shoes_promo.mp4",
+    heroVideoUrl: "",
     heroHeading: "STEP INTO THE FUTURE",
     heroSubtitle: "Discover the latest drops from Nike, Adidas, Jordan, and more.",
     heroOverlayOpacity: 50,
@@ -217,22 +217,26 @@ const Home = () => {
         </div>
       </div>
       <div className="absolute inset-0 z-0">
-        {isVideo(heroSettings.heroVideoUrl) ? (
-          <video 
-            autoPlay 
-            loop 
-            muted 
-            playsInline 
-            className="w-full h-full object-cover opacity-50"
-          >
-            <source src={heroSettings.heroVideoUrl} type="video/mp4" />
-          </video>
+        {heroSettings.heroVideoUrl ? (
+          isVideo(heroSettings.heroVideoUrl) ? (
+            <video
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="w-full h-full object-cover opacity-50"
+            >
+              <source src={heroSettings.heroVideoUrl} type="video/mp4" />
+            </video>
+          ) : (
+            <img
+              src={heroSettings.heroVideoUrl}
+              alt="Hero Background"
+              className="w-full h-full object-cover opacity-50"
+            />
+          )
         ) : (
-          <img 
-            src={heroSettings.heroVideoUrl} 
-            alt="Hero Background"
-            className="w-full h-full object-cover opacity-50"
-          />
+          <div className="w-full h-full bg-gradient-to-br from-gray-900 via-black to-[#00A676]/40 opacity-80" />
         )}
       </div>
       <div 
