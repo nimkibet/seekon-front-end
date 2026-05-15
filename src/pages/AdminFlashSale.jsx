@@ -8,6 +8,7 @@ import { adminApi } from '../utils/adminApi';
 import toast from 'react-hot-toast';
 import FlashSaleCountdown from '../components/FlashSaleCountdown';
 import { useSettings } from '../context/SettingsContext';
+import { API_URL } from '../config/api.js';
 
 const AdminFlashSale = () => {
   const [products, setProducts] = useState([]);
@@ -36,7 +37,7 @@ const AdminFlashSale = () => {
   useEffect(() => {
     const fetchFlashSaleSettings = async () => {
       try {
-        const response = await axios.get('https://seekonbackend-production-5aa7.up.railway.app/api/settings/flash-sale');
+        const response = await axios.get(`${API_URL}/settings/flash-sale`);
         console.log("NUCLEAR FIX SUCCESS:", response.data);
         if (response.data) {
           setGlobalSettings({
@@ -531,3 +532,4 @@ const AdminFlashSale = () => {
 };
 
 export default AdminFlashSale;
+

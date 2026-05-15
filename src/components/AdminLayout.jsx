@@ -74,25 +74,38 @@ const AdminLayout = ({ children }) => {
         }
 
         // Get VAPID public key from backend
-        const response = await adminApi.getVapidPublicKey();
-        const publicKey = response.publicKey;
-        
-        if (!publicKey) {
-          console.log('VAPID public key not configured');
+        const { publicKey, configured } = await adminApi.getVapidPublicKey();
+        if (!configured || !publicKey) {
+          console.log('Push notifications skipped: VAPID keys not configured on server');
           return;
         }
 
-        // Subscribe to push notifications
-        const subscription = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(publicKey)
-        });
+        // Clear stale subscription (avoids AbortError from mismatched keys)
+        const existing = await registration.pushManager.getSubscription();
+        if (existing) {
+          await existing.unsubscribe();
+        }
 
-        // Send subscription to backend
+        let subscription;
+        try {
+          subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(publicKey),
+          });
+        } catch (pushError) {
+          if (pushError?.name === 'AbortError') {
+            console.warn('Push service unavailable in this browser — admin alerts will use in-app notifications only');
+            return;
+          }
+          throw pushError;
+        }
+
         await adminApi.subscribeToPush(subscription);
         console.log('Push subscription successful');
       } catch (error) {
-        console.error('Error initializing push notifications:', error);
+        if (error?.name !== 'AbortError') {
+          console.error('Error initializing push notifications:', error);
+        }
       }
     };
 

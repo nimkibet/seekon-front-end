@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { getUserAvatar, setUserAvatar, cleanupOldAvatarKeys } from '../../utils/userAvatar';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://seekonbackend-production-5aa7.up.railway.app';
+const API_URL = import.meta.env.VITE_API_URL || 'https://seekonbackend-production-da47.up.railway.app';
 
 // Clean up old shared avatar keys on initialization
 cleanupOldAvatarKeys();
@@ -579,3 +579,4 @@ const userSlice = createSlice({
 export const { logout, clearError, toggleTheme, setTheme, resetRegistration } = userSlice.actions;
 // validateToken is already exported above as export const validateToken
 export default userSlice.reducer;
+

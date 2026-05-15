@@ -10,8 +10,9 @@ import RecentlyViewed from '../components/RecentlyViewed';
 import { useCurrency } from '../context/CurrencyContext';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import { API_ORIGIN } from '../config/api.js';
 
-const API_URL = 'https://seekonbackend-production-5aa7.up.railway.app';
+const API_URL = API_ORIGIN;
 
 const Home = () => {
   const location = useLocation();
@@ -565,3 +566,4 @@ const Home = () => {
 };
 
 export default Home;
+

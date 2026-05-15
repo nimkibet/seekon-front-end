@@ -5,7 +5,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { adminApi } from '../../utils/adminApi';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://seekonbackend-production-5aa7.up.railway.app';
+const API_URL = import.meta.env.VITE_API_URL || 'https://seekonbackend-production-da47.up.railway.app';
 
 const getAuthToken = () => {
   return localStorage.getItem('adminToken') || localStorage.getItem('token');
@@ -842,3 +842,4 @@ const AddProduct = () => {
 };
 
 export default AddProduct;
+

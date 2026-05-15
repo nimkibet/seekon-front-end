@@ -1,12 +1,7 @@
 import axios from 'axios';
+import { API_URL } from '../config/api.js';
 
-// Use environment variable for deployment, fallback to production URL for development
-// Ensure baseURL always ends with /api for correct routing
-let apiUrl = import.meta.env.VITE_API_URL || 'https://seekonbackend-production-5aa7.up.railway.app/api';
-if (!apiUrl.endsWith('/api')) {
-  apiUrl = apiUrl + '/api';
-}
-const API_BASE_URL = apiUrl;
+const API_BASE_URL = API_URL;
 
 // Create axios instance with default config
 const client = axios.create({
@@ -157,7 +152,7 @@ export const api = {
   // HARDCODED FIX for Flash Sale - directly calling verified backend endpoint
   getFlashSaleSettings: async () => {
     try {
-      const response = await axios.get('https://seekonbackend-production-5aa7.up.railway.app/api/settings/flash-sale');
+      const response = await axios.get(`${API_BASE_URL}/settings/flash-sale`);
       console.log('Flash Sale Settings Response:', response.data);
       return response.data || { isActive: false, endTime: null };
     } catch (error) {

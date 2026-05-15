@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 
 // API URL - remove trailing slash to prevent /api/api issue
-const API_URL = (import.meta.env.VITE_API_URL || 'https://seekonbackend-production-5aa7.up.railway.app').replace(/\/$/, '');
+const API_URL = (import.meta.env.VITE_API_URL || 'https://seekonbackend-production-da47.up.railway.app').replace(/\/$/, '');
 
 // Mock API call for fetching products
 export const fetchProducts = createAsyncThunk(
@@ -575,4 +575,5 @@ const productSlice = createSlice({
 
 export const { setFilters, clearFilters, setSortBy, applyFilters } = productSlice.actions;
 export default productSlice.reducer;
+
 

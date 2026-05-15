@@ -3,6 +3,7 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import { FiSave, FiLayout, FiType, FiSliders, FiEye, FiVideo, FiUpload, FiImage, FiX, FiDollarSign } from 'react-icons/fi';
 import { uploadToCloudinary, uploadVideoToCloudinary } from '../../utils/cloudinary';
+import { API_URL } from '../../config/api.js';
 
 const WebSettings = () => {
   const [loading, setLoading] = useState(true);
@@ -19,8 +20,8 @@ const WebSettings = () => {
     showHeroBadge: true
   });
 
-  const API_URL = 'https://seekonbackend-production-5aa7.up.railway.app/api/settings/home';
-  const EXCHANGE_RATE_API = 'https://seekonbackend-production-5aa7.up.railway.app/api/settings/exchange-rate';
+  const HOME_SETTINGS_URL = `${API_URL}/settings/home`;
+  const EXCHANGE_RATE_API = `${API_URL}/settings/exchange-rate`;
 
   // Currency Settings State
   const [exchangeRate, setExchangeRate] = useState('');
@@ -46,7 +47,7 @@ const WebSettings = () => {
   const fetchSettings = async () => {
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get(API_URL, {
+      const res = await axios.get(HOME_SETTINGS_URL, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setFormData(res.data);
@@ -67,7 +68,7 @@ const WebSettings = () => {
     setSaving(true);
     try {
       const token = localStorage.getItem('token');
-      await axios.put(API_URL, formData, {
+      await axios.put(HOME_SETTINGS_URL, formData, {
         headers: { Authorization: `Bearer ${token}` }
       });
       toast.success('Website updated successfully!');
@@ -432,3 +433,4 @@ const WebSettings = () => {
 };
 
 export default WebSettings;
+

@@ -10,7 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { api } from '../utils/api';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://seekonbackend-production-5aa7.up.railway.app';
+const API_URL = import.meta.env.VITE_API_URL || 'https://seekonbackend-production-da47.up.railway.app';
 
 export const shippingOptions = [
   { id: 'nairobi_cbd', label: 'Nairobi CBD / Town', price: 100 },
@@ -1336,3 +1336,4 @@ const Checkout = () => {
 };
 
 export default Checkout;
+

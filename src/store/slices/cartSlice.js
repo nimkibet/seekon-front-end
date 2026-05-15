@@ -10,7 +10,7 @@ const initialState = {
 };
 
 // API configuration
-const API_URL = import.meta.env.VITE_API_URL || 'https://seekonbackend-production-5aa7.up.railway.app';
+const API_URL = import.meta.env.VITE_API_URL || 'https://seekonbackend-production-da47.up.railway.app';
 
 // Helper to flatten nested API product data for the UI
 const normalizeCartItems = (items) => {
@@ -537,3 +537,4 @@ export const {
 } = cartSlice.actions;
 
 export default cartSlice.reducer;
+

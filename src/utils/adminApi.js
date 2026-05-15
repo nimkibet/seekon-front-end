@@ -1,4 +1,6 @@
-const API_URL = import.meta.env.VITE_API_URL || 'https://seekonbackend-production-5aa7.up.railway.app';
+import { API_ORIGIN } from '../config/api.js';
+
+const API_URL = API_ORIGIN;
 
 // Helper function to get auth token
 const getAuthToken = () => {
@@ -190,8 +192,15 @@ export const adminApi = {
         ...(token && { 'Authorization': `Bearer ${token}` }),
       },
     });
-    if (!response.ok) throw new Error('Failed to fetch VAPID public key');
-    return response.json();
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      return { success: false, publicKey: '', configured: false };
+    }
+    return {
+      success: true,
+      publicKey: data.publicKey || '',
+      configured: Boolean(data.publicKey),
+    };
   },
   subscribeToPush: (subscription) => {
     const token = getAuthToken();
@@ -207,4 +216,5 @@ export const adminApi = {
 };
 
 export default adminApi;
+
 

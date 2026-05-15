@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { FiZap, FiClock } from 'react-icons/fi';
 import FlashSaleCountdown from '../components/FlashSaleCountdown';
+import { API_URL } from '../config/api.js';
 
 const FlashSale = () => {
   const [loading, setLoading] = useState(true);
@@ -10,9 +11,8 @@ const FlashSale = () => {
   const [timeLeft, setTimeLeft] = useState({ days: 0, hours: 0, minutes: 0, seconds: 0 });
   const [endTime, setEndTime] = useState(null);
 
-  // USE THE MAIN PRODUCT ENDPOINT (Safety Net)
-  const SETTINGS_URL = 'https://seekonbackend-production-5aa7.up.railway.app/api/settings/flash-sale';
-  const ALL_PRODUCTS_URL = 'https://seekonbackend-production-5aa7.up.railway.app/api/products';
+  const SETTINGS_URL = `${API_URL}/settings/flash-sale`;
+  const ALL_PRODUCTS_URL = `${API_URL}/products`;
 
   useEffect(() => {
     const fetchData = async () => {
@@ -155,3 +155,4 @@ const FlashSale = () => {
 };
 
 export default FlashSale;
+

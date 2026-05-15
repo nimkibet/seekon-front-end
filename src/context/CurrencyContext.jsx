@@ -7,7 +7,7 @@ const CurrencyContext = createContext();
 const DEFAULT_EXCHANGE_RATE = 130;
 
 // API URL for settings
-const API_URL = import.meta.env.VITE_API_URL || 'https://seekonbackend-production-5aa7.up.railway.app';
+const API_URL = import.meta.env.VITE_API_URL || 'https://seekonbackend-production-da47.up.railway.app';
 
 export const useCurrency = () => {
   const context = useContext(CurrencyContext);
@@ -83,3 +83,4 @@ export const CurrencyProvider = ({ children }) => {
 };
 
 export default CurrencyContext;
+

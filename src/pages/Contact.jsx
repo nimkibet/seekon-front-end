@@ -30,7 +30,7 @@ const Contact = () => {
     const loadingToast = toast.loading('Sending message...');
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://seekonbackend-production-5aa7.up.railway.app'}/api/settings/contact`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://seekonbackend-production-da47.up.railway.app'}/api/settings/contact`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
@@ -223,3 +223,4 @@ const Contact = () => {
 };
 
 export default Contact;
+
