@@ -24,6 +24,7 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState(null);
+  const [rememberMe, setRememberMe] = useState(false);
   const [errors, setErrors] = useState({});
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [showResendVerification, setShowResendVerification] = useState(false);
@@ -279,7 +280,7 @@ const Login = () => {
           result = response.data.user;
         }
       } else {
-        result = await dispatch(loginUser(formData)).unwrap();
+        result = await dispatch(loginUser({ ...formData, rememberMe })).unwrap();
       }
       
       // Check for pending cart item and add it
@@ -811,9 +812,22 @@ const Login = () => {
                     <p className="mt-1 text-xs text-red-600">{errors.password}</p>
               )}
 
-              {/* Forgot Password Link - Only for Login */}
+                  {/* Forgot Password Link - Only for Login */}
                   {!isSignUp && (
-                <div className="flex justify-end">
+                <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <input
+                          id="remember-me"
+                          name="remember-me"
+                          type="checkbox"
+                          checked={rememberMe}
+                          onChange={(e) => setRememberMe(e.target.checked)}
+                          className="h-4 w-4 text-[#00A676] focus:ring-[#00A676] border-gray-300 rounded cursor-pointer"
+                        />
+                        <label htmlFor="remember-me" className="ml-2 block text-xs text-[#666666] cursor-pointer">
+                          Remember me
+                        </label>
+                      </div>
                       <Link
                         to="/forgot-password"
                         className="text-xs text-[#00A676] hover:text-[#008A5E] transition-colors duration-200 font-medium"

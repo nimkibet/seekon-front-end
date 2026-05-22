@@ -19,6 +19,7 @@ export const loginUser = createAsyncThunk(
         body: JSON.stringify({
           email: credentials.email,
           password: credentials.password,
+          rememberMe: credentials.rememberMe
         }),
       });
 
@@ -44,16 +45,20 @@ export const loginUser = createAsyncThunk(
       }
 
              if (data.success) {
-                // Store token in localStorage
-                localStorage.setItem('token', data.token);
-                // Only set adminToken if user has admin role, otherwise clear it to prevent conflicts
+                // Determine storage based on rememberMe
+                const storage = credentials.rememberMe ? localStorage : sessionStorage;
+                
+                // Store token
+                storage.setItem('token', data.token);
+                // Only set adminToken if user has admin role
                 if (data.user.role === 'admin' || data.user.role === 'superadmin') {
-                  localStorage.setItem('adminToken', data.token);
+                  storage.setItem('adminToken', data.token);
                 } else {
                   localStorage.removeItem('adminToken');
+                  sessionStorage.removeItem('adminToken');
                 }
                 
-                // Store profile photo in user-specific localStorage key
+                // Store profile photo in user-specific localStorage key (persistent across sessions for better UI)
                 const userId = data.user.id || data.user._id;
                 if (data.user.profilePhoto) {
                   setUserAvatar(userId, data.user.profilePhoto);
@@ -86,7 +91,11 @@ export const validateToken = createAsyncThunk(
   'user/validateToken',
   async (_, { rejectWithValue }) => {
     try {
-      const token = localStorage.getItem('token') || localStorage.getItem('adminToken');
+      // Check both storages for the token
+      const token = localStorage.getItem('token') || 
+                    sessionStorage.getItem('token') || 
+                    localStorage.getItem('adminToken') || 
+                    sessionStorage.getItem('adminToken');
       
       if (!token) {
         return rejectWithValue('No token found');
@@ -103,9 +112,11 @@ export const validateToken = createAsyncThunk(
       const data = await response.json();
 
       if (!response.ok) {
-        // Token is invalid, clear it
+        // Token is invalid, clear it from all locations
         localStorage.removeItem('token');
+        sessionStorage.removeItem('token');
         localStorage.removeItem('adminToken');
+        sessionStorage.removeItem('adminToken');
         return rejectWithValue(data.message || 'Invalid token');
       }
 
@@ -128,7 +139,9 @@ export const validateToken = createAsyncThunk(
     } catch (error) {
       console.error('Token validation error:', error);
       localStorage.removeItem('token');
+      sessionStorage.removeItem('token');
       localStorage.removeItem('adminToken');
+      sessionStorage.removeItem('adminToken');
       return rejectWithValue(error.message || 'Network error');
     }
   }
@@ -400,6 +413,8 @@ const userSlice = createSlice({
       state.error = null;
       localStorage.removeItem('token');
       localStorage.removeItem('adminToken');
+      sessionStorage.removeItem('token');
+      sessionStorage.removeItem('adminToken');
     },
     clearError: (state) => {
       state.error = null;
