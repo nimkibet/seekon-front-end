@@ -36,6 +36,7 @@ const MyOrders = () => {
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [reviewModal, setReviewModal] = useState({ isOpen: false, product: null, orderId: null });
   const [buyingAgain, setBuyingAgain] = useState(null);
+  const [isClearing, setIsClearing] = useState(false);
 
   useEffect(() => {
     const fetchOrders = async () => {
@@ -57,11 +58,22 @@ const MyOrders = () => {
     }
   }, [user]);
 
-  // Clear order history (local display only)
-  const handleClearHistory = () => {
-    setOrders([]);
-    setShowClearConfirm(false);
-    toast.success('Order history cleared');
+  // Clear order history (Soft Delete via API)
+  const handleClearHistory = async () => {
+    setIsClearing(true);
+    const toastId = toast.loading('Clearing order history...');
+    
+    try {
+      await api.clearOrderHistory();
+      setOrders([]);
+      setShowClearConfirm(false);
+      toast.success('Order history cleared', { id: toastId });
+    } catch (error) {
+      console.error('Error clearing history:', error);
+      toast.error(error.message || 'Failed to clear order history', { id: toastId });
+    } finally {
+      setIsClearing(false);
+    }
   };
 
   // Filter orders based on active tab

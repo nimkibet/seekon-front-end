@@ -203,6 +203,15 @@ export const api = {
     }
   },
 
+  clearOrderHistory: async () => {
+    try {
+      const response = await client.patch('/orders/my-orders/clear');
+      return response.data;
+    } catch (error) {
+      handleApiError(error, 'clearOrderHistory');
+    }
+  },
+
   // ==========================================
   // 🤖 AI & UTILS
   // ==========================================
