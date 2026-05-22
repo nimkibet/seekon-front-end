@@ -1,16 +1,47 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 
+// API configuration
+const API_URL = import.meta.env.VITE_API_URL || 'https://seekonbackend-production-da47.up.railway.app';
+
+const getAuthToken = () =>
+  localStorage.getItem('token') || localStorage.getItem('adminToken');
+
+const syncCartToStorage = (items, totalItems) => {
+  localStorage.setItem('cartItems', JSON.stringify(items));
+  localStorage.setItem('cartTotalItems', String(totalItems ?? 0));
+};
+
+const buildInitialCartState = () => {
+  try {
+    const stored = localStorage.getItem('cartItems');
+    if (!stored) return { items: [], totalItems: 0, totalPrice: 0 };
+    const items = JSON.parse(stored);
+    if (!Array.isArray(items) || items.length === 0) {
+      return { items: [], totalItems: 0, totalPrice: 0 };
+    }
+    const totalItems = items.reduce((sum, item) => sum + (item.quantity || 1), 0);
+    const totalPrice = items.reduce(
+      (sum, item) => sum + (Number(item.price) || 0) * (item.quantity || 1),
+      0
+    );
+    return { items, totalItems, totalPrice };
+  } catch {
+    return { items: [], totalItems: 0, totalPrice: 0 };
+  }
+};
+
+const snapshotCart = (cartState) => ({
+  items: cartState.items,
+  totalItems: cartState.totalItems,
+  totalPrice: cartState.totalPrice,
+});
+
 const initialState = {
-  items: [],
-  totalItems: 0,
-  totalPrice: 0,
+  ...buildInitialCartState(),
   isOpen: false,
   isLoading: false,
   error: null,
 };
-
-// API configuration
-const API_URL = import.meta.env.VITE_API_URL || 'https://seekonbackend-production-da47.up.railway.app';
 
 // Helper to flatten nested API product data for the UI
 const normalizeCartItems = (items) => {
@@ -41,8 +72,7 @@ export const fetchCart = createAsyncThunk(
   'cart/fetchCart',
   async (_, { rejectWithValue }) => {
     try {
-      // FIX: Check both 'token' and 'adminToken' keys for compatibility
-      const token = localStorage.getItem('token') || localStorage.getItem('adminToken');
+      const token = getAuthToken();
       if (!token) {
         return rejectWithValue('Authentication required');
       }
@@ -63,19 +93,21 @@ export const fetchCart = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(error.message);
     }
+  },
+  {
+    condition: () => !!getAuthToken(),
   }
 );
 
 export const addToCartAPI = createAsyncThunk(
   'cart/addToCartAPI',
-  async ({ product, size, color, quantity = 1 }, { rejectWithValue }) => {
+  async ({ product, size, color, quantity = 1 }, { rejectWithValue, dispatch, getState }) => {
     try {
-      // FIX: Check both 'token' and 'adminToken' keys for compatibility
-      const token = localStorage.getItem('token') || localStorage.getItem('adminToken');
-      console.log('🛒 ADD_TO_CART: Token exists:', !!token);
-      
+      const token = getAuthToken();
+
       if (!token) {
-        return rejectWithValue('Authentication required');
+        dispatch(addToCart({ product, size, color, quantity }));
+        return snapshotCart(getState().cart);
       }
       
       /**
@@ -118,21 +150,20 @@ export const addToCartAPI = createAsyncThunk(
 
 export const updateQuantityAPI = createAsyncThunk(
   'cart/updateQuantityAPI',
-  async ({ productId, size, color, quantity }, { rejectWithValue }) => {
+  async ({ productId, size, color, quantity }, { rejectWithValue, dispatch, getState }) => {
     try {
-      // FIX: Check both 'token' and 'adminToken' keys for compatibility
-      const token = localStorage.getItem('token') || localStorage.getItem('adminToken');
-      if (!token) {
-        return rejectWithValue('Authentication required');
-      }
-      
-      // FIX: Ensure productId is a valid string, not an object
+      const token = getAuthToken();
       const productIdStr = productId?._id || productId;
+
       if (!productIdStr || typeof productIdStr !== 'string') {
         return rejectWithValue('Invalid product ID');
       }
-      
-      // SECURITY: No userId in URL - backend uses token
+
+      if (!token) {
+        dispatch(updateQuantity({ id: productIdStr, size, color, quantity }));
+        return snapshotCart(getState().cart);
+      }
+
       const response = await fetch(`${API_URL}/api/cart/update`, {
         method: 'PATCH',
         headers: {
@@ -157,21 +188,20 @@ export const updateQuantityAPI = createAsyncThunk(
 
 export const removeFromCartAPI = createAsyncThunk(
   'cart/removeFromCartAPI',
-  async ({ productId, size, color }, { rejectWithValue }) => {
+  async ({ productId, size, color }, { rejectWithValue, dispatch, getState }) => {
     try {
-      // FIX: Check both 'token' and 'adminToken' keys for compatibility
-      const token = localStorage.getItem('token') || localStorage.getItem('adminToken');
-      if (!token) {
-        return rejectWithValue('Authentication required');
-      }
-      
-      // FIX: Ensure productId is a valid string, not an object
+      const token = getAuthToken();
       const productIdStr = productId?._id || productId;
+
       if (!productIdStr || typeof productIdStr !== 'string') {
         return rejectWithValue('Invalid product ID');
       }
-      
-      // SECURITY: No userId in URL - backend uses token
+
+      if (!token) {
+        dispatch(removeFromCart({ id: productIdStr, size, color }));
+        return snapshotCart(getState().cart);
+      }
+
       const response = await fetch(`${API_URL}/api/cart/remove/${productIdStr}`, {
         method: 'DELETE',
         headers: {
@@ -195,12 +225,13 @@ export const removeFromCartAPI = createAsyncThunk(
 
 export const clearCartAPI = createAsyncThunk(
   'cart/clearCartAPI',
-  async (_, { rejectWithValue }) => {
+  async (_, { rejectWithValue, dispatch, getState }) => {
     try {
-      // FIX: Check both 'token' and 'adminToken' keys for compatibility
-      const token = localStorage.getItem('token') || localStorage.getItem('adminToken');
+      const token = getAuthToken();
       if (!token) {
-        return rejectWithValue('Authentication required');
+        dispatch(clearCart());
+        syncCartToStorage([], 0);
+        return snapshotCart(getState().cart);
       }
       
       // SECURITY: No userId in URL - backend uses token
@@ -308,6 +339,7 @@ const cartSlice = createSlice({
       // Update totals
       state.totalItems = state.items.reduce((total, item) => total + item.quantity, 0);
       state.totalPrice = state.items.reduce((total, item) => total + (item.price * item.quantity), 0);
+      syncCartToStorage(state.items, state.totalItems);
     },
 
     removeFromCart: (state, action) => {
@@ -323,6 +355,7 @@ const cartSlice = createSlice({
       // Update totals
       state.totalItems = state.items.reduce((total, item) => total + item.quantity, 0);
       state.totalPrice = state.items.reduce((total, item) => total + (item.price * item.quantity), 0);
+      syncCartToStorage(state.items, state.totalItems);
     },
 
     updateQuantity: (state, action) => {
@@ -349,6 +382,7 @@ const cartSlice = createSlice({
         // Update totals
         state.totalItems = state.items.reduce((total, item) => total + item.quantity, 0);
         state.totalPrice = state.items.reduce((total, item) => total + (item.price * item.quantity), 0);
+        syncCartToStorage(state.items, state.totalItems);
       }
     },
 
@@ -398,6 +432,7 @@ const cartSlice = createSlice({
       state.items = [];
       state.totalItems = 0;
       state.totalPrice = 0;
+      syncCartToStorage([], 0);
     },
 
     toggleCart: (state) => {

@@ -70,16 +70,7 @@ const ProductCard = ({ product, viewMode = 'grid' }) => {
   const handleAddToCart = async (e) => {
     e.preventDefault();
     e.stopPropagation();
-    
-    // Check authentication first
-    if (!isAuthenticated) {
-      const currentPath = window.location.pathname;
-      localStorage.setItem('redirectAfterLogin', currentPath);
-      toast('Please login to add items to your cart', { icon: '🔐' });
-      navigate(`/login?redirect=${window.location.pathname}`);
-      return;
-    }
-    
+
     /**
      * SECURITY FIX: Updated to match new secure API structure
      * The backend now only needs productId - it fetches all other data
@@ -95,16 +86,14 @@ const ProductCard = ({ product, viewMode = 'grid' }) => {
         brand: product.brand,
         isOnFlashSale,
         flashSalePrice: isOnFlashSale ? product.flashSalePrice : null,
-        originalPrice: originalPrice
+        originalPrice: product?.originalPrice || null
       },
       color: selectedColor,
-      size: null, 
+      size: null,
       quantity: 1
     };
 
     try {
-      console.log('🛒 ADD_TO_CART: Dispatching with item:', cartItem);
-      // 👇 DISPATCH TO API (Cloud Sync)
       await dispatch(addToCartAPI(cartItem)).unwrap();
       toast.success(`${product.name} added to cart!`);
     } catch (err) {
@@ -122,16 +111,14 @@ const ProductCard = ({ product, viewMode = 'grid' }) => {
   const handleAddToWishlist = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    
-    // Check authentication first
+
     if (!isAuthenticated) {
-      const currentPath = window.location.pathname;
-      localStorage.setItem('redirectAfterLogin', currentPath);
-      toast('Please login to add items to your wishlist', { icon: '🔐' });
+      toast.error('Please log in to continue');
+      localStorage.setItem('redirectAfterLogin', window.location.pathname);
       navigate(`/login?redirect=${window.location.pathname}`);
       return;
     }
-    
+
     if (isWishlisted) {
       dispatch(removeFromWishlistLocal({ productId }));
       toast.success('Removed from wishlist');

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiMinus, FiPlus, FiTrash2, FiShoppingBag, FiArrowRight, FiAlertCircle, FiRefreshCw } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
@@ -42,39 +42,24 @@ const getColorHex = (colorName) => {
 };
 
 const CartPage = () => {
-  const navigate = useNavigate();
   const dispatch = useDispatch();
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { isAuthenticated } = useAuth();
   const { formatPrice } = useCurrency();
   
   // Get cart from Redux store (single source of truth)
   const { items, totalItems, totalPrice, isLoading, error } = useSelector((state) => state.cart);
-  
-  // Auth loading check - prevent false redirects during initial auth check
-  const [isReady, setIsReady] = useState(false);
-  
-  useEffect(() => {
-    if (!authLoading) {
-      setIsReady(true);
-    }
-  }, [authLoading]);
-  
-  // Redirect to login if not authenticated
-  useEffect(() => {
-    if (isReady && !isAuthenticated) {
-      navigate('/login?redirect=cart');
-    }
-  }, [isReady, isAuthenticated, navigate]);
   
   // Snap to top on load
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
   }, []);
   
-  // Fetch cart from Redux on mount
+  // Sync cart from API only for logged-in users
   useEffect(() => {
-    dispatch(fetchCart());
-  }, [dispatch]);
+    if (isAuthenticated) {
+      dispatch(fetchCart());
+    }
+  }, [dispatch, isAuthenticated]);
   
   // Use Redux totals directly
   const cart = { items, totalItems, totalPrice };
@@ -164,8 +149,8 @@ const CartPage = () => {
     );
   }
   
-  // Error state
-  if (error) {
+  // Error state (ignore auth errors for guests — local cart is used)
+  if (error && error !== 'Authentication required') {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center px-4">
         <motion.div

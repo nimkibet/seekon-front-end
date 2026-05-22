@@ -1,30 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { FiArrowLeft, FiCalendar, FiClock, FiTrash2, FiMinus, FiPlus, FiMapPin, FiCreditCard, FiCheckCircle, FiXCircle, FiTag } from 'react-icons/fi';
+import { FiArrowLeft, FiTrash2, FiMinus, FiPlus, FiMapPin, FiCreditCard, FiCheckCircle, FiXCircle, FiTag, FiSmartphone } from 'react-icons/fi';
 import { useSelector, useDispatch } from 'react-redux';
 import { formatPrice } from '../utils/formatPrice';
 import { useCurrency } from '../context/CurrencyContext';
-import { clearCartAPI, updateQuantityAPI, removeFromCartAPI, updateCartItemVariant, updateCartItemVariantAPI } from '../store/slices/cartSlice';
+import { clearCart, clearCartAPI, updateQuantity, updateQuantityAPI, removeFromCart, removeFromCartAPI, updateCartItemVariant, updateCartItemVariantAPI } from '../store/slices/cartSlice';
 import toast from 'react-hot-toast';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import { api } from '../utils/api';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://seekonbackend-production-da47.up.railway.app';
-const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || '';
-
-const loadPaystackScript = () =>
-  new Promise((resolve, reject) => {
-    if (window.PaystackPop) {
-      resolve(window.PaystackPop);
-      return;
-    }
-    const script = document.createElement('script');
-    script.src = 'https://js.paystack.co/v1/inline.js';
-    script.onload = () => resolve(window.PaystackPop);
-    script.onerror = () => reject(new Error('Failed to load Paystack'));
-    document.body.appendChild(script);
-  });
 
 export const shippingOptions = [
   { id: 'nairobi_cbd', label: 'Nairobi CBD / Town', price: 100 },
@@ -46,41 +33,38 @@ export const shippingOptions = [
   { id: 'region_7', label: 'REGION 7: Ngong Town, Kiambu, Ruiru, Rongai, Syokiamu', price: 600 }
 ];
 
-// Color mapping helper
+/** Split "REGION 1: Area, Area..." into title + area list for the shipping picker UI */
+const parseShippingLabel = (label) => {
+  const colonIndex = label.indexOf(':');
+  if (colonIndex === -1) {
+    return { title: label, description: null };
+  }
+  return {
+    title: label.slice(0, colonIndex + 1).trim(),
+    description: label.slice(colonIndex + 1).trim(),
+  };
+};
+
+const handleShippingSelect = (option, setters) => {
+  const { setSelectedShipping, setAddress, setErrors, hasSubmitted } = setters;
+  setSelectedShipping(option);
+  if (!option) {
+    setAddress('');
+    setErrors((prev) => ({
+      ...prev,
+      shippingRegion: hasSubmitted ? 'Required' : '',
+      address: '',
+    }));
+  } else {
+    setErrors((prev) => ({ ...prev, shippingRegion: '' }));
+  }
+};
+
+// Color mapping helper - No changes needed here
 const getColorHex = (colorName) => {
   const colors = {
-    black: '#000000',
-    white: '#ffffff',
-    red: '#ef4444',
-    blue: '#3b82f6',
-    green: '#22c55e',
-    yellow: '#eab308',
-    orange: '#f97316',
-    purple: '#a855f7',
-    pink: '#ec4899',
-    brown: '#78350f',
-    gray: '#6b7280',
-    grey: '#6b7280',
-    navy: '#1e3a8a',
-    beige: '#f5f5dc',
-    cream: '#fffdd0',
-    tan: '#d2b48c',
-    maroon: '#800000',
-    burgundy: '#800020',
-    turquoise: '#40e0d0',
-    teal: '#008080',
-    coral: '#ff7f50',
-    salmon: '#fa8072',
-    olive: '#808000',
-    lime: '#84cc16',
-    mint: '#98fb98',
-    lavender: '#e6e6fa',
-    indigo: '#4b0082',
-    gold: '#ffd700',
-    silver: '#c0c0c0',
-    charcoal: '#36454f',
+    black: '#000000', white: '#ffffff', red: '#ef4444', blue: '#3b82f6', green: '#22c55e', yellow: '#eab308', orange: '#f97316', purple: '#a855f7', pink: '#ec4899', brown: '#78350f', gray: '#6b7280', grey: '#6b7280', navy: '#1e3a8a', beige: '#f5f5dc', cream: '#fffdd0', tan: '#d2b48c', maroon: '#800000', burgundy: '#800020', turquoise: '#40e0d0', teal: '#008080', coral: '#ff7f50', salmon: '#fa8072', olive: '#808000', lime: '#84cc16', mint: '#98fb98', lavender: '#e6e6fa', indigo: '#4b0082', gold: '#ffd700', silver: '#c0c0c0', charcoal: '#36454f',
   };
-  
   if (!colorName) return '#cccccc';
   const normalizedColor = colorName.toLowerCase().trim();
   return colors[normalizedColor] || colorName;
@@ -89,47 +73,37 @@ const getColorHex = (colorName) => {
 const Checkout = () => {
   const navigate = useNavigate();
   const { formatPrice } = useCurrency();
+  const { isAuthenticated } = useAuth();
   const dispatch = useDispatch();
   const { items, totalPrice } = useSelector(state => state.cart);
   const user = useSelector(state => state.user.user);
   const { products } = useSelector(state => state.products);
-  
-  // Snap to top on load
+
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-    
-    // FIX: Check authentication on mount - redirect if not logged in
-    const token = localStorage.getItem('token') || localStorage.getItem('adminToken');
-    if (!token) {
-      console.warn("⚠️ No token found on Checkout mount - redirecting to login");
-      toast.error("Please log in to checkout");
-      navigate('/login', { state: { from: { pathname: '/checkout' } } });
-    }
-  }, [navigate]);
+  }, []);
 
-  const [email, setEmail] = useState(user?.email || 'user@seekon.com');
+  const [email, setEmail] = useState(user?.email || '');
   const [phoneNumber, setPhoneNumber] = useState(user?.phoneNumber || '');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [deliveryDate, setDeliveryDate] = useState('');
-  const [convenientTime, setConvenientTime] = useState('');
-  const [city, setCity] = useState('Nairobi');
+  // const [city, setCity] = useState('Nairobi'); // No longer needed, use selectedShipping.label
   const [address, setAddress] = useState('');
-  const [zipCode, setZipCode] = useState('');
+  const [zipCode, setZipCode] = useState(''); // Keep for potential future use or if backend expects it
+
   const [currentStep, setCurrentStep] = useState(1); // 1: Delivery, 2: Payment, 3: Confirmation
   const [paymentStatus, setPaymentStatus] = useState('idle'); // idle, loading, success, failed
+  const [paymentMethod, setPaymentMethod] = useState('MPESA');
+  const [isWaitingForMpesa, setIsWaitingForMpesa] = useState(false);
   const [currentOrderId, setCurrentOrderId] = useState(null);
-  
-  // FIX ISSUE #3: Store order items before clearing cart for confirmation display
-  const [orderConfirmationItems, setOrderConfirmationItems] = useState([]);
-  
-  // Freeze totals for the final confirmation page so they aren't lost when cart clears
-  const [finalOrderTotals, setFinalOrderTotals] = useState({ total: 0, subtotal: 0, shippingCost: 0, discount: 0 });
-  
-  // Shipping state
-  const [selectedShipping, setSelectedShipping] = useState(shippingOptions[0]);
 
-  // Coupon state
+  // State for form validation errors
+  const [errors, setErrors] = useState({});
+  const [hasSubmitted, setHasSubmitted] = useState(false);
+
+  const [orderConfirmationItems, setOrderConfirmationItems] = useState([]);
+  const [finalOrderTotals, setFinalOrderTotals] = useState({ total: 0, subtotal: 0, shippingCost: 0, discount: 0 });
+  const [selectedShipping, setSelectedShipping] = useState(null);
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
@@ -141,29 +115,21 @@ const Checkout = () => {
       setFirstName(nameParts[0] || '');
       setLastName(nameParts.slice(1).join(' ') || '');
     }
-    if (user?.email) {
-      setEmail(user.email);
-    }
-    if (user?.phoneNumber) {
-      setPhoneNumber(user.phoneNumber);
-    }
+    if (user?.email) setEmail(user.email);
+    if (user?.phoneNumber) setPhoneNumber(user.phoneNumber);
   }, [user]);
 
   // Handle quantity change in checkout
   const handleQuantityChange = async (item, newQuantity) => {
     if (newQuantity <= 0 || newQuantity > 99) return;
-    
-    // Extract ID safely based on how the cart stores it
     const productId = item.productId?._id || item.productId || item.product?._id || item.id || item._id;
-    
     try {
-      await dispatch(updateQuantityAPI({ 
-        productId, 
-        size: item.size, 
-        color: item.color, 
-        quantity: newQuantity 
-      })).unwrap();
-    } catch(err) {
+      if (isAuthenticated) {
+        await dispatch(updateQuantityAPI({ productId, size: item.size, color: item.color, quantity: newQuantity })).unwrap();
+      } else {
+        dispatch(updateQuantity({ id: productId, size: item.size, color: item.color, quantity: newQuantity }));
+      }
+    } catch (err) {
       toast.error(err.message || 'Failed to update quantity');
     }
   };
@@ -171,222 +137,197 @@ const Checkout = () => {
   // Handle item removal from checkout
   const handleRemoveItem = async (item) => {
     const productId = item.productId?._id || item.productId || item.product?._id || item.id || item._id;
-
     try {
-      await dispatch(removeFromCartAPI({
-        productId,
-        size: item.size,
-        color: item.color
-      })).unwrap();
-
-      toast.success('Item removed from checkout');
-      // If this was the last item, kick them back to the empty cart page
-      if (items.length <= 1) {
-        navigate('/cart');
+      if (isAuthenticated) {
+        await dispatch(removeFromCartAPI({ productId, size: item.size, color: item.color })).unwrap();
+      } else {
+        dispatch(removeFromCart({ id: productId, size: item.size, color: item.color }));
       }
-    } catch(err) {
+      toast.success('Item removed from checkout');
+      if (items.length <= 1) navigate('/cart');
+    } catch (err) {
       toast.error(err.message || 'Failed to remove item');
     }
   };
 
   const handleProceedToPayment = (e) => {
     e.preventDefault();
-    if (!firstName || !lastName || !email || !phoneNumber || !deliveryDate || !address) {
-      toast.error('Please fill in all required fields');
-      return;
+    setHasSubmitted(true); // Mark as submitted to trigger validation
+
+    const validationErrors = {};
+    if (!firstName.trim()) validationErrors.firstName = 'Required';
+    if (!lastName.trim()) validationErrors.lastName = 'Required';
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email.trim()) {
+      validationErrors.email = 'Required';
+    } else if (!emailRegex.test(email.trim())) {
+      validationErrors.email = 'Invalid email format';
     }
-    setCurrentStep(2);
-    toast.success('Proceeding to payment...');
+
+    if (!phoneNumber.trim()) validationErrors.phoneNumber = 'Required';
+    if (!selectedShipping) validationErrors.shippingRegion = 'Required';
+    if (selectedShipping && !address.trim()) validationErrors.address = 'Required';
+
+    setErrors(validationErrors);
+
+    if (Object.keys(validationErrors).length === 0) {
+      setCurrentStep(2);
+      toast.success('Proceeding to payment...');
+    } else {
+      toast.error('Please fill in all required fields');
+    }
+  };
+
+  const pollOrderStatus = (orderId) => {
+    let attempts = 0;
+    const maxAttempts = 20; // 60 seconds / 3 seconds = 20 attempts
+    setIsWaitingForMpesa(true);
+    setPaymentStatus('loading');
+
+    const interval = setInterval(async () => {
+      attempts++;
+      try {
+        const token = user?.token || localStorage.getItem('token') || localStorage.getItem('adminToken') || sessionStorage.getItem('token');
+        const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
+        
+        const response = await fetch(`${API_URL}/api/orders/${orderId}`, {
+          headers: authHeaders
+        });
+        const data = await response.json();
+        
+        if (data.success) {
+          const status = data.order.status.toLowerCase();
+          const isPaid = data.order.isPaid;
+          
+          if (['paid', 'processing', 'shipped', 'delivered', 'completed'].includes(status) || isPaid) {
+            clearInterval(interval);
+            setIsWaitingForMpesa(false);
+            setPaymentStatus('success');
+            
+            // Clear cart
+            if (isAuthenticated) {
+              dispatch(clearCartAPI());
+            } else {
+              dispatch(clearCart());
+            }
+            
+            toast.success('Payment confirmed!');
+            setTimeout(() => setCurrentStep(3), 500);
+          } else if (['failed', 'cancelled'].includes(status)) {
+            clearInterval(interval);
+            setIsWaitingForMpesa(false);
+            setPaymentStatus('failed');
+            toast.error('Payment was not successful.');
+          }
+        }
+      } catch (error) {
+        console.error('Error polling order status:', error);
+      }
+      
+      if (attempts >= maxAttempts) {
+        clearInterval(interval);
+        setIsWaitingForMpesa(false);
+        setPaymentStatus('failed');
+        toast.error('Payment timeout. If you paid, please check your orders later.');
+      }
+    }, 3000);
+
+    // Clean up interval on unmount if component unmounts during polling
+    return () => clearInterval(interval);
   };
 
   const handlePayment = async () => {
     try {
-      // CRITICAL: Validate cart is not empty before making API call
       if (!items || items.length === 0) {
         toast.error('Cart is empty! Please add items to your cart before checkout.');
         navigate('/cart');
         return;
       }
-      
-      // 🔒 FREEZE CART STATE IMMEDIATELY 
-      // We take the snapshot BEFORE any API calls. This guarantees the receipt 
-      // will be perfectly accurate even if polling takes 2 minutes and Redux clears in the background.
+
       setOrderConfirmationItems([...items]);
       setFinalOrderTotals(calculateTotals());
-      
       setPaymentStatus('loading');
-      
-      // Set flag to hide 3D background during payment processing to prevent WebGL issues
       sessionStorage.setItem('isPaymentProcessing', 'true');
       window.dispatchEvent(new Event('paymentStateChange'));
-      
-      // FIX: Get token from multiple sources for reliability
-      // Priority: 1. Redux state user object (user?.token) 2. localStorage 3. sessionStorage
-      // The user variable is already selected from Redux at component level (line 38)
-      let token = 
-        user?.token || 
-        localStorage.getItem('token') || 
-        localStorage.getItem('adminToken') ||
-        sessionStorage.getItem('token');
-      
-      if (!token) {
-        console.error("🚨 AUTH ERROR: No token found in Redux user or any storage!");
-        console.error("User object:", user);
-        toast.error("Please log in to complete your purchase");
-        navigate('/login', { state: { from: { pathname: '/checkout' } } });
-        return;
-      }
-      
-      console.log("✅ Token found, proceeding with payment...", token.substring(0, 15) + "...");
-      
-      // Create order FIRST before payment
-      // FIX: Ensure product ID is included in payload
+
+      const token = user?.token || localStorage.getItem('token') || localStorage.getItem('adminToken') || sessionStorage.getItem('token');
+      const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
+
       const orderData = {
+        contactEmail: email.trim(),
+        email: email.trim(),
         items: items.map(item => {
-          // Aggressively extract product ID from cart item
           const extractedId = item.productId || item.id || item._id;
-          
-          if (!extractedId) {
-            console.error("🚨 FRONTEND PAYLOAD ERROR: Cannot find product ID for item:", item);
-          }
-          
+          if (!extractedId) console.error("🚨 FRONTEND PAYLOAD ERROR: Cannot find product ID for item:", item);
           return {
-            product: extractedId, // Include product ID for backend schema
-            id: item.id,
-            name: item.name,
-            price: item.price,
-            quantity: item.quantity,
-            image: item.image,
-            size: item.size,
-            color: item.color
+            product: extractedId, name: item.name, price: item.price,
+            quantity: item.quantity, image: item.image, size: item.size, color: item.color
           };
         }),
         totalAmount: calculateTotals().total,
-        paymentMethod: 'Paystack',
+        paymentMethod: paymentMethod === 'MPESA' ? 'M-Pesa' : 'Credit/Debit Card',
         shippingAddress: {
           firstName,
           lastName,
-          address,
+          address: `${address.trim()} (${selectedShipping.label})`,
           city: selectedShipping.label,
-          zipCode: '',
           phone: phoneNumber
         },
-        deliveryDate,
-        convenientTime,
         shippingPrice: selectedShipping.price,
         shippingMethod: selectedShipping.label
       };
 
-      // Create the order first
-      console.log("🔐 Creating order with token:", token ? `${token.substring(0, 20)}...` : 'NO TOKEN');
-      console.log("🔐 Authorization header:", `Bearer ${token ? token.substring(0, 20) : 'undefined'}...`);
-      
       const orderResponse = await fetch(`${API_URL}/api/orders`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: { 'Content-Type': 'application/json', ...authHeaders },
         body: JSON.stringify(orderData)
       });
 
-      console.log("📡 Order response status:", orderResponse.status);
-      console.log("📡 Order response headers:", [...orderResponse.headers.entries()]);
-
-      // Handle 401 Unauthorized - clear tokens and redirect to login
-      if (orderResponse.status === 401) {
-        const errorData = await orderResponse.json();
-        console.error('🚨 401 Unauthorized from order API:', errorData);
-        console.error('🚨 Token being used:', token ? `${token.substring(0, 20)}...` : 'NO TOKEN');
-        console.error('🚨 User from Redux:', user);
-        
+      if (orderResponse.status === 401 && token) {
         localStorage.removeItem('token');
         localStorage.removeItem('adminToken');
         toast.error('Session expired. Please log in again.');
-        navigate('/login', { state: { from: { pathname: '/checkout' } } });
+        navigate('/login?redirect=/checkout', { state: { from: { pathname: '/checkout' } } });
         return;
       }
-
       const orderResult = await orderResponse.json();
-      
-      if (!orderResult.success) {
-        throw new Error(orderResult.message || 'Failed to create order');
-      }
+      if (!orderResult.success) throw new Error(orderResult.message || 'Failed to create order');
 
-      const createdOrder = orderResult.order;
-      setCurrentOrderId(createdOrder._id);
-
+      setCurrentOrderId(orderResult.order._id);
       const totals = calculateTotals();
-      const initResponse = await fetch(`${API_URL}/api/payment/paystack/initialize`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          orderId: createdOrder._id,
-          amount: totals.total,
-          email
-        })
-      });
 
-      const initData = await initResponse.json();
-      if (!initResponse.ok || !initData.success) {
-        throw new Error(initData.message || 'Failed to initialize payment');
-      }
-
-      setPaymentStatus('idle');
-
-      if (!PAYSTACK_PUBLIC_KEY) {
-        window.location.href = initData.checkoutUrl;
-        return;
-      }
-
-      const PaystackPop = await loadPaystackScript();
-      const handler = PaystackPop.setup({
-        key: PAYSTACK_PUBLIC_KEY,
-        email,
-        amount: Math.round(totals.total * 100),
-        currency: 'KES',
-        ref: initData.reference,
-        onClose: () => {
-          clearPaymentFlag();
-          setPaymentStatus('idle');
-          toast.error('Payment cancelled');
-        },
-        callback: (response) => {
-          handlePaystackSuccess(response.reference, token);
+      if (paymentMethod === 'MPESA') {
+        // Trigger M-Pesa STK Push
+        const mpesaResponse = await fetch(`${API_URL}/api/payment/stk-push`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...authHeaders },
+          body: JSON.stringify({ 
+            orderId: orderResult.order._id, 
+            amount: totals.total, 
+            phoneNumber: phoneNumber.replace(/\s+/g, ''),
+            email: email.trim() 
+          })
+        });
+        const mpesaData = await mpesaResponse.json();
+        
+        if (!mpesaResponse.ok || !mpesaData.success) {
+          throw new Error(mpesaData.message || 'Failed to initiate M-Pesa payment');
         }
-      });
-      handler.openIframe();
-    } catch (error) {
-      setPaymentStatus('failed');
-      clearPaymentFlag();
-      toast.error(error.message || 'Payment failed. Please try again.');
-    }
-  };
 
-  const handlePaystackSuccess = async (reference, token) => {
-    try {
-      setPaymentStatus('loading');
-      const { data } = await axios.get(`${API_URL}/api/payment/paystack/verify`, {
-        params: { reference }
-      });
-
-      if (!data.success) {
-        throw new Error(data.message || 'Payment verification failed');
+        toast.success('STK Push initiated! Please check your phone.');
+        
+        // Start polling for payment confirmation
+        pollOrderStatus(orderResult.order._id);
+        
+      } else {
+        throw new Error('This payment method is currently unavailable.');
       }
 
-      setPaymentStatus('success');
-      clearPaymentFlag();
-      toast.success('Payment successful!');
-      dispatch(clearCartAPI());
-      setTimeout(() => setCurrentStep(3), 500);
     } catch (error) {
-      console.error('Payment verification failed', error);
       setPaymentStatus('failed');
-      clearPaymentFlag();
-      toast.error(error.response?.data?.message || error.message || 'Payment verification failed');
+      sessionStorage.removeItem('isPaymentProcessing');
+      window.dispatchEvent(new Event('paymentStateChange'));
+      toast.error(error.message || 'Payment failed. Please try again.');
     }
   };
 
@@ -397,47 +338,29 @@ const Checkout = () => {
 
   const handleCompleteOrder = () => {
     toast.success('Order completed successfully!');
-    // Redirect to order details page with the order ID
-    if (currentOrderId) {
-      navigate(`/orders/${currentOrderId}`);
-    } else {
-      navigate('/orders');
-    }
+    if (currentOrderId) navigate(`/orders/${currentOrderId}`);
+    else navigate('/orders');
   };
 
-  // Defensive calculation function to handle nested product objects and string prices
   const calculateSubtotal = (items) => {
     if (!items || items.length === 0) return 0;
-    
     return items.reduce((total, item) => {
-      // 1. Safely find the price (handles both flat items and nested product objects)
       const rawPrice = item.price || item.product?.price || 0;
-      
-      // 2. Clean the price (removes commas or currency symbols if it's a string)
-      const numericPrice = typeof rawPrice === 'string' 
-        ? Number(rawPrice.replace(/[^0-9.-]+/g, "")) 
-        : Number(rawPrice);
-
-      // 3. Safely find the quantity
+      const numericPrice = typeof rawPrice === 'string' ? Number(rawPrice.replace(/[^0-9.-]+/g, "")) : Number(rawPrice);
       const quantity = Number(item.qty || item.quantity || 1);
-
-      // 4. Add to total (fallback to 0 if something somehow still evaluates to NaN)
       const lineTotal = numericPrice * quantity;
       return total + (isNaN(lineTotal) ? 0 : lineTotal);
     }, 0);
   };
 
   const calculateTotals = () => {
-    // dynamically use the frozen cart only on the final step, otherwise use active cart items
     const itemsToCalculate = currentStep === 3 ? orderConfirmationItems : items;
-    
     const subtotal = calculateSubtotal(itemsToCalculate);
     const shippingCost = selectedShipping ? Number(selectedShipping.price) || 0 : 0;
     const total = subtotal + shippingCost - discountAmount;
     return { subtotal, shippingCost, total, discount: discountAmount };
   };
 
-  // Freeze totals for the final confirmation page so they aren't lost when cart clears
   useEffect(() => {
     if (currentStep < 3 && orderConfirmationItems.length > 0) {
       const totals = calculateTotals();
@@ -450,29 +373,23 @@ const Checkout = () => {
       toast.error('Please enter a coupon code');
       return;
     }
-
     setIsApplyingCoupon(true);
     try {
       const response = await api.applyCoupon(couponCode, totalPrice);
       setAppliedCoupon(response);
       setDiscountAmount(response.discountAmount);
-      toast.success(response.message || 'Coupon applied successfully!', {
-        icon: '🎟️'
-      });
+      toast.success(response.message || 'Coupon applied successfully!', { icon: '🎟️' });
     } catch (error) {
       console.error('Coupon error:', error);
       toast.error(error.message || 'Invalid coupon code');
-      setAppliedCoupon(null);
-      setDiscountAmount(0);
+      setAppliedCoupon(null); setDiscountAmount(0);
     } finally {
       setIsApplyingCoupon(false);
     }
   };
 
   const handleRemoveCoupon = () => {
-    setCouponCode('');
-    setAppliedCoupon(null);
-    setDiscountAmount(0);
+    setCouponCode(''); setAppliedCoupon(null); setDiscountAmount(0);
     toast.success('Coupon removed');
   };
 
@@ -485,7 +402,7 @@ const Checkout = () => {
         <div className="mb-8">
           {/* Dynamic Back Button */}
           {currentStep < 3 && (
-            <button 
+            <button
               onClick={() => currentStep === 2 ? setCurrentStep(1) : navigate('/cart')}
               disabled={paymentStatus === 'loading'}
               className="flex items-center space-x-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 mb-4 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -494,7 +411,7 @@ const Checkout = () => {
               <span className="font-medium">{currentStep === 2 ? 'Back to Delivery Details' : 'Back to Cart'}</span>
             </button>
           )}
-          
+
           {/* Breadcrumb */}
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
             Homepage / {items[0]?.category || 'Products'} / Checkout
@@ -506,7 +423,7 @@ const Checkout = () => {
               const stepNumber = index + 1;
               const isCompleted = stepNumber < currentStep;
               const isCurrent = stepNumber === currentStep;
-              
+
               return (
                 <div key={step} className="flex items-center">
                   <div className="flex flex-col items-center">
@@ -550,20 +467,62 @@ const Checkout = () => {
               animate={{ opacity: 1, x: 0 }}
               className="space-y-6"
             >
+              {!isAuthenticated && (
+                <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/80 px-4 py-3 text-sm text-gray-600 dark:text-gray-300">
+                  Have an account?{' '}
+                  <Link
+                    to="/login?redirect=/checkout"
+                    className="font-medium text-[#00A676] hover:underline"
+                  >
+                    Log in for faster checkout
+                  </Link>
+                  .
+                </div>
+              )}
+
               {/* Contact Information */}
               <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Contact Information</h2>
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Contact Information</h2>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Contact Email
+                      <span className='text-red-500'>*</span>
+                    </label>
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        if (hasSubmitted && !e.target.value.trim()) {
+                          setErrors(prev => ({ ...prev, email: 'Required' }));
+                        } else {
+                          setErrors(prev => ({ ...prev, email: '' }));
+                        }
+                      }}
+                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 transition-all
+                        ${errors.email ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 dark:border-gray-600 focus:ring-[#00A676] focus:border-[#00A676]'}
+                        ${errors.email ? 'bg-white dark:bg-white' : 'dark:bg-gray-700'}
+                        text-gray-900 dark:text-white
+                      `}
+                      placeholder="you@example.com"
+                      required
+                    />
+                  </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       First Name
+                      <span className='text-red-500'>*</span>
                     </label>
                     <input
                       type="text"
                       value={firstName}
-                      onChange={(e) => setFirstName(e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#00A676] focus:border-[#00A676] transition-all"
+                      onChange={(e) => { setFirstName(e.target.value); if (hasSubmitted && !e.target.value.trim()) setErrors(prev => ({ ...prev, firstName: 'Required' })); else setErrors(prev => ({ ...prev, firstName: '' })); }}
+                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 transition-all
+                        ${errors.firstName ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 dark:border-gray-600 focus:ring-[#00A676] focus:border-[#00A676]'}
+                        ${errors.firstName ? 'bg-white dark:bg-white' : 'dark:bg-gray-700'}
+                        text-gray-900 dark:text-white
+                      `}
                       placeholder="e.g. John"
                       required
                     />
@@ -571,12 +530,17 @@ const Checkout = () => {
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Last Name
+                      <span className='text-red-500'>*</span>
                     </label>
                     <input
                       type="text"
                       value={lastName}
-                      onChange={(e) => setLastName(e.target.value)}
-                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#00A676] focus:border-[#00A676] transition-all"
+                      onChange={(e) => { setLastName(e.target.value); if (hasSubmitted && !e.target.value.trim()) setErrors(prev => ({ ...prev, lastName: 'Required' })); else setErrors(prev => ({ ...prev, lastName: '' })); }}
+                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 transition-all
+                        ${errors.lastName ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 dark:border-gray-600 focus:ring-[#00A676] focus:border-[#00A676]'}
+                        ${errors.lastName ? 'bg-white dark:bg-white' : 'dark:bg-gray-700'}
+                        text-gray-900 dark:text-white
+                      `}
                       placeholder="e.g. Doe"
                       required
                     />
@@ -584,26 +548,18 @@ const Checkout = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Email Address
-                  </label>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#00A676] focus:border-[#00A676] transition-all"
-                    placeholder="john.doe@example.com"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Phone Number (M-Pesa)
+                    <span className='text-red-500'>*</span>
                   </label>
                   <input
                     type="tel"
                     value={phoneNumber}
-                    onChange={(e) => setPhoneNumber(e.target.value)}
-                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#00A676] focus:border-[#00A676] transition-all"
+                    onChange={(e) => {setPhoneNumber(e.target.value); if (hasSubmitted && !e.target.value.trim()) setErrors(prev => ({ ...prev, phoneNumber: 'Required' })); else setErrors(prev => ({ ...prev, phoneNumber: '' }));}}
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 transition-all
+                      ${errors.phoneNumber ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 dark:border-gray-600 focus:ring-[#00A676] focus:border-[#00A676]'}
+                      ${errors.phoneNumber ? 'bg-white dark:bg-white' : 'dark:bg-gray-700'}
+                      text-gray-900 dark:text-white
+                    `}
                     placeholder="254 712 345 678"
                     required
                   />
@@ -612,98 +568,130 @@ const Checkout = () => {
                   </p>
                 </div>
               </div>
-            </div>
 
-            {/* Delivery Information */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Delivery Information</h2>
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
+              {/* Shipping method */}
+              <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Shipping method</h2>
+                <div
+                  role="radiogroup"
+                  aria-label="Shipping method"
+                  aria-required="true"
+                  className={`rounded-md overflow-hidden ${
+                    errors.shippingRegion
+                      ? 'ring-2 ring-red-500 ring-offset-1'
+                      : 'border border-gray-200 dark:border-gray-600'
+                  }`}
+                >
+                  {shippingOptions.map((option, index) => {
+                    const isSelected = selectedShipping?.id === option.id;
+                    const { title, description } = parseShippingLabel(option.label);
+                    return (
+                      <label
+                        key={option.id}
+                        className={`relative flex items-start gap-3 px-4 py-3.5 cursor-pointer bg-white dark:bg-gray-800 transition-colors ${
+                          index > 0 ? 'border-t border-gray-200 dark:border-gray-600' : ''
+                        } ${
+                          isSelected
+                            ? 'z-10 shadow-[inset_0_0_0_2px_#2563eb] bg-blue-50/40 dark:bg-blue-950/30'
+                            : 'hover:bg-gray-50 dark:hover:bg-gray-700/40'
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="shippingMethod"
+                          value={option.id}
+                          checked={isSelected}
+                          onChange={() =>
+                            handleShippingSelect(option, {
+                              setSelectedShipping,
+                              setAddress,
+                              setErrors,
+                              hasSubmitted,
+                            })
+                          }
+                          className="mt-0.5 h-4 w-4 shrink-0 border-gray-300 text-blue-600 focus:ring-blue-600 dark:border-gray-500 dark:bg-gray-700"
+                        />
+                        <div className="flex-1 min-w-0 pr-3">
+                          <span className="block text-sm text-gray-900 dark:text-white leading-snug">
+                            {title}
+                          </span>
+                          {description && (
+                            <span className="block text-sm text-gray-500 dark:text-gray-400 leading-relaxed mt-0.5">
+                              {description}
+                            </span>
+                          )}
+                        </div>
+                        <span className="shrink-0 text-sm text-gray-900 dark:text-white tabular-nums pt-0.5">
+                          {formatPrice(option.price)}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+                {errors.shippingRegion && (
+                  <p className="text-sm text-red-500 mt-2">Please select a shipping method</p>
+                )}
+                {selectedShipping && (
+                  <div className="mt-4">
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Delivery Date
+                      Exact Delivery Location
+                      <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
-                      <FiCalendar className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+                      <FiMapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
                       <input
-                        type="date"
-                        value={deliveryDate}
-                        onChange={(e) => setDeliveryDate(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#00A676] focus:border-[#00A676] transition-all"
-                      placeholder="Select date"
+                        type="text"
+                        value={address}
+                        onChange={(e) => {
+                          setAddress(e.target.value);
+                          if (hasSubmitted && !e.target.value.trim()) {
+                            setErrors((prev) => ({ ...prev, address: 'Required' }));
+                          } else {
+                            setErrors((prev) => ({ ...prev, address: '' }));
+                          }
+                        }}
+                        className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 transition-all
+                          ${errors.address ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 dark:border-gray-600 focus:ring-[#00A676] focus:border-[#00A676]'}
+                          ${errors.address ? 'bg-white dark:bg-white' : 'dark:bg-gray-700'}
+                          text-gray-900 dark:text-white
+                        `}
+                        placeholder="Enter specific street, building, or landmark within your selected region."
                         required
                       />
                     </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Convenient Time
-                    </label>
-                    <div className="relative">
-                      <FiClock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-                      <input
-                        type="time"
-                        value={convenientTime}
-                        onChange={(e) => setConvenientTime(e.target.value)}
-                        className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#00A676] focus:border-[#00A676] transition-all"
-                        placeholder="e.g. 2:00 PM"
-                        required
-                      />
-                    </div>
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Town / Collection Point
-                  </label>
-                  <div className="relative">
-                    <FiMapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-                    <input
-                      type="text"
-                      value={address}
-                      onChange={(e) => setAddress(e.target.value)}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-[#00A676] focus:border-[#00A676] transition-all"
-                      placeholder="e.g. Nairobi CBD, Kitengela, Thika"
-                      required
-                    />
-                  </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    Enter your town or nearest collection point
-                  </p>
-                </div>
+                )}
               </div>
-            </div>
-
-            {/* Shipping Method */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Shipping Method</h2>
-              <div className="border border-gray-300 dark:border-gray-600 rounded-md divide-y divide-gray-300 dark:divide-gray-600 max-h-96 overflow-y-auto">
-                {shippingOptions.map((option) => (
-                  <label 
-                    key={option.id} 
-                    className={`flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${
-                      selectedShipping.id === option.id ? 'bg-black/10 dark:bg-black/20' : ''
-                    }`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <input 
-                        type="radio" 
-                        name="shipping" 
-                        className="w-4 h-4 text-[#00A676] focus:ring-[#00A676] border-gray-300 dark:border-gray-500"
-                        checked={selectedShipping.id === option.id}
-                        onChange={() => setSelectedShipping(option)}
-                      />
-                      <span className="text-sm text-gray-700 dark:text-gray-300">{option.label}</span>
-                    </div>
-                    <span className="text-sm font-medium text-gray-900 dark:text-white">Ksh {option.price.toFixed(2)}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
 
               {/* Proceed to Payment Button */}
               <button
-                onClick={handleProceedToPayment}
+                type="submit"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setHasSubmitted(true);
+
+                  const validationErrors = {};
+                  if (!firstName.trim()) validationErrors.firstName = 'Required';
+                  if (!lastName.trim()) validationErrors.lastName = 'Required';
+                  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                  if (!email.trim()) {
+                    validationErrors.email = 'Required';
+                  } else if (!emailRegex.test(email.trim())) {
+                    validationErrors.email = 'Invalid email format';
+                  }
+                  
+                  if (!phoneNumber.trim()) validationErrors.phoneNumber = 'Required';
+                  if (!selectedShipping) validationErrors.shippingRegion = 'Required';
+                  if (selectedShipping && !address.trim()) validationErrors.address = 'Required';
+
+                  setErrors(validationErrors);
+
+                  if (Object.keys(validationErrors).length === 0) {
+                    handleProceedToPayment(e);
+                  } else {
+                    toast.error('Please fill in all required fields');
+                  }
+                }}
                 className="w-full bg-black hover:bg-gray-800 text-white font-bold py-4 px-6 rounded-lg transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center space-x-2"
               >
                 <span>Proceed to Payment</span>
@@ -719,7 +707,7 @@ const Checkout = () => {
             >
               <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Your Order</h2>
-                
+
                 {/* Product Listings */}
                 <div className="space-y-4 mb-6">
                   {items.map((item, index) => (
@@ -732,20 +720,20 @@ const Checkout = () => {
                       <div className="flex-1 min-w-0">
                         <h3 className="font-semibold text-gray-900 dark:text-white text-sm">{item.name}</h3>
                         <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">{item.brand} • {item.size} • {item.color}</p>
-                        
+
                         {/* Quantity, Size, Color Controls */}
                         <div className="space-y-2">
                           <div className="flex items-center space-x-2">
                             <span className="text-xs text-gray-600 dark:text-gray-400">Qty:</span>
                             <div className="flex items-center space-x-2">
-                              <button 
+                              <button
                                 onClick={() => handleQuantityChange(item, item.quantity - 1)}
                                 className="w-6 h-6 rounded border border-gray-300 dark:border-gray-600 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700"
                               >
                                 <FiMinus className="w-3 h-3" />
                               </button>
                               <span className="text-sm font-medium w-8 text-center">{item.quantity}</span>
-                              <button 
+                              <button
                                 onClick={() => handleQuantityChange(item, item.quantity + 1)}
                                 className="w-6 h-6 rounded border border-gray-300 dark:border-gray-600 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-gray-700"
                               >
@@ -755,24 +743,21 @@ const Checkout = () => {
                           </div>
                           <div className="flex items-center space-x-2">
                             {(() => {
-                              // Find product to get available sizes and colors
                               const product = products.find(p => p.id === item.id || p._id === item.id);
                               const availableSizes = product?.sizes || [];
                               const availableColors = product?.colors || [];
-                              
+
                               return (
                                 <>
                                   <select
                                     value={item.size || ''}
                                     onChange={(e) => {
                                       const newSize = e.target.value;
-                                      // FIX ISSUE #2: Update both local state AND sync with backend API
-                                      dispatch(updateCartItemVariant({ 
-                                        cartItemId: item.id, 
-                                        newSize, 
-                                        newColor: item.color 
+                                      dispatch(updateCartItemVariant({
+                                        cartItemId: item.id,
+                                        newSize,
+                                        newColor: item.color
                                       }));
-                                      // Also call API to sync with backend for logged-in users
                                       dispatch(updateCartItemVariantAPI({
                                         productId: item.id || item.productId,
                                         size: newSize,
@@ -793,13 +778,11 @@ const Checkout = () => {
                                     value={item.color || ''}
                                     onChange={(e) => {
                                       const newColor = e.target.value;
-                                      // FIX ISSUE #2: Update both local state AND sync with backend API
-                                      dispatch(updateCartItemVariant({ 
-                                        cartItemId: item.id, 
-                                        newSize: item.size, 
-                                        newColor 
+                                      dispatch(updateCartItemVariant({
+                                        cartItemId: item.id,
+                                        newSize: item.size,
+                                        newColor
                                       }));
-                                      // Also call API to sync with backend for logged-in users
                                       dispatch(updateCartItemVariantAPI({
                                         productId: item.id || item.productId,
                                         size: item.size,
@@ -823,7 +806,7 @@ const Checkout = () => {
                         </div>
                       </div>
                       <div className="flex flex-col items-end space-y-2">
-                        <button 
+                        <button
                           onClick={() => handleRemoveItem(item)}
                           className="text-red-500 hover:text-red-600 transition-colors"
                         >
@@ -911,25 +894,71 @@ const Checkout = () => {
               className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700"
             >
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Payment</h2>
-              
-              <motion.div className="mb-6 p-6 rounded-xl border-2 border-black bg-black/5">
-                <div className="flex items-center gap-4">
-                  <FiCreditCard className="text-4xl text-gray-900 dark:text-white" />
-                  <div>
-                    <p className="font-semibold text-gray-900 dark:text-white">Paystack</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      Pay securely with card. Use test card 4084084084084081 in sandbox.
-                    </p>
+
+              <div className="space-y-4 mb-6">
+                {/* M-PESA Option */}
+                <div 
+                  onClick={() => setPaymentMethod('MPESA')}
+                  className={`p-4 rounded-xl border-2 transition-all cursor-pointer ${
+                    paymentMethod === 'MPESA' 
+                      ? 'border-[#00A676] bg-[#00A676]/5' 
+                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
+                  }`}
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-[#00A676] rounded-lg flex items-center justify-center shrink-0">
+                      <FiSmartphone className="text-2xl text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex justify-between items-center">
+                        <p className="font-bold text-gray-900 dark:text-white">M-PESA (STK Push)</p>
+                        {paymentMethod === 'MPESA' && (
+                          <FiCheckCircle className="text-[#00A676] w-5 h-5" />
+                        )}
+                      </div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        Pay via Safaricom M-PESA STK Push to {phoneNumber || 'your phone'}
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </motion.div>
+
+                {/* Credit/Debit Card Option (Coming Soon) */}
+                <div 
+                  className="p-4 rounded-xl border-2 border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50 opacity-60 cursor-not-allowed relative overflow-hidden"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center shrink-0">
+                      <FiCreditCard className="text-2xl text-gray-400" />
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex justify-between items-center">
+                        <p className="font-bold text-gray-400">Credit/Debit Card</p>
+                        <span className="bg-blue-100 text-blue-600 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                          Coming Soon
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-400">
+                        Secure payments with Visa, Mastercard or Amex
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
 
               {paymentStatus === 'loading' && (
                 <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
                   <div className="flex items-center space-x-3">
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
-                    <p className="text-blue-600 dark:text-blue-400">Processing payment...</p>
+                    <p className="text-blue-600 dark:text-blue-400">
+                      {isWaitingForMpesa ? 'Waiting for you to enter your M-PESA PIN...' : 'Processing payment...'}
+                    </p>
                   </div>
+                  {isWaitingForMpesa && (
+                    <p className="text-xs text-blue-500 dark:text-blue-400 mt-2 italic">
+                      Please don't refresh this page. We'll automatically confirm your payment once it's complete.
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -949,7 +978,7 @@ const Checkout = () => {
                     <p className="text-red-600 dark:text-red-400">Payment failed. Please try again.</p>
                   </div>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                    Your card was not charged, or verification did not complete.
+                    There was an issue initiating the payment. Please try again.
                   </p>
                   <button
                     onClick={() => {
@@ -968,7 +997,7 @@ const Checkout = () => {
                 disabled={paymentStatus === 'loading' || paymentStatus === 'success'}
                 className="w-full mt-6 bg-black hover:bg-gray-800 text-white transition-colors duration-300 font-bold py-4 px-6 rounded-lg shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {paymentStatus === 'loading' ? 'Processing...' : 'Pay with Paystack'}
+                {paymentStatus === 'loading' ? 'Processing...' : 'Pay with M-PESA'}
               </button>
             </motion.div>
 
@@ -980,7 +1009,7 @@ const Checkout = () => {
             >
               <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
                 <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Your Order</h2>
-                
+
                 <div className="space-y-4 mb-6">
                   {items.map((item) => (
                     <div key={`${item.id}-${item.size}-${item.color}`} className="flex items-center space-x-4 pb-4 border-b border-gray-200 dark:border-gray-700 last:border-b-0">
@@ -1000,6 +1029,12 @@ const Checkout = () => {
                     <span className="text-gray-600 dark:text-gray-400">Subtotal</span>
                     <span className="text-gray-900 dark:text-white font-medium">{formatPrice(subtotal)}</span>
                   </div>
+                  {discountAmount > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-green-600 dark:text-green-400">Discount</span>
+                      <span className="text-green-600 dark:text-green-400 font-medium">-{formatPrice(discountAmount)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600 dark:text-gray-400">Shipping</span>
                     <span className="text-gray-900 dark:text-white font-medium">{formatPrice(shippingCost)}</span>
@@ -1032,7 +1067,7 @@ const Checkout = () => {
               <div className="space-y-4 mb-8">
                 <div className="bg-gray-50 dark:bg-gray-900 rounded-lg p-6 text-left border border-gray-200 dark:border-gray-700">
                   <h3 className="font-bold text-gray-900 dark:text-white mb-4 border-b border-gray-200 dark:border-gray-700 pb-2">Order Receipt</h3>
-                  
+
                   {/* Render actual bought items */}
                   <div className="space-y-3 mb-4 max-h-48 overflow-y-auto">
                     {orderConfirmationItems.map((item, idx) => (
@@ -1042,7 +1077,7 @@ const Checkout = () => {
                       </div>
                     ))}
                   </div>
-                  
+
                   {/* Render Frozen Totals */}
                   <div className="border-t border-gray-200 dark:border-gray-700 pt-4 space-y-2">
                     <div className="flex justify-between text-sm">
@@ -1091,4 +1126,3 @@ const Checkout = () => {
 };
 
 export default Checkout;
-

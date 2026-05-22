@@ -3,7 +3,7 @@ import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { motion } from 'framer-motion';
 import { FiStar, FiHeart, FiShare2, FiMinus, FiPlus, FiShoppingCart, FiArrowLeft, FiX, FiCheckCircle } from 'react-icons/fi';
 import { useSelector, useDispatch } from 'react-redux';
-import { addToCart, addToCartAPI } from '../store/slices/cartSlice';
+import { addToCartAPI } from '../store/slices/cartSlice';
 import { fetchProducts } from '../store/slices/productSlice';
 import { addToWishlistLocal, removeFromWishlistLocal } from '../store/slices/wishlistSlice';
 import { useAuth } from '../context/AuthContext';
@@ -200,31 +200,6 @@ const ProductDetail = () => {
 
   // Handle Add to Cart - use flash sale price if applicable
   const handleAddToCart = async () => {
-    // Check authentication FIRST - redirect to login if not authenticated
-    if (!isAuthenticated) {
-      // Store redirect path for after login
-      const currentPath = window.location.pathname;
-      localStorage.setItem('redirectAfterLogin', currentPath);
-      
-      // Store product in sessionStorage for pending action
-      const pendingItem = {
-        product: { ...product, price: effectivePrice }, // Use flash sale price!
-        size: selectedSize,
-        color: selectedColor,
-        quantity
-      };
-      sessionStorage.setItem('pendingCartItem', JSON.stringify(pendingItem));
-      
-      toast.info('Please login to add items to your cart', {
-        icon: '🔐',
-        duration: 2500,
-      });
-      
-      // Navigate to login immediately with redirect
-      navigate(`/login?redirect=${window.location.pathname}`);
-      return;
-    }
-    
     try {
       // Only validate size if the product actually has sizes configured
       if (product.sizes && product.sizes.length > 0 && !selectedSize) {
@@ -241,8 +216,7 @@ const ProductDetail = () => {
       // Get the product ID (support both _id and id formats)
       const productId = product._id || product.id;
 
-      // Use addToCartAPI to sync with database (same as ProductCard.jsx)
-      await dispatch(addToCartAPI({
+      const cartItem = {
         product: {
           id: productId,
           _id: productId,
@@ -254,8 +228,9 @@ const ProductDetail = () => {
         size: selectedSize,
         color: selectedColor,
         quantity
-      })).unwrap();
+      };
 
+      await dispatch(addToCartAPI(cartItem)).unwrap();
       toast.success(`${product.name} added to cart!`);
     } catch (error) {
       console.error('Error adding to cart:', error);
@@ -271,22 +246,13 @@ const ProductDetail = () => {
   };
 
   const handleWishlist = () => {
-    // Check if user is authenticated
     if (!isAuthenticated) {
-      // Store redirect path for after login
-      const currentPath = window.location.pathname;
-      localStorage.setItem('redirectAfterLogin', currentPath);
-      
-      // Store product to add to wishlist after login
-      sessionStorage.setItem('pendingWishlistItem', JSON.stringify(product));
-      toast.info('Please login to add items to your wishlist', {
-        icon: '🔐',
-        duration: 2500,
-      });
+      toast.error('Please log in to continue');
+      localStorage.setItem('redirectAfterLogin', window.location.pathname);
       navigate(`/login?redirect=${window.location.pathname}`);
       return;
     }
-    
+
     if (isWishlisted) {
       // Remove from wishlist
       dispatch(removeFromWishlistLocal({ productId: product.id }));
