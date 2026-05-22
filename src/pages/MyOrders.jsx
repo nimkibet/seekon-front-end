@@ -298,7 +298,7 @@ const MyOrders = () => {
                 Clear Order History?
               </h3>
               <p className="text-gray-600 dark:text-gray-400 mb-6">
-                This will remove all orders from your view. This action cannot be undone.
+                This will hide all current orders from your view. New orders will still appear. This action cannot be undone.
               </p>
               <div className="flex gap-3">
                 <button
