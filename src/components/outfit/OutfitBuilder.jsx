@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { fetchProducts } from '../../store/slices/productSlice';
-import { addToCart } from '../../store/slices/cartSlice';
+import { addToCart, addToCartAPI } from '../../store/slices/cartSlice';
 import { formatPrice } from '../../utils/formatPrice';
 import toast from 'react-hot-toast';
 
@@ -230,16 +230,37 @@ const OutfitBuilder = () => {
       return;
     }
 
-    for (const item of items) {
-      dispatch(addToCart({
-        product: item,
-        size: item.sizes?.[0] || null,
-        color: item.colors?.[0] || null,
-        quantity: 1,
-      }));
-    }
+    const toastId = toast.loading('Adding outfit to cart...');
+    let successCount = 0;
 
-    toast.success(`${items.length} items added to cart!`);
+    try {
+      for (const item of items) {
+        /**
+         * SECURITY FIX: Use addToCartAPI to sync with backend.
+         * The backend identifies the user via JWT and fetches product details from DB.
+         */
+        const cartItem = {
+          product: {
+            id: item.id || item._id,
+            _id: item._id || item.id,
+            name: item.name,
+            price: item.price,
+            image: item.image,
+            brand: item.brand
+          },
+          size: item.sizes?.[0] || item.size || null,
+          color: item.colors?.[0] || item.color || 'black',
+          quantity: 1,
+        };
+
+        await dispatch(addToCartAPI(cartItem)).unwrap();
+        successCount++;
+      }
+      toast.success(`${successCount} items added to cart!`, { id: toastId });
+    } catch (error) {
+      console.error('🛒 OUTFIT_ADD: Failed', error);
+      toast.error(error.message || 'Failed to add some items to cart', { id: toastId });
+    }
   };
 
   const isSelected = (productId) => {
