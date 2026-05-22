@@ -4,6 +4,7 @@ import { Provider } from 'react-redux';
 import { store } from './store/store';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { SettingsProvider, useSettings } from './context/SettingsContext';
+import { HelmetProvider } from 'react-helmet-async';
 import toast from 'react-hot-toast';
 
 // Maintenance page - lazy loaded
@@ -153,8 +154,9 @@ const App = () => {
   console.log('🏗️ App component rendering...');
   
   return (
-    <ErrorBoundary>
-      <Provider store={store}>
+    <HelmetProvider>
+      <ErrorBoundary>
+        <Provider store={store}>
         <AuthProvider>
           <SettingsProvider>
             <Router>
@@ -563,6 +565,7 @@ const App = () => {
       </AuthProvider>
     </Provider>
     </ErrorBoundary>
+    </HelmetProvider>
   );
 };
 
