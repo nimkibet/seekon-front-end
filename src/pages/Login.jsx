@@ -275,8 +275,9 @@ const Login = () => {
         
         // Store token and user data
         if (response.data.token) {
-          localStorage.setItem('token', response.data.token);
-          localStorage.setItem('user', JSON.stringify(response.data.user));
+          const storage = rememberMe ? localStorage : sessionStorage;
+          storage.setItem('token', response.data.token);
+          storage.setItem('user', JSON.stringify(response.data.user));
           result = response.data.user;
         }
       } else {
@@ -382,13 +383,15 @@ const Login = () => {
       toast.loading('Signing in with Google...', { id: 'google-login' });
       
       const response = await axios.post(`${import.meta.env.VITE_API_URL || 'https://seekonbackend-production-da47.up.railway.app'}/api/auth/google`, {
-        credential: credentialResponse.credential
+        credential: credentialResponse.credential,
+        rememberMe
       });
 
       if (response.data.success) {
         // Store token and user data
-        localStorage.setItem('token', response.data.token);
-        localStorage.setItem('user', JSON.stringify(response.data.user));
+        const storage = rememberMe ? localStorage : sessionStorage;
+        storage.setItem('token', response.data.token);
+        storage.setItem('user', JSON.stringify(response.data.user));
 
         // Dispatch validateToken to update Redux state and trigger Navbar update
         dispatch(validateToken());

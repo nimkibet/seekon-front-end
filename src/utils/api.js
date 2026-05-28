@@ -14,8 +14,12 @@ const client = axios.create({
 // Request interceptor to add Auth Token to every request
 client.interceptors.request.use(
   (config) => {
-    // FIX: Check both 'token' and 'adminToken' keys for compatibility
-    const token = localStorage.getItem('token') || localStorage.getItem('adminToken');
+    // FIX: Check both localStorage and sessionStorage for tokens
+    const token = localStorage.getItem('token') || 
+                  sessionStorage.getItem('token') || 
+                  localStorage.getItem('adminToken') || 
+                  sessionStorage.getItem('adminToken');
+                  
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }

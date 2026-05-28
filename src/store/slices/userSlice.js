@@ -50,6 +50,20 @@ export const loginUser = createAsyncThunk(
                 
                 // Store token
                 storage.setItem('token', data.token);
+                // Store user data for persistence
+                storage.setItem('user', JSON.stringify({
+                  id: data.user.id,
+                  _id: data.user.id,
+                  name: data.user.name,
+                  email: data.user.email,
+                  role: data.user.role || 'user',
+                  avatar: data.user.profilePhoto || null,
+                  phoneNumber: data.user.phoneNumber || '',
+                  address: data.user.address || '',
+                  createdAt: data.user.createdAt,
+                  authProvider: data.user.authProvider || 'local'
+                }));
+
                 // Only set adminToken if user has admin role
                 if (data.user.role === 'admin' || data.user.role === 'superadmin') {
                   storage.setItem('adminToken', data.token);
@@ -393,12 +407,29 @@ export const resendVerificationEmail = createAsyncThunk(
   }
 );
 
+const savedUser = (() => {
+  try {
+    return JSON.parse(
+      localStorage.getItem('user') || 
+      sessionStorage.getItem('user') || 
+      'null'
+    );
+  } catch (e) {
+    return null;
+  }
+})();
+
+const savedToken = localStorage.getItem('token') || 
+                  sessionStorage.getItem('token') || 
+                  localStorage.getItem('adminToken') || 
+                  sessionStorage.getItem('adminToken');
+
 const initialState = {
-  user: null,
-  isAuthenticated: false,
+  user: savedUser,
+  isAuthenticated: !!savedToken && !!savedUser,
   isLoading: false,
   error: null,
-  theme: 'light', // 'light' or 'dark'
+  theme: localStorage.getItem('theme') || 'light', // 'light' or 'dark'
   registrationSuccess: false, // OTP flow: true after successful registration
   registrationEmail: '', // OTP flow: email to verify
 };
@@ -413,8 +444,10 @@ const userSlice = createSlice({
       state.error = null;
       localStorage.removeItem('token');
       localStorage.removeItem('adminToken');
+      localStorage.removeItem('user');
       sessionStorage.removeItem('token');
       sessionStorage.removeItem('adminToken');
+      sessionStorage.removeItem('user');
     },
     clearError: (state) => {
       state.error = null;

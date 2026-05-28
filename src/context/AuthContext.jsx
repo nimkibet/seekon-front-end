@@ -34,10 +34,14 @@ export const AuthProvider = ({ children }) => {
       // Validate the token
       dispatch(validateToken());
     } else {
-      // Check for token in localStorage
-      const token = localStorage.getItem('token') || localStorage.getItem('adminToken');
+      // Check for token in localStorage and sessionStorage
+      const token = localStorage.getItem('token') || 
+                    sessionStorage.getItem('token') || 
+                    localStorage.getItem('adminToken') || 
+                    sessionStorage.getItem('adminToken');
+                    
       if (token && !isAuthenticated) {
-        console.log('🔍 Token found in localStorage, validating...');
+        console.log('🔍 Token found in storage, validating...');
         dispatch(validateToken());
       }
     }
