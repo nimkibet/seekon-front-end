@@ -814,7 +814,7 @@ const Login = () => {
 
                   {/* Forgot Password Link - Only for Login */}
                   {!isSignUp && (
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between mt-4">
                       <div className="flex items-center">
                         <input
                           id="remember-me"
