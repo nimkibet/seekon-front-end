@@ -187,7 +187,7 @@ const Checkout = () => {
     const interval = setInterval(async () => {
       attempts++;
       try {
-        const token = user?.token || localStorage.getItem('token') || localStorage.getItem('adminToken') || sessionStorage.getItem('token');
+        const token = user?.token || localStorage.getItem('token') || sessionStorage.getItem('token') || localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
         const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
         
         const response = await fetch(`${API_URL}/api/orders/${orderId}`, {
@@ -250,7 +250,7 @@ const Checkout = () => {
       sessionStorage.setItem('isPaymentProcessing', 'true');
       window.dispatchEvent(new Event('paymentStateChange'));
 
-      const token = user?.token || localStorage.getItem('token') || localStorage.getItem('adminToken') || sessionStorage.getItem('token');
+      const token = user?.token || localStorage.getItem('token') || sessionStorage.getItem('token') || localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
       const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
 
       const orderData = {
@@ -286,6 +286,10 @@ const Checkout = () => {
       if (orderResponse.status === 401 && token) {
         localStorage.removeItem('token');
         localStorage.removeItem('adminToken');
+        localStorage.removeItem('user');
+        sessionStorage.removeItem('token');
+        sessionStorage.removeItem('adminToken');
+        sessionStorage.removeItem('user');
         toast.error('Session expired. Please log in again.');
         navigate('/login?redirect=/checkout', { state: { from: { pathname: '/checkout' } } });
         return;

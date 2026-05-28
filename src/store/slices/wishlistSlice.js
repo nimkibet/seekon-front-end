@@ -15,7 +15,7 @@ export const fetchWishlist = createAsyncThunk(
   async (userId, { rejectWithValue }) => {
     try {
       // FIX: Check both 'token' and 'adminToken' keys for compatibility
-      const token = localStorage.getItem('token') || localStorage.getItem('adminToken');
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token') || localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
       const response = await fetch(`${API_URL}/api/wishlist/${userId}`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -41,7 +41,7 @@ export const addToWishlistAPI = createAsyncThunk(
       // Handle both _id and id formats
       const productId = product._id || product.id || product.productId;
       
-      const token = localStorage.getItem('token') || localStorage.getItem('adminToken');
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token') || localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
       const response = await fetch(`${API_URL}/api/wishlist/${userId}/add`, {
         method: 'POST',
         headers: {
@@ -77,7 +77,7 @@ export const removeFromWishlistAPI = createAsyncThunk(
   'wishlist/removeFromWishlistAPI',
   async ({ userId, productId }, { rejectWithValue }) => {
     try {
-      const token = localStorage.getItem('token') || localStorage.getItem('adminToken');
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token') || localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
       const response = await fetch(`${API_URL}/api/wishlist/${userId}/remove`, {
         method: 'DELETE',
         headers: {
@@ -110,7 +110,7 @@ export const clearWishlistAPI = createAsyncThunk(
   'wishlist/clearWishlistAPI',
   async (userId, { rejectWithValue }) => {
     try {
-      const token = localStorage.getItem('token') || localStorage.getItem('adminToken');
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token') || localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
       const response = await fetch(`${API_URL}/api/wishlist/${userId}/clear`, {
         method: 'DELETE',
         headers: {

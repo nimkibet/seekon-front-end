@@ -21,7 +21,10 @@ const AdminNewsletter = () => {
 
   const fetchSubscribers = async () => {
     try {
-      const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
+      const token = localStorage.getItem('adminToken') || 
+                    sessionStorage.getItem('adminToken') || 
+                    localStorage.getItem('token') || 
+                    sessionStorage.getItem('token');
       const response = await axios.get(
         `${import.meta.env.VITE_API_URL || 'https://seekonbackend-production-da47.up.railway.app'}/api/admin/subscribers`,
         {
@@ -47,7 +50,10 @@ const AdminNewsletter = () => {
 
     setSending(true);
     try {
-      const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
+      const token = localStorage.getItem('adminToken') || 
+                    sessionStorage.getItem('adminToken') || 
+                    localStorage.getItem('token') || 
+                    sessionStorage.getItem('token');
       const response = await axios.post(
         `${import.meta.env.VITE_API_URL || 'https://seekonbackend-production-da47.up.railway.app'}/api/admin/newsletter/broadcast`,
         {

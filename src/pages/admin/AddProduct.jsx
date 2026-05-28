@@ -8,7 +8,10 @@ import { adminApi } from '../../utils/adminApi';
 const API_URL = import.meta.env.VITE_API_URL || 'https://seekonbackend-production-da47.up.railway.app';
 
 const getAuthToken = () => {
-  return localStorage.getItem('adminToken') || localStorage.getItem('token');
+  return localStorage.getItem('adminToken') || 
+         sessionStorage.getItem('adminToken') || 
+         localStorage.getItem('token') || 
+         sessionStorage.getItem('token');
 };
 
 // Helper function to convert color name to hex value

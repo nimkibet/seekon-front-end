@@ -7,7 +7,10 @@ const API_URL = import.meta.env.VITE_API_URL || 'https://seekonbackend-productio
 
 // Helper function to get auth token
 const getAuthToken = () => {
-  return localStorage.getItem('adminToken') || localStorage.getItem('token');
+  return localStorage.getItem('adminToken') || 
+         sessionStorage.getItem('adminToken') || 
+         localStorage.getItem('token') || 
+         sessionStorage.getItem('token');
 };
 
 const ImageUpload = ({ 

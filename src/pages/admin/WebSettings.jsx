@@ -33,7 +33,7 @@ const WebSettings = () => {
 
   const fetchExchangeRate = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
       const res = await axios.get(EXCHANGE_RATE_API, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -46,7 +46,7 @@ const WebSettings = () => {
 
   const fetchSettings = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
       const res = await axios.get(HOME_SETTINGS_URL, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -67,7 +67,7 @@ const WebSettings = () => {
     e.preventDefault();
     setSaving(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
       await axios.put(HOME_SETTINGS_URL, formData, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -88,7 +88,7 @@ const WebSettings = () => {
     }
     setSaving(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
       await axios.put(EXCHANGE_RATE_API, { rate: parseFloat(exchangeRate) }, {
         headers: { Authorization: `Bearer ${token}` }
       });

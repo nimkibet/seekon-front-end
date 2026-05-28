@@ -26,7 +26,7 @@ const OrderSuccess = () => {
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL || '/api'}/orders/${orderId}`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Authorization': `Bearer ${localStorage.getItem('token') || sessionStorage.getItem('token')}`
         }
       });
       

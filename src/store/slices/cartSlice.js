@@ -4,7 +4,10 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 const API_URL = import.meta.env.VITE_API_URL || 'https://seekonbackend-production-da47.up.railway.app';
 
 const getAuthToken = () =>
-  localStorage.getItem('token') || localStorage.getItem('adminToken');
+  localStorage.getItem('token') || 
+  sessionStorage.getItem('token') || 
+  localStorage.getItem('adminToken') || 
+  sessionStorage.getItem('adminToken');
 
 const syncCartToStorage = (items, totalItems) => {
   localStorage.setItem('cartItems', JSON.stringify(items));
@@ -260,7 +263,10 @@ export const updateCartItemVariantAPI = createAsyncThunk(
   'cart/updateCartItemVariantAPI',
   async ({ productId, size, color }, { rejectWithValue }) => {
     try {
-      const token = localStorage.getItem('token') || localStorage.getItem('adminToken');
+      const token = localStorage.getItem('token') || 
+                   sessionStorage.getItem('token') || 
+                   localStorage.getItem('adminToken') || 
+                   sessionStorage.getItem('adminToken');
       if (!token) {
         return rejectWithValue('Authentication required');
       }

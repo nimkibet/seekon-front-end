@@ -4,7 +4,10 @@ const API_URL = API_ORIGIN;
 
 // Helper function to get auth token
 const getAuthToken = () => {
-  return localStorage.getItem('adminToken') || localStorage.getItem('token');
+  return localStorage.getItem('adminToken') || 
+         sessionStorage.getItem('adminToken') || 
+         localStorage.getItem('token') || 
+         sessionStorage.getItem('token');
 };
 
 // Helper function for API calls

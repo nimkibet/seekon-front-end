@@ -140,7 +140,10 @@ const Profile = () => {
     setIsSaving(true);
     
     try {
-      const token = localStorage.getItem('token') || localStorage.getItem('adminToken');
+      const token = localStorage.getItem('token') || 
+                   sessionStorage.getItem('token') || 
+                   localStorage.getItem('adminToken') || 
+                   sessionStorage.getItem('adminToken');
       
       // Update user profile via API
       const response = await fetch(`${API_URL}/api/auth/me`, {
