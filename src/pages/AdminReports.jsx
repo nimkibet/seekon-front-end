@@ -47,10 +47,11 @@ const AdminReports = () => {
     fetchReportData();
   }, []);
 
-  // Universal PDF Export Function - pass report type directly to avoid state timing issues
-  const handleExportPDF = (reportType) => {
+  // Universal PDF Export Function - pass report type and data directly to avoid state timing issues
+  const handleExportPDF = (reportType, dataToExport) => {
     try {
-      const activeTab = reportType || activeReport;
+      const activeTab = reportType;
+      const data = dataToExport || reportData[activeTab] || [];
       let tableHeaders = [];
       let tableRows = [];
 
@@ -58,7 +59,7 @@ const AdminReports = () => {
         case 'products':
           // Inventory Report
           tableHeaders = ['Product Name', 'Brand', 'Category', 'Price', 'Stock'];
-          tableRows = reportData.products.map(product => [
+          tableRows = data.map(product => [
             product.name || 'N/A',
             product.brand || 'N/A',
             product.category || 'N/A',
@@ -69,7 +70,7 @@ const AdminReports = () => {
         case 'orders':
           // Sales Report
           tableHeaders = ['Order ID', 'Date', 'Customer', 'Phone', 'Total', 'Status'];
-          tableRows = reportData.orders.map(order => [
+          tableRows = data.map(order => [
             order._id ? order._id.substring(0, 8) : 'N/A',
             order.createdAt ? new Date(order.createdAt).toLocaleDateString() : 'N/A',
             order.userEmail || 'N/A',
@@ -81,7 +82,7 @@ const AdminReports = () => {
         case 'users':
           // Users/Customers Report
           tableHeaders = ['Name', 'Email', 'Phone', 'Role', 'Joined Date'];
-          tableRows = reportData.users.map(user => [
+          tableRows = data.map(user => [
             user.name || 'N/A',
             user.email || 'N/A',
             user.phoneNumber || 'N/A',
@@ -92,7 +93,7 @@ const AdminReports = () => {
         case 'transactions':
           // Transactions Report
           tableHeaders = ['Transaction ID', 'Date', 'Customer', 'Phone', 'Amount', 'Method', 'Reference', 'Status'];
-          tableRows = reportData.transactions.map(transaction => [
+          tableRows = data.map(transaction => [
             transaction._id ? transaction._id.substring(0, 8) : 'N/A',
             transaction.createdAt ? new Date(transaction.createdAt).toLocaleDateString() : 'N/A',
             transaction.userEmail || 'N/A',
@@ -153,7 +154,7 @@ const AdminReports = () => {
         <motion.button
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          onClick={() => { setActiveReport('products'); handleExportPDF(); }}
+          onClick={() => { setActiveReport('products'); handleExportPDF('products', reportData.products); }}
           disabled={loading}
           className={`bg-white/10 backdrop-blur-xl rounded-xl p-6 border transition-all text-left group cursor-pointer ${activeReport === 'products' ? 'border-[#00A676] ring-2 ring-[#00A676]/30' : 'border-white/20 hover:border-white/40'} ${loading ? 'opacity-50' : ''}`}
         >
@@ -176,7 +177,7 @@ const AdminReports = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          onClick={() => { setActiveReport('orders'); handleExportPDF(); }}
+          onClick={() => { setActiveReport('orders'); handleExportPDF('orders', reportData.orders); }}
           disabled={loading}
           className={`bg-white/10 backdrop-blur-xl rounded-xl p-6 border transition-all text-left group cursor-pointer ${activeReport === 'orders' ? 'border-[#00A676] ring-2 ring-[#00A676]/30' : 'border-white/20 hover:border-white/40'} ${loading ? 'opacity-50' : ''}`}
         >
@@ -199,7 +200,7 @@ const AdminReports = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          onClick={() => { setActiveReport('users'); handleExportPDF(); }}
+          onClick={() => { setActiveReport('users'); handleExportPDF('users', reportData.users); }}
           disabled={loading}
           className={`bg-white/10 backdrop-blur-xl rounded-xl p-6 border transition-all text-left group cursor-pointer ${activeReport === 'users' ? 'border-[#00A676] ring-2 ring-[#00A676]/30' : 'border-white/20 hover:border-white/40'} ${loading ? 'opacity-50' : ''}`}
         >
@@ -224,7 +225,7 @@ const AdminReports = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          onClick={() => { setActiveReport('transactions'); handleExportPDF(); }}
+          onClick={() => { setActiveReport('transactions'); handleExportPDF('transactions', reportData.transactions); }}
           disabled={loading}
           className={`bg-white/10 backdrop-blur-xl rounded-xl p-6 border transition-all text-left group cursor-pointer ${activeReport === 'transactions' ? 'border-[#00A676] ring-2 ring-[#00A676]/30' : 'border-white/20 hover:border-white/40'} ${loading ? 'opacity-50' : ''}`}
         >
