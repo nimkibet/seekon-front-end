@@ -707,99 +707,138 @@ const ProductDetail = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className="mt-8 pt-8 border-t border-gray-200 dark:border-gray-700"
+              className="mt-12 pt-12 border-t border-gray-200 dark:border-gray-700"
             >
-              <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-6 flex items-center gap-2">
-                <FiStar className="w-5 h-5 text-yellow-400" />
-                Customer Reviews
+              <h3 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-8">
+                Verified Customer Feedback
               </h3>
 
-              {/* Overall Rating */}
-              <div className="flex items-center gap-4 mb-6 p-4 bg-gray-50 dark:bg-gray-750 rounded-lg">
-                <div className="text-4xl font-bold text-gray-900 dark:text-gray-100">
-                  {product.rating?.toFixed(1) || '0.0'}
-                </div>
-                <div>
-                  <div className="flex items-center gap-1 mb-1">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <FiStar
-                        key={star}
-                        className={`w-5 h-5 ${
-                          star <= Math.round(product.rating || 0)
-                            ? 'text-yellow-400 fill-current'
-                            : 'text-gray-300 dark:text-gray-600'
-                        }`}
-                      />
-                    ))}
-                  </div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    Based on {product.reviews || product.reviewDetails?.length || 0} reviews
-                  </p>
-                </div>
-              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 md:gap-12">
+                {/* Left Column: Rating Summary */}
+                <div className="lg:col-span-4 space-y-6">
+                  <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-100 dark:border-gray-700 shadow-sm">
+                    <p className="text-gray-500 dark:text-gray-400 text-sm font-medium uppercase tracking-wider mb-2">Verified Ratings</p>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-5xl font-black text-gray-900 dark:text-gray-100">
+                        {product.rating?.toFixed(1) || '0.0'}
+                      </span>
+                      <span className="text-2xl text-gray-400">/ 5</span>
+                    </div>
+                    
+                    <div className="flex items-center gap-1 my-4">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <FiStar
+                          key={star}
+                          className={`w-6 h-6 ${
+                            star <= Math.round(product.rating || 0)
+                              ? 'text-yellow-400 fill-current'
+                              : 'text-gray-200 dark:text-gray-700'
+                          }`}
+                        />
+                      ))}
+                    </div>
+                    
+                    <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">
+                      {product.reviews || product.reviewDetails?.length || 0} verified ratings
+                    </p>
 
-              {/* Individual Reviews */}
-              <div className="space-y-4">
-                {product.reviewDetails?.slice().reverse().map((review, index) => {
-                  // Compute display name: check every possible name permutation from backend
-                  const displayName = review.name || review.reviewerName || review.userName || review.user?.name || review.user?.firstName || (review.user?.email ? review.user.email.split('@')[0] : "Customer");
-                  return (
-                    <div
-                      key={index}
-                      className="p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
-                    >
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 bg-[#00A676] rounded-full flex items-center justify-center text-white font-medium text-sm">
-                            {displayName.charAt(0).toUpperCase()}
-                          </div>
-                          <div>
-                            <p className="font-medium text-gray-900 dark:text-gray-100 text-sm">
-                              {displayName}
-                            </p>
-                          <div className="flex items-center gap-1">
-                            {[1, 2, 3, 4, 5].map((star) => (
-                              <FiStar
-                                key={star}
-                                className={`w-3 h-3 ${
-                                  star <= review.rating
-                                    ? 'text-yellow-400 fill-current'
-                                    : 'text-gray-300 dark:text-gray-600'
-                                }`}
+                    {/* Breakdown Bars */}
+                    <div className="mt-8 space-y-3">
+                      {[5, 4, 3, 2, 1].map((star) => {
+                        const count = product.reviewDetails?.filter(r => Math.round(r.rating) === star).length || 0;
+                        const total = product.reviewDetails?.length || 1;
+                        const percentage = (count / total) * 100;
+                        
+                        return (
+                          <div key={star} className="flex items-center gap-3 text-sm">
+                            <span className="w-3 text-gray-600 dark:text-gray-400 font-bold">{star}</span>
+                            <FiStar className="w-3 h-3 text-yellow-400 fill-current" />
+                            <div className="flex-1 h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                              <motion.div 
+                                initial={{ width: 0 }}
+                                animate={{ width: `${percentage}%` }}
+                                transition={{ duration: 1, ease: "easeOut" }}
+                                className="h-full bg-yellow-400"
                               />
-                            ))}
+                            </div>
+                            <span className="w-8 text-right text-gray-500 dark:text-gray-500 text-xs">({count})</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Column: Individual Reviews */}
+                <div className="lg:col-span-8">
+                  <div className="space-y-6">
+                    <h4 className="text-lg font-bold text-gray-900 dark:text-gray-100 pb-4 border-b border-gray-100 dark:border-gray-800">
+                      Product Reviews ({product.reviewDetails?.length || 0})
+                    </h4>
+                    
+                    {product.reviewDetails?.slice().reverse().map((review, index) => {
+                      const displayName = review.userName || review.name || review.user?.name || "Verified Customer";
+                      return (
+                        <div
+                          key={index}
+                          className="pb-6 border-b border-gray-100 dark:border-gray-800 last:border-0"
+                        >
+                          <div className="flex items-center justify-between mb-3">
+                            <div className="flex items-center gap-1">
+                              {[1, 2, 3, 4, 5].map((star) => (
+                                <FiStar
+                                  key={star}
+                                  className={`w-4 h-4 ${
+                                    star <= review.rating
+                                      ? 'text-yellow-400 fill-current'
+                                      : 'text-gray-200 dark:text-gray-700'
+                                  }`}
+                                />
+                              ))}
+                            </div>
+                            {review.createdAt && (
+                              <span className="text-xs text-gray-400 dark:text-gray-500">
+                                {new Date(review.createdAt).toLocaleDateString('en-KE', {
+                                  year: 'numeric',
+                                  month: 'short',
+                                  day: 'numeric'
+                                })}
+                              </span>
+                            )}
+                          </div>
+                          
+                          <h5 className="font-bold text-gray-900 dark:text-gray-100 text-sm mb-2">
+                            {review.comment?.split('.')[0] || 'Great Product'}
+                          </h5>
+                          
+                          <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed mb-4">
+                            {review.comment}
+                          </p>
+                          
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs text-gray-500 dark:text-gray-500">
+                                by <span className="font-semibold text-gray-700 dark:text-gray-300">{displayName}</span>
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1 text-[#00A676]">
+                              <FiCheckCircle className="w-3 h-3 fill-current" />
+                              <span className="text-[10px] font-bold uppercase tracking-tighter">Verified Purchase</span>
+                            </div>
                           </div>
                         </div>
+                      );
+                    })}
+
+                    {(!product.reviewDetails || product.reviewDetails.length === 0) && (
+                      <div className="text-center py-12 bg-gray-50 dark:bg-gray-800/50 rounded-xl">
+                        <FiStar className="w-12 h-12 text-gray-300 dark:text-gray-700 mx-auto mb-4" />
+                        <p className="text-gray-500 dark:text-gray-400">No reviews yet for this product.</p>
                       </div>
-                      {review.isVerifiedPurchase && (
-                        <span className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
-                          <FiCheckCircle className="w-3 h-3" />
-                          Verified Purchase
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-gray-600 dark:text-gray-400 text-sm mt-2">
-                      {review.comment}
-                    </p>
-                    {review.createdAt && (
-                      <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
-                        {new Date(review.createdAt).toLocaleDateString('en-US', {
-                          year: 'numeric',
-                          month: 'long',
-                          day: 'numeric'
-                        })}
-                      </p>
                     )}
                   </div>
-                )}
-              )}
-              </div>
-
-              {(!product.reviewDetails || product.reviewDetails.length === 0) && (
-                <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                  No reviews yet. Be the first to review this product!
                 </div>
-              )}
+              </div>
             </motion.div>
           )}
         </div>
