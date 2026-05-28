@@ -76,18 +76,20 @@ const AdminTransactions = () => {
     });
   };
 
-  const handleExportPDF = () => {
+  const handleExportPDF = (dataToExport) => {
     try {
-      if (transactions.length === 0) {
+      const data = Array.isArray(dataToExport) ? dataToExport : transactions;
+      
+      if (data.length === 0) {
         toast.error('No transactions to export');
         return;
       }
 
       const tableHeaders = ['Transaction ID', 'Phone', 'Email', 'Amount', 'Reference', 'Status', 'Date'];
-      const tableRows = transactions.map(transaction => [
+      const tableRows = data.map(transaction => [
         transaction._id ? transaction._id.substring(0, 8) : 'N/A',
-        transaction.phoneNumber || 'N/A',
-        transaction.userEmail || 'N/A',
+        transaction.phoneNumber || transaction.order?.shippingAddress?.phone || 'N/A',
+        transaction.userEmail || transaction.order?.email || 'N/A',
         `KSh ${transaction.amount || 0}`,
         transaction.reference || 'N/A',
         transaction.status || 'N/A',
@@ -102,7 +104,15 @@ const AdminTransactions = () => {
         head: [tableHeaders],
         body: tableRows,
         theme: 'grid',
-        headStyles: { fillColor: [17, 24, 39] }
+        headStyles: { fillColor: [17, 24, 39], fontSize: 9 },
+        styles: { fontSize: 8, cellPadding: 2, overflow: 'linebreak' },
+        columnStyles: {
+          0: { cellWidth: 25 }, // ID
+          1: { cellWidth: 30 }, // Phone
+          3: { cellWidth: 25 }, // Amount
+          5: { cellWidth: 25 }, // Status
+          6: { cellWidth: 25 }  // Date
+        }
       });
       
       doc.save('Seekon_Transactions_Report.pdf');
@@ -151,7 +161,7 @@ const AdminTransactions = () => {
 
           {/* Export Button */}
           <button
-            onClick={handleExportPDF}
+            onClick={() => handleExportPDF(transactions)}
             className="px-4 py-2 bg-[#00A676] hover:bg-[#008A5E] text-white font-medium rounded-lg transition-colors flex items-center justify-center space-x-2"
           >
             <FiDownload />

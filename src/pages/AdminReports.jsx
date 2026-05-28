@@ -91,11 +91,12 @@ const AdminReports = () => {
           break;
         case 'transactions':
           // Transactions Report
-          tableHeaders = ['Transaction ID', 'Date', 'Customer', 'Amount', 'Method', 'Reference', 'Status'];
+          tableHeaders = ['Transaction ID', 'Date', 'Customer', 'Phone', 'Amount', 'Method', 'Reference', 'Status'];
           tableRows = reportData.transactions.map(transaction => [
             transaction._id ? transaction._id.substring(0, 8) : 'N/A',
             transaction.createdAt ? new Date(transaction.createdAt).toLocaleDateString() : 'N/A',
             transaction.userEmail || 'N/A',
+            transaction.phoneNumber || transaction.order?.shippingAddress?.phone || 'N/A',
             `KSh ${transaction.amount || 0}`,
             transaction.method || 'N/A',
             transaction.reference || transaction.mpesaReceiptNumber || 'N/A',
@@ -123,7 +124,8 @@ const AdminReports = () => {
         head: [tableHeaders],
         body: tableRows,
         theme: 'grid',
-        headStyles: { fillColor: [17, 24, 39] } // Dark gray/black to match Seekon branding
+        headStyles: { fillColor: [17, 24, 39], fontSize: 9 }, // Dark gray/black to match Seekon branding
+        styles: { fontSize: 8, cellPadding: 2, overflow: 'linebreak' }
       });
       
       doc.save(`Seekon_${activeTab}_Report.pdf`);

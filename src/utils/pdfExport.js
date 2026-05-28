@@ -38,6 +38,7 @@ export const generateAllReportsPDF = (reportData) => {
     body: summaryData,
     theme: 'striped',
     headStyles: { fillColor: [0, 166, 118] },
+    styles: { fontSize: 8, cellPadding: 2 },
     margin: { left: 14, right: 14 }
   });
 
@@ -64,6 +65,7 @@ export const generateAllReportsPDF = (reportData) => {
       body: usersData.slice(0, 30),
       theme: 'striped',
       headStyles: { fillColor: [0, 166, 118] },
+      styles: { fontSize: 8, cellPadding: 2 },
       margin: { left: 14, right: 14 }
     });
 
@@ -96,6 +98,7 @@ export const generateAllReportsPDF = (reportData) => {
       body: ordersData.slice(0, 30),
       theme: 'striped',
       headStyles: { fillColor: [0, 166, 118] },
+      styles: { fontSize: 8, cellPadding: 2 },
       margin: { left: 14, right: 14 }
     });
 
@@ -128,6 +131,7 @@ export const generateAllReportsPDF = (reportData) => {
       body: productsData.slice(0, 30),
       theme: 'striped',
       headStyles: { fillColor: [0, 166, 118] },
+      styles: { fontSize: 8, cellPadding: 2 },
       margin: { left: 14, right: 14 }
     });
 
@@ -149,6 +153,7 @@ export const generateAllReportsPDF = (reportData) => {
     const transactionsData = reportData.transactions.map(transaction => [
       transaction._id ? transaction._id.substring(0, 8) : 'N/A',
       transaction.userEmail || 'N/A',
+      transaction.phoneNumber || transaction.order?.shippingAddress?.phone || 'N/A',
       `KSh ${transaction.amount || 0}`,
       transaction.method || 'N/A',
       transaction.status || 'N/A'
@@ -156,10 +161,11 @@ export const generateAllReportsPDF = (reportData) => {
 
     autoTable(doc, {
       startY: yPosition,
-      head: [['Transaction ID', 'Customer', 'Amount', 'Method', 'Status']],
+      head: [['Transaction ID', 'Customer', 'Phone', 'Amount', 'Method', 'Status']],
       body: transactionsData.slice(0, 30),
       theme: 'striped',
       headStyles: { fillColor: [0, 166, 118] },
+      styles: { fontSize: 8, cellPadding: 2 },
       margin: { left: 14, right: 14 }
     });
   }
