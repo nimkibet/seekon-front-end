@@ -4,12 +4,37 @@ import { Helmet } from 'react-helmet-async';
 const SEO = ({ 
   title = 'Seekon Apparel | Premium Global Streetwear', 
   description = 'Shop the latest premium streetwear at Seekon Apparel. Global shipping, exclusive drops, and high-quality apparel for the modern world.', 
-  image = 'https://www.seek-on.app/og-image.jpg', // Default OG image
-  url = typeof window !== 'undefined' ? window.location.href : 'https://www.seek-on.app',
+  image = 'https://seekonapparelglobal.com/og-image.jpg', // Default OG image
+  url = typeof window !== 'undefined' ? window.location.href : 'https://seekonapparelglobal.com',
   type = 'website'
 }) => {
   const siteName = 'Seekon Apparel';
   const fullTitle = title.includes(siteName) ? title : `${title} | ${siteName}`;
+
+  // Structured Data (JSON-LD) for Google
+  const structuredData = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "name": "Seekon Apparel",
+        "url": "https://seekonapparelglobal.com",
+        "logo": "https://seekonapparelglobal.com/logo.png",
+        "sameAs": [
+          "https://www.instagram.com/seekon_apparel/"
+        ]
+      },
+      {
+        "@type": "WebSite",
+        "url": "https://seekonapparelglobal.com",
+        "potentialAction": {
+          "@type": "SearchAction",
+          "target": "https://seekonapparelglobal.com/collection?q={search_term_string}",
+          "query-input": "required name=search_term_string"
+        }
+      }
+    ]
+  };
 
   return (
     <Helmet>
@@ -31,9 +56,14 @@ const SEO = ({
       <meta property="twitter:description" content={description} />
       <meta property="twitter:image" content={image} />
       
-      {/* WhatsApp / Telegram (uses OG tags usually, but sometimes explicit image tags help) */}
+      {/* WhatsApp / Telegram */}
       <meta property="og:image:width" content="1200" />
       <meta property="og:image:height" content="630" />
+
+      {/* JSON-LD Structured Data */}
+      <script type="application/ld+json">
+        {JSON.stringify(structuredData)}
+      </script>
     </Helmet>
   );
 };
