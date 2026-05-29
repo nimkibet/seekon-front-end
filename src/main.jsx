@@ -5,6 +5,7 @@ import './index.css'
 import { Toaster } from 'react-hot-toast'
 import { CurrencyProvider } from './context/CurrencyContext.jsx'
 import { GoogleOAuthProvider } from '@react-oauth/google'
+import { HelmetProvider } from 'react-helmet-async'
 
 console.log('🚀 Starting Seekon App initialization...');
 console.log('📦 React version:', React.version);
@@ -23,37 +24,39 @@ try {
   
   root.render(
     <React.StrictMode>
-      <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
-        <CurrencyProvider>
-          <App />
-          <Toaster
-        position="top-right"
-        toastOptions={{
-          duration: 1500,
-          style: {
-            background: '#1F1F1F',
-            color: '#FAFAFA',
-            border: '1px solid #00A676',
-            borderRadius: '12px',
-            fontSize: '14px',
-            fontWeight: '500',
-          },
-          success: {
-            iconTheme: {
-              primary: '#00A676',
-              secondary: '#FAFAFA',
-            },
-          },
-          error: {
-            iconTheme: {
-              primary: '#ef4444',
-              secondary: '#FAFAFA',
-            },
-          },
-        }}
-      />
-      </CurrencyProvider>
-      </GoogleOAuthProvider>
+      <HelmetProvider>
+        <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
+          <CurrencyProvider>
+            <App />
+            <Toaster
+              position="top-right"
+              toastOptions={{
+                duration: 1500,
+                style: {
+                  background: '#1F1F1F',
+                  color: '#FAFAFA',
+                  border: '1px solid #00A676',
+                  borderRadius: '12px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                },
+                success: {
+                  iconTheme: {
+                    primary: '#00A676',
+                    secondary: '#FAFAFA',
+                  },
+                },
+                error: {
+                  iconTheme: {
+                    primary: '#ef4444',
+                    secondary: '#FAFAFA',
+                  },
+                },
+              }}
+            />
+          </CurrencyProvider>
+        </GoogleOAuthProvider>
+      </HelmetProvider>
     </React.StrictMode>
   );
   

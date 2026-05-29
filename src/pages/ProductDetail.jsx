@@ -12,7 +12,7 @@ import ProductCard from '../components/ProductCard';
 import { getRatingStars, formatPrice, calculateDiscount } from '../utils/formatPrice';
 import { api } from '../utils/api';
 import toast from 'react-hot-toast';
-import { Helmet } from 'react-helmet-async';
+import SEO from '../components/SEO';
 import FlashSaleCountdown from '../components/FlashSaleCountdown';
 import { getOptimizedImageUrl } from '../utils/cloudinary';
 
@@ -343,23 +343,12 @@ const ProductDetail = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <Helmet>
-        <title>{product.name} | Seekon Apparel</title>
-        <meta name="description" content={product.description?.substring(0, 160)} />
-        
-        {/* Open Graph / Facebook */}
-        <meta property="og:type" content="product" />
-        <meta property="og:title" content={`${product.name} | Seekon Apparel`} />
-        <meta property="og:description" content={product.description?.substring(0, 160)} />
-        <meta property="og:image" content={product.images?.[0] || product.image} />
-        <meta property="og:url" content={window.location.href} />
-
-        {/* Twitter */}
-        <meta name="twitter:card" content="summary_large_image" />
-        <meta name="twitter:title" content={`${product.name} | Seekon Apparel`} />
-        <meta name="twitter:description" content={product.description?.substring(0, 160)} />
-        <meta name="twitter:image" content={product.images?.[0] || product.image} />
-      </Helmet>
+      <SEO 
+        title={product.name}
+        description={product.description?.substring(0, 160)}
+        image={product.images?.[0] || product.image}
+        url={typeof window !== 'undefined' ? window.location.href : 'https://www.seek-on.app'}
+      />
 
       <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8">
         {/* Back Button */}

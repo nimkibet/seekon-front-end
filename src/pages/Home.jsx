@@ -7,6 +7,7 @@ import ProductSkeleton from '../components/ProductSkeleton';
 import PromotionalBanner from '../components/PromotionalBanner';
 import FlashSaleCountdown from '../components/FlashSaleCountdown';
 import RecentlyViewed from '../components/RecentlyViewed';
+import SEO from '../components/SEO';
 import { useCurrency } from '../context/CurrencyContext';
 import axios from 'axios';
 import toast from 'react-hot-toast';
@@ -302,6 +303,7 @@ const Home = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <SEO />
       {isAdminView && (
         <div className="bg-gradient-to-r from-[#00A676] to-[#008A5E] text-white p-3 flex items-center justify-between shadow-lg sticky top-0 z-50">
           <div className="flex items-center space-x-3">
