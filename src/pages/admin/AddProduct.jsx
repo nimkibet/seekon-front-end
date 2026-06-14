@@ -530,10 +530,7 @@ const AddProduct = () => {
           {/* Run AI Background Removal Checkbox */}
           <div className="mt-4 p-4 bg-white/5 border border-white/10 rounded-lg flex items-center justify-between">
             <div className="flex flex-col pr-4">
-              <span className="text-white text-sm font-semibold mb-0.5">Run AI Background Removal</span>
-              <span className="text-gray-400 text-xs leading-relaxed">
-                Automatically strips image background locally in browser WebAssembly using `imglyRemoveBackground` before dispatching. Zero server load.
-              </span>
+              <span className="text-white text-sm font-semibold">Run AI Background Removal</span>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">
               <input 
@@ -908,13 +905,9 @@ const AddProduct = () => {
               
               <FiRefreshCw className="animate-spin text-[#A16207] mx-auto mb-6" size={44} />
               
-              <h3 className="font-serif text-2xl text-white font-semibold mb-3">
+              <h3 className="font-serif text-2xl text-white font-semibold mb-6">
                 Decentralized AI Processing
               </h3>
-              
-              <p className="text-gray-300 text-sm mb-6 leading-relaxed">
-                Stripping background from selected images directly inside your browser's WebAssembly environment. This ensures zero load on the cloud application server.
-              </p>
 
               {/* Progress Bar */}
               <div className="w-full bg-stone-800 rounded-full h-2 mb-2 overflow-hidden border border-stone-700/50">
