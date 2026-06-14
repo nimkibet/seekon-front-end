@@ -58,7 +58,8 @@ const AddProduct = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [runAIBackgroundRemoval, setRunAIBackgroundRemoval] = useState(false);
-  const [isProcessingAI, setIsProcessingAI] = useState(false);
+  const [isImageProcessing, setIsImageProcessing] = useState(false);
+  const [processingIndices, setProcessingIndices] = useState([]);
   const [aiProgress, setAiProgress] = useState(0);
   
   // Dynamic categories from API - hierarchical structure
@@ -196,19 +197,74 @@ const AddProduct = () => {
     multipleImageInputRef.current?.click();
   };
 
+  // Handle sequential background removal for newly selected files
+  const processAndAddFiles = async (selectedFiles) => {
+    if (selectedFiles.length === 0) return;
+
+    const startIndex = images.length;
+    const newPreviews = selectedFiles.map(file => URL.createObjectURL(file));
+
+    // Append raw files and initial previews to state immediately
+    setImages(prev => [...prev, ...selectedFiles]);
+    setImagesPreview(prev => [...prev, ...newPreviews]);
+
+    if (runAIBackgroundRemoval) {
+      setIsImageProcessing(true);
+
+      for (let i = 0; i < selectedFiles.length; i++) {
+        const currentIndex = startIndex + i;
+        setProcessingIndices(prev => [...prev, currentIndex]);
+        setAiProgress(0);
+
+        const file = selectedFiles[i];
+        try {
+          const transparentBlob = await imglyRemoveBackground(file, {
+            model: 'small',
+            onProgress: (pct) => {
+              setAiProgress(Math.round(pct * 100));
+            }
+          });
+
+          const transparentFile = new File(
+            [transparentBlob],
+            file.name.replace(/\.[^/.]+$/, "") + '-nobg.png',
+            { type: 'image/png' }
+          );
+          const transparentUrl = URL.createObjectURL(transparentFile);
+
+          setImages(prev => {
+            const updated = [...prev];
+            updated[currentIndex] = transparentFile;
+            return updated;
+          });
+
+          setImagesPreview(prev => {
+            const updated = [...prev];
+            URL.revokeObjectURL(updated[currentIndex]);
+            updated[currentIndex] = transparentUrl;
+            return updated;
+          });
+
+          toast.success(`Background removed for ${file.name}`);
+        } catch (aiErr) {
+          console.error('⚠️ AI background removal failed for file:', file.name, aiErr.message);
+          toast.error(`Background removal failed for ${file.name}. Using original image.`);
+        } finally {
+          setProcessingIndices(prev => prev.filter(idx => idx !== currentIndex));
+        }
+      }
+
+      setIsImageProcessing(false);
+    }
+  };
+
   // Handle single image selection
   const handleSingleImageChange = (e) => {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
 
     console.log('[DEBUG] Single image selected:', files[0].name);
-
-    // Add single file to existing array
-    setImages((prevImages) => [...prevImages, files[0]]);
-
-    // Generate preview
-    const newPreview = URL.createObjectURL(files[0]);
-    setImagesPreview((prevPreviews) => [...prevPreviews, newPreview]);
+    processAndAddFiles([files[0]]);
 
     // Clear input and reset ref
     e.target.value = '';
@@ -223,13 +279,7 @@ const AddProduct = () => {
     if (files.length === 0) return;
 
     console.log('[DEBUG] Multiple images selected:', files.length);
-
-    // Add all files to existing array
-    setImages((prevImages) => [...prevImages, ...files]);
-
-    // Generate previews
-    const newPreviews = files.map((file) => URL.createObjectURL(file));
-    setImagesPreview((prevPreviews) => [...prevPreviews, ...newPreviews]);
+    processAndAddFiles(files);
 
     // Clear input and reset ref
     e.target.value = '';
@@ -317,30 +367,6 @@ const AddProduct = () => {
     if (images.length === 0) return toast.error('At least one product image is required');
 
     let filesToUpload = [...images];
-
-    // Local WebAssembly AI background removal
-    if (runAIBackgroundRemoval) {
-      setIsProcessingAI(true);
-      setAiProgress(0);
-      try {
-        const tempFiles = [];
-        for (let i = 0; i < images.length; i++) {
-          setAiProgress(Math.round((i / images.length) * 100));
-          const file = images[i];
-          const transparentBlob = await imglyRemoveBackground(file, { model: 'small' });
-          const transparentFile = new File([transparentBlob], file.name.replace(/\.[^/.]+$/, "") + '-nobg.png', { type: 'image/png' });
-          tempFiles.push(transparentFile);
-        }
-        setAiProgress(100);
-        filesToUpload = tempFiles;
-        toast.success('AI background removal completed!');
-      } catch (aiErr) {
-        console.error('⚠️ AI background removal failed, falling back to original images:', aiErr.message);
-        toast.error('AI background removal failed. Using original images.');
-      } finally {
-        setIsProcessingAI(false);
-      }
-    }
 
     // 2. CAPTURE STATE IN CLOSURE (Crucial for background processing)
     // We must copy the exact state right now before resetting the form
@@ -466,13 +492,21 @@ const AddProduct = () => {
                     alt={`Preview ${index + 1}`}
                     className="w-full h-24 object-cover rounded-lg"
                   />
-                  <button
-                    type="button"
-                    onClick={() => removeImage(index)}
-                    className="absolute -top-2 -right-2 p-1 bg-red-500 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <FiX className="w-3 h-3" />
-                  </button>
+                  {processingIndices.includes(index) ? (
+                    <div className="absolute inset-0 bg-black/70 backdrop-blur-[1px] rounded-lg flex flex-col items-center justify-center p-1 text-center">
+                      <FiRefreshCw className="animate-spin text-[#A16207] w-5 h-5 mb-1" />
+                      <span className="text-[10px] text-white font-medium">Removing...</span>
+                      <span className="text-[10px] text-gray-300 font-semibold">{aiProgress}%</span>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => removeImage(index)}
+                      className="absolute -top-2 -right-2 p-1 bg-red-500 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <FiX className="w-3 h-3" />
+                    </button>
+                  )}
                   {index === 0 && (
                     <span className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-[#00A676] text-white text-xs px-2 py-0.5 rounded">
                       Main
@@ -489,8 +523,8 @@ const AddProduct = () => {
             <button
               type="button"
               onClick={handleSingleImageUpload}
-              disabled={isUploading}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-white/5 border border-white/20 rounded-lg text-gray-300 hover:border-[#00A676] hover:text-[#00A676] transition-colors"
+              disabled={isUploading || isImageProcessing}
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-white/5 border border-white/20 rounded-lg text-gray-300 hover:border-[#00A676] hover:text-[#00A676] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <FiPlus className="w-5 h-5" />
               <span>Add Single Image</span>
@@ -500,8 +534,8 @@ const AddProduct = () => {
             <button
               type="button"
               onClick={handleMultipleImageUpload}
-              disabled={isUploading}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-white/5 border border-white/20 rounded-lg text-gray-300 hover:border-[#00A676] hover:text-[#00A676] transition-colors"
+              disabled={isUploading || isImageProcessing}
+              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-white/5 border border-white/20 rounded-lg text-gray-300 hover:border-[#00A676] hover:text-[#00A676] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <FiUpload className="w-5 h-5" />
               <span>Add Multiple Images</span>
@@ -877,54 +911,14 @@ const AddProduct = () => {
           </Link>
           <button
             type="submit"
-            disabled={!formData.name.trim() || !formData.category || !formData.brand.trim() || !formData.price || images.length === 0}
-            className="px-6 py-3 bg-[#00A676] hover:bg-[#008A5E] disabled:bg-gray-500 disabled:cursor-not-allowed text-white rounded-lg transition-colors flex items-center gap-2"
+            disabled={isImageProcessing || !formData.name.trim() || !formData.category || !formData.brand.trim() || !formData.price || images.length === 0}
+            className="px-6 py-3 bg-[#00A676] hover:bg-[#008A5E] disabled:bg-stone-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg transition-colors flex items-center gap-2"
           >
             <FiPlus className="w-5 h-5" />
             <span>Add Product</span>
           </button>
         </div>
       </form>
-
-      {/* Local AI Background Removal Overlay (Liquid Glass) */}
-      <AnimatePresence>
-        {isProcessingAI && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
-          >
-            <motion.div 
-              initial={{ scale: 0.95, y: 15 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.95, y: 15 }}
-              className="bg-[#1C1917]/95 border border-[#D6D3D1]/20 rounded-2xl max-w-md w-full p-8 text-center shadow-2xl relative overflow-hidden"
-            >
-              <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-[#A16207]/10 rounded-full blur-[60px]" />
-              
-              <FiRefreshCw className="animate-spin text-[#A16207] mx-auto mb-6" size={44} />
-              
-              <h3 className="font-serif text-2xl text-white font-semibold mb-6">
-                Decentralized AI Processing
-              </h3>
-
-              {/* Progress Bar */}
-              <div className="w-full bg-stone-800 rounded-full h-2 mb-2 overflow-hidden border border-stone-700/50">
-                <div 
-                  className="bg-[#A16207] h-full transition-all duration-300 rounded-full" 
-                  style={{ width: `${aiProgress}%` }}
-                />
-              </div>
-              
-              <div className="flex justify-between text-xs text-gray-400 font-medium">
-                <span>Removing background...</span>
-                <span>{aiProgress}%</span>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 };
