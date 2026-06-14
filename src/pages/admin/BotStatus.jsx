@@ -4,12 +4,31 @@ import { FiCheckCircle, FiAlertTriangle, FiRefreshCw, FiArrowLeft } from 'react-
 import { Link } from 'react-router-dom';
 import { QRCodeCanvas } from 'qrcode.react';
 import { adminApi } from '../../utils/adminApi';
+import toast from 'react-hot-toast';
 
 const BotStatus = () => {
   const [status, setStatus] = useState({ connected: false, qr: null });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [pollingActive, setPollingActive] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await adminApi.refreshBotStatus();
+      toast.success('WhatsApp client reinitializing...');
+      // Brief delay to allow backend to start re-linking
+      setTimeout(() => {
+        fetchStatus();
+      }, 1500);
+    } catch (err) {
+      console.error('Failed to refresh bot status:', err.message);
+      toast.error(err.message || 'Failed to reinitialize WhatsApp client.');
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const fetchStatus = async () => {
     try {
@@ -116,6 +135,15 @@ const BotStatus = () => {
                       <span>500MB Throttled</span>
                     </div>
                   </div>
+
+                  <button
+                    onClick={handleRefresh}
+                    disabled={refreshing}
+                    className="mt-6 inline-flex items-center justify-center gap-2 px-4 py-2 border border-[#D6D3D1] hover:border-[#A16207] rounded-lg text-xs font-semibold text-[#44403C] hover:text-[#A16207] transition-all bg-white shadow-sm hover:shadow active:scale-95 cursor-pointer disabled:opacity-50 w-full"
+                  >
+                    <FiRefreshCw className={refreshing ? 'animate-spin' : ''} size={14} />
+                    {refreshing ? 'Reinitializing...' : 'Force Restart Gateway'}
+                  </button>
                 </motion.div>
               ) : (
                 <motion.div 
@@ -155,9 +183,18 @@ const BotStatus = () => {
                     )}
                   </div>
 
-                  <div className="text-xs text-[#44403C] leading-relaxed max-w-xs bg-[#FAFAF9] p-3 rounded-lg border border-[#D6D3D1]">
+                  <div className="text-xs text-[#44403C] leading-relaxed max-w-xs bg-[#FAFAF9] p-3 rounded-lg border border-[#D6D3D1] mb-6">
                     <strong>Instructions:</strong> Open WhatsApp → Settings → Linked Devices → Link a Device. Scan this code within 30 seconds before it refreshes.
                   </div>
+
+                  <button
+                    onClick={handleRefresh}
+                    disabled={refreshing}
+                    className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-[#A16207] hover:bg-[#854D0E] text-white rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95 cursor-pointer disabled:opacity-50 w-full"
+                  >
+                    <FiRefreshCw className={refreshing ? 'animate-spin' : ''} size={16} />
+                    {refreshing ? 'Refreshing QR Code...' : 'Refresh QR Code'}
+                  </button>
                 </motion.div>
               )}
             </AnimatePresence>

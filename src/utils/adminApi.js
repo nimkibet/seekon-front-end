@@ -218,6 +218,7 @@ export const adminApi = {
   },
   // WhatsApp Bot Status
   getBotStatus: () => apiCall('/bot-status'),
+  refreshBotStatus: () => apiCall('/bot-status/refresh', { method: 'POST' }),
 };
 
 export default adminApi;

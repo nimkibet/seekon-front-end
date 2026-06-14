@@ -10,7 +10,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import { api } from '../utils/api';
-import { loadPaystackScript } from '../utils/paystack';
+
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://seekonbackend-production-da47.up.railway.app';
 
@@ -266,7 +266,7 @@ const Checkout = () => {
           };
         }),
         totalAmount: calculateTotals().total,
-        paymentMethod: paymentMethod === 'MPESA' ? 'M-Pesa' : 'Credit/Debit Card',
+        paymentMethod: 'M-Pesa',
         shippingAddress: {
           firstName,
           lastName,
@@ -295,91 +295,30 @@ const Checkout = () => {
         navigate('/login?redirect=/checkout', { state: { from: { pathname: '/checkout' } } });
         return;
       }
+      
       const orderResult = await orderResponse.json();
       if (!orderResult.success) throw new Error(orderResult.message || 'Failed to create order');
 
       setCurrentOrderId(orderResult.order._id);
-      const totals = calculateTotals();
-
-      if (paymentMethod === 'CARD') {
-        // Trigger Paystack Payment Initialization
-        const paystackResponse = await fetch(`${API_URL}/api/payment/paystack/initialize`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', ...authHeaders },
-          body: JSON.stringify({ 
-            orderId: orderResult.order._id, 
-            amount: totals.total, 
-            email: email.trim() 
-          })
-        });
-        
-        const paystackData = await paystackResponse.json();
-        
-        if (!paystackResponse.ok || !paystackData.success) {
-          throw new Error(paystackData.message || 'Failed to initiate card payment');
-        }
-
-        toast.success('Initializing secure payment window...');
-        
-        // Load Paystack script dynamically
-        const PaystackPop = await loadPaystackScript();
-        
-        const popup = PaystackPop.setup({
-          key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || 'pk_test_149d215efe9a226406ffc0daf9a638d11d08ae45',
-          email: email.trim(),
-          amount: Math.round(totals.total * 100),
-          currency: 'KES',
-          ref: paystackData.reference || `PAYSTACK_${orderResult.order._id}_${Date.now()}`,
-          callback: async function(response) {
-            try {
-              setPaymentStatus('loading');
-              toast.success('Verifying transaction...');
-              const verifyRes = await fetch(`${API_URL}/api/payment/paystack/verify?reference=${response.reference}`);
-              const verifyData = await verifyRes.json();
-              if (verifyData.success) {
-                toast.success('Payment verified successfully!');
-                setPaymentStatus('success');
-                sessionStorage.removeItem('isPaymentProcessing');
-                window.dispatchEvent(new Event('paymentStateChange'));
-                
-                // Clear cart
-                if (isAuthenticated) {
-                  dispatch(clearCartAPI());
-                } else {
-                  dispatch(clearCart());
-                }
-                
-                setTimeout(() => setCurrentStep(3), 500);
-              } else {
-                throw new Error(verifyData.message || 'Verification failed');
-              }
-            } catch (err) {
-              setPaymentStatus('failed');
-              sessionStorage.removeItem('isPaymentProcessing');
-              window.dispatchEvent(new Event('paymentStateChange'));
-              toast.error(err.message || 'Verification failed. Please contact support.');
-            }
-          },
-          onClose: function() {
-            setPaymentStatus('failed');
-            sessionStorage.removeItem('isPaymentProcessing');
-            window.dispatchEvent(new Event('paymentStateChange'));
-            toast.error('Payment window closed. Your order is pending payment.');
-          }
-        });
-        popup.openIframe();
-        
-      } else if (paymentMethod === 'MPESA') {
-        throw new Error('Lipa na M-Pesa is currently coming soon.');
+      setPaymentStatus('success');
+      sessionStorage.removeItem('isPaymentProcessing');
+      window.dispatchEvent(new Event('paymentStateChange'));
+      
+      // Clear cart
+      if (isAuthenticated) {
+        dispatch(clearCartAPI());
       } else {
-        throw new Error('This payment method is currently unavailable.');
+        dispatch(clearCart());
       }
+      
+      toast.success('Order placed successfully! Confirmations sent.');
+      setTimeout(() => setCurrentStep(3), 1500);
 
     } catch (error) {
       setPaymentStatus('failed');
       sessionStorage.removeItem('isPaymentProcessing');
       window.dispatchEvent(new Event('paymentStateChange'));
-      toast.error(error.message || 'Payment failed. Please try again.');
+      toast.error(error.message || 'Fulfillment request failed. Please try again.');
     }
   };
 
@@ -601,7 +540,7 @@ const Checkout = () => {
                 <div>
                   <div className="flex justify-between items-center mb-2">
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                      Phone Number (WhatsApp & M-Pesa)
+                      WhatsApp Number
                       <span className='text-red-500'>*</span>
                     </label>
                     {phoneNumber.trim() && (
@@ -992,55 +931,23 @@ const Checkout = () => {
               animate={{ opacity: 1, y: 0 }}
               className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm border border-gray-200 dark:border-gray-700"
             >
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Payment</h2>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Fulfillment Routing</h2>
 
-              <div className="space-y-4 mb-6">
-                {/* Credit/Debit Card Option */}
-                <div 
-                  onClick={() => setPaymentMethod('CARD')}
-                  className={`p-4 rounded-xl border-2 transition-all cursor-pointer ${
-                    paymentMethod === 'CARD' 
-                      ? 'border-[#A16207] bg-[#A16207]/5' 
-                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
-                  }`}
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-[#1C1917] rounded-lg flex items-center justify-center shrink-0">
-                      <FiCreditCard className="text-2xl text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex justify-between items-center">
-                        <p className="font-bold text-gray-900 dark:text-white">Credit/Debit Card (Paystack)</p>
-                        {paymentMethod === 'CARD' && (
-                          <FiCheckCircle className="text-[#A16207] w-5 h-5" />
-                        )}
-                      </div>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        Secure instant payments with Visa, Mastercard or Amex
-                      </p>
-                    </div>
+              <div className="p-5 rounded-2xl border-2 border-emerald-500/20 bg-emerald-500/5 dark:bg-emerald-500/5 mb-6 relative overflow-hidden">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 bg-emerald-500 rounded-lg flex items-center justify-center shrink-0">
+                    <svg className="w-6 h-6 text-white fill-current" viewBox="0 0 24 24">
+                      <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.37 9.864-9.799.002-2.63-1.023-5.101-2.885-6.97C16.579 1.968 14.12 .943 11.997.943c-5.433 0-9.859 4.37-9.863 9.8-.001 2.09.547 4.123 1.588 5.925L2.748 21.01l4.899-1.27c.001-.001.001-.001 0 0zm12.185-7.102c-.301-.151-1.784-.882-2.057-.981-.273-.099-.471-.148-.669.151-.197.299-.765.981-.937 1.18-.172.197-.344.222-.646.072-.301-.15-1.272-.469-2.423-1.495-.895-.798-1.5-1.784-1.676-2.084-.176-.301-.019-.464.132-.612.135-.133.301-.351.452-.527.15-.176.2-.301.301-.502.101-.201.05-.376-.025-.526-.075-.151-.669-1.612-.916-2.207-.242-.579-.487-.501-.669-.51l-.57-.01c-.197 0-.516.074-.786.374-.27.299-1.031 1.01-1.031 2.463 0 1.453 1.056 2.859 1.204 3.058.148.197 2.078 3.174 5.035 4.453.703.304 1.252.486 1.68.622.709.226 1.354.194 1.864.118.569-.085 1.784-.73 2.033-1.433.248-.703.248-1.307.172-1.433-.075-.126-.272-.201-.572-.352z"/>
+                    </svg>
                   </div>
-                </div>
-
-                {/* Lipa na M-Pesa Option (Coming Soon) */}
-                <div 
-                  className="p-4 rounded-xl border-2 border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50 opacity-60 cursor-not-allowed relative overflow-hidden"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center shrink-0">
-                      <FiSmartphone className="text-2xl text-gray-400" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex justify-between items-center">
-                        <p className="font-bold text-gray-400">Lipa na M-Pesa</p>
-                        <span className="bg-amber-100 text-amber-700 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
-                          Coming Soon
-                        </span>
-                      </div>
-                      <p className="text-sm text-gray-400">
-                        Direct STK Push payments to your Safaricom line
-                      </p>
-                    </div>
+                  <div className="flex-1">
+                    <p className="font-bold text-gray-900 dark:text-white text-base">Direct WhatsApp Fulfillment Routing</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1.5 leading-relaxed">
+                      Your order confirmation, digital receipt, and shipping updates will be routed directly to your WhatsApp number: <strong className="font-mono text-emerald-600 dark:text-emerald-400 select-all">{phoneNumber}</strong>.
+                    </p>
+                    <p className="text-xs text-stone-500 mt-2">
+                      Please ensure your WhatsApp client is active on this line.
+                    </p>
                   </div>
                 </div>
               </div>
@@ -1048,9 +955,9 @@ const Checkout = () => {
               {paymentStatus === 'loading' && (
                 <div className="mt-6 p-4 bg-stone-50 dark:bg-stone-900/20 border border-stone-200 dark:border-stone-800 rounded-lg">
                   <div className="flex items-center space-x-3">
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#A16207]"></div>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-emerald-600"></div>
                     <p className="text-stone-700 dark:text-stone-300 font-medium">
-                      Initializing payment secure frame...
+                      Routing order confirmation and sending WhatsApp message...
                     </p>
                   </div>
                 </div>
@@ -1060,7 +967,7 @@ const Checkout = () => {
                 <div className="mt-6 p-4 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 rounded-lg">
                   <div className="flex items-center space-x-3">
                     <FiCheckCircle className="text-emerald-600 w-5 h-5" />
-                    <p className="text-emerald-700 dark:text-emerald-300">Payment successful!</p>
+                    <p className="text-emerald-700 dark:text-emerald-300 font-semibold">Order placed successfully! Confirmations sent.</p>
                   </div>
                 </div>
               )}
@@ -1069,11 +976,8 @@ const Checkout = () => {
                 <div className="mt-6 p-4 bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-800 rounded-lg">
                   <div className="flex items-center space-x-3 mb-3">
                     <FiXCircle className="text-rose-600 w-5 h-5" />
-                    <p className="text-rose-700 dark:text-rose-300 font-semibold">Payment failed. Please try again.</p>
+                    <p className="text-rose-700 dark:text-rose-300 font-semibold">Order placement failed. Please try again.</p>
                   </div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                    There was an issue initiating the payment window. Please try again.
-                  </p>
                   <button
                     onClick={() => {
                       setPaymentStatus('idle');
@@ -1085,13 +989,13 @@ const Checkout = () => {
                 </div>
               )}
 
-              {/* Pay Now Button */}
+              {/* Place Order on WhatsApp Button */}
               <button
                 onClick={handlePayment}
                 disabled={paymentStatus === 'loading' || paymentStatus === 'success'}
-                className="w-full mt-6 bg-[#1C1917] hover:bg-[#44403C] text-white transition-colors duration-300 font-bold py-4 px-6 rounded-lg shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                className="w-full mt-6 bg-[#00A676] hover:bg-[#008A5E] text-white transition-colors duration-300 font-bold py-4 px-6 rounded-lg shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2"
               >
-                {paymentStatus === 'loading' ? 'Processing...' : 'Pay with Card'}
+                {paymentStatus === 'loading' ? 'Processing...' : 'Place Order on WhatsApp'}
               </button>
             </motion.div>
 
