@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiPlus, FiSearch, FiEdit, FiTrash2, FiMoreVertical, FiTrendingUp, FiFilter, FiChevronDown, FiX } from 'react-icons/fi';
 import toast from 'react-hot-toast';
@@ -46,6 +46,7 @@ const getColorValue = (colorName) => {
 };
 const AdminProducts = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [products, setProducts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -62,6 +63,21 @@ const AdminProducts = () => {
   useEffect(() => {
     fetchProducts();
   }, []);
+
+  // Auto-open edit modal if edit parameter is present in URL
+  useEffect(() => {
+    if (!isLoading && products.length > 0) {
+      const queryParams = new URLSearchParams(location.search);
+      const editId = queryParams.get('edit');
+      if (editId) {
+        const productToEdit = products.find(p => p._id === editId || p.id === editId);
+        if (productToEdit) {
+          setSelectedProduct(productToEdit);
+          setIsModalOpen(true);
+        }
+      }
+    }
+  }, [location.search, products, isLoading]);
 
   const fetchProducts = async () => {
     try {

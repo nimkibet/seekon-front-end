@@ -216,6 +216,8 @@ export const adminApi = {
       body: JSON.stringify({ subscription }),
     }).then(res => res.json());
   },
+  // WhatsApp Bot Status
+  getBotStatus: () => apiCall('/bot-status'),
 };
 
 export default adminApi;

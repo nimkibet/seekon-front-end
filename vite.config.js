@@ -44,6 +44,7 @@ export default defineConfig({
   // Optimize dependencies
   optimizeDeps: {
     include: ['react', 'react-dom', 'react-router-dom', '@reduxjs/toolkit', 'react-redux'],
+    exclude: ['@imgly/background-removal'],
   },
 });
 

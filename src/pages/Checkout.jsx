@@ -10,6 +10,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import axios from 'axios';
 import { api } from '../utils/api';
+import { loadPaystackScript } from '../utils/paystack';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://seekonbackend-production-da47.up.railway.app';
 
@@ -93,7 +94,7 @@ const Checkout = () => {
 
   const [currentStep, setCurrentStep] = useState(1); // 1: Delivery, 2: Payment, 3: Confirmation
   const [paymentStatus, setPaymentStatus] = useState('idle'); // idle, loading, success, failed
-  const [paymentMethod, setPaymentMethod] = useState('MPESA');
+  const [paymentMethod, setPaymentMethod] = useState('CARD');
   const [isWaitingForMpesa, setIsWaitingForMpesa] = useState(false);
   const [currentOrderId, setCurrentOrderId] = useState(null);
 
@@ -300,29 +301,76 @@ const Checkout = () => {
       setCurrentOrderId(orderResult.order._id);
       const totals = calculateTotals();
 
-      if (paymentMethod === 'MPESA') {
-        // Trigger M-Pesa STK Push
-        const mpesaResponse = await fetch(`${API_URL}/api/payment/stk-push`, {
+      if (paymentMethod === 'CARD') {
+        // Trigger Paystack Payment Initialization
+        const paystackResponse = await fetch(`${API_URL}/api/payment/paystack/initialize`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', ...authHeaders },
           body: JSON.stringify({ 
             orderId: orderResult.order._id, 
             amount: totals.total, 
-            phoneNumber: phoneNumber.replace(/\s+/g, ''),
             email: email.trim() 
           })
         });
-        const mpesaData = await mpesaResponse.json();
         
-        if (!mpesaResponse.ok || !mpesaData.success) {
-          throw new Error(mpesaData.message || 'Failed to initiate M-Pesa payment');
+        const paystackData = await paystackResponse.json();
+        
+        if (!paystackResponse.ok || !paystackData.success) {
+          throw new Error(paystackData.message || 'Failed to initiate card payment');
         }
 
-        toast.success('STK Push initiated! Please check your phone.');
+        toast.success('Initializing secure payment window...');
         
-        // Start polling for payment confirmation
-        pollOrderStatus(orderResult.order._id);
+        // Load Paystack script dynamically
+        const PaystackPop = await loadPaystackScript();
         
+        const popup = PaystackPop.setup({
+          key: import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || 'pk_test_149d215efe9a226406ffc0daf9a638d11d08ae45',
+          email: email.trim(),
+          amount: Math.round(totals.total * 100),
+          currency: 'KES',
+          ref: paystackData.reference || `PAYSTACK_${orderResult.order._id}_${Date.now()}`,
+          callback: async function(response) {
+            try {
+              setPaymentStatus('loading');
+              toast.success('Verifying transaction...');
+              const verifyRes = await fetch(`${API_URL}/api/payment/paystack/verify?reference=${response.reference}`);
+              const verifyData = await verifyRes.json();
+              if (verifyData.success) {
+                toast.success('Payment verified successfully!');
+                setPaymentStatus('success');
+                sessionStorage.removeItem('isPaymentProcessing');
+                window.dispatchEvent(new Event('paymentStateChange'));
+                
+                // Clear cart
+                if (isAuthenticated) {
+                  dispatch(clearCartAPI());
+                } else {
+                  dispatch(clearCart());
+                }
+                
+                setTimeout(() => setCurrentStep(3), 500);
+              } else {
+                throw new Error(verifyData.message || 'Verification failed');
+              }
+            } catch (err) {
+              setPaymentStatus('failed');
+              sessionStorage.removeItem('isPaymentProcessing');
+              window.dispatchEvent(new Event('paymentStateChange'));
+              toast.error(err.message || 'Verification failed. Please contact support.');
+            }
+          },
+          onClose: function() {
+            setPaymentStatus('failed');
+            sessionStorage.removeItem('isPaymentProcessing');
+            window.dispatchEvent(new Event('paymentStateChange'));
+            toast.error('Payment window closed. Your order is pending payment.');
+          }
+        });
+        popup.openIframe();
+        
+      } else if (paymentMethod === 'MPESA') {
+        throw new Error('Lipa na M-Pesa is currently coming soon.');
       } else {
         throw new Error('This payment method is currently unavailable.');
       }
@@ -551,25 +599,72 @@ const Checkout = () => {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Phone Number (M-Pesa)
-                    <span className='text-red-500'>*</span>
-                  </label>
-                  <input
-                    type="tel"
-                    value={phoneNumber}
-                    onChange={(e) => {setPhoneNumber(e.target.value); if (hasSubmitted && !e.target.value.trim()) setErrors(prev => ({ ...prev, phoneNumber: 'Required' })); else setErrors(prev => ({ ...prev, phoneNumber: '' }));}}
-                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 transition-all
-                      ${errors.phoneNumber ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 dark:border-gray-600 focus:ring-[#00A676] focus:border-[#00A676]'}
-                      ${errors.phoneNumber ? 'bg-white dark:bg-white' : 'dark:bg-gray-700'}
-                      text-gray-900 dark:text-white
-                    `}
-                    placeholder="254 712 345 678"
-                    required
-                  />
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                      Phone Number (WhatsApp & M-Pesa)
+                      <span className='text-red-500'>*</span>
+                    </label>
+                    {phoneNumber.trim() && (
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                        errors.phoneNumber 
+                          ? 'bg-rose-50 text-rose-600 border border-rose-100' 
+                          : 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                      }`}>
+                        {errors.phoneNumber ? 'Invalid Number' : 'Format Verified'}
+                      </span>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <input
+                      type="tel"
+                      value={phoneNumber}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setPhoneNumber(val);
+                        const clean = val.replace(/\s+/g, '').replace('+', '');
+                        if (!val.trim()) {
+                          setErrors(prev => ({ ...prev, phoneNumber: 'Required' }));
+                        } else if (/^(?:254|0)[17]\d{8}$/.test(clean)) {
+                          setErrors(prev => ({ ...prev, phoneNumber: '' }));
+                        } else {
+                          setErrors(prev => ({ ...prev, phoneNumber: 'Invalid format (e.g. 254712345678 or 0712345678)' }));
+                        }
+                      }}
+                      className={`w-full px-4 py-3 border rounded-lg focus:ring-2 transition-all pr-10
+                        ${errors.phoneNumber ? 'border-rose-400 focus:ring-rose-500 focus:border-rose-500' : 'border-stone-300 dark:border-stone-700 focus:ring-[#A16207] focus:border-[#A16207]'}
+                        ${errors.phoneNumber ? 'bg-rose-50/20' : 'dark:bg-gray-700'}
+                        text-gray-900 dark:text-white font-medium
+                      `}
+                      placeholder="e.g. 254712345678"
+                      required
+                    />
+                    {!errors.phoneNumber && phoneNumber.trim() && (
+                      <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-emerald-600">
+                        <FiCheckCircle className="w-5 h-5" />
+                      </div>
+                    )}
+                  </div>
+                  {errors.phoneNumber && (
+                    <p className="text-xs text-rose-600 font-semibold mt-1">
+                      {errors.phoneNumber}
+                    </p>
+                  )}
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                    Enter your M-Pesa number (e.g. 254 712 345 678)
+                    Enter in format: 2547XXXXXXXX or 07XXXXXXXX
                   </p>
+                  
+                  {/* WhatsApp Automated Routing Notice */}
+                  <div className="mt-3 bg-stone-50 dark:bg-stone-900/10 border border-stone-200 dark:border-stone-800 rounded-xl p-4 flex items-start gap-3">
+                    <FiSmartphone className="text-[#A16207] mt-0.5 shrink-0" size={18} />
+                    <div>
+                      <p className="text-xs font-bold text-stone-900 dark:text-white uppercase tracking-wider mb-1">
+                        Automated WhatsApp Routing
+                      </p>
+                      <p className="text-xs text-stone-600 dark:text-stone-400 leading-relaxed">
+                        Order confirmations, real-time courier links, and shipment notifications are dispatched directly to this WhatsApp number. Please ensure it is active. If unreachable, delivery alerts will automatically fallback to your email.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -900,50 +995,50 @@ const Checkout = () => {
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">Payment</h2>
 
               <div className="space-y-4 mb-6">
-                {/* M-PESA Option */}
+                {/* Credit/Debit Card Option */}
                 <div 
-                  onClick={() => setPaymentMethod('MPESA')}
+                  onClick={() => setPaymentMethod('CARD')}
                   className={`p-4 rounded-xl border-2 transition-all cursor-pointer ${
-                    paymentMethod === 'MPESA' 
-                      ? 'border-[#00A676] bg-[#00A676]/5' 
+                    paymentMethod === 'CARD' 
+                      ? 'border-[#A16207] bg-[#A16207]/5' 
                       : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
                   }`}
                 >
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 bg-[#00A676] rounded-lg flex items-center justify-center shrink-0">
-                      <FiSmartphone className="text-2xl text-white" />
+                    <div className="w-12 h-12 bg-[#1C1917] rounded-lg flex items-center justify-center shrink-0">
+                      <FiCreditCard className="text-2xl text-white" />
                     </div>
                     <div className="flex-1">
                       <div className="flex justify-between items-center">
-                        <p className="font-bold text-gray-900 dark:text-white">M-PESA (STK Push)</p>
-                        {paymentMethod === 'MPESA' && (
-                          <FiCheckCircle className="text-[#00A676] w-5 h-5" />
+                        <p className="font-bold text-gray-900 dark:text-white">Credit/Debit Card (Paystack)</p>
+                        {paymentMethod === 'CARD' && (
+                          <FiCheckCircle className="text-[#A16207] w-5 h-5" />
                         )}
                       </div>
                       <p className="text-sm text-gray-500 dark:text-gray-400">
-                        Pay via Safaricom M-PESA STK Push to {phoneNumber || 'your phone'}
+                        Secure instant payments with Visa, Mastercard or Amex
                       </p>
                     </div>
                   </div>
                 </div>
 
-                {/* Credit/Debit Card Option (Coming Soon) */}
+                {/* Lipa na M-Pesa Option (Coming Soon) */}
                 <div 
                   className="p-4 rounded-xl border-2 border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50 opacity-60 cursor-not-allowed relative overflow-hidden"
                 >
                   <div className="flex items-center gap-4">
                     <div className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-lg flex items-center justify-center shrink-0">
-                      <FiCreditCard className="text-2xl text-gray-400" />
+                      <FiSmartphone className="text-2xl text-gray-400" />
                     </div>
                     <div className="flex-1">
                       <div className="flex justify-between items-center">
-                        <p className="font-bold text-gray-400">Credit/Debit Card</p>
-                        <span className="bg-blue-100 text-blue-600 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
+                        <p className="font-bold text-gray-400">Lipa na M-Pesa</p>
+                        <span className="bg-amber-100 text-amber-700 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider">
                           Coming Soon
                         </span>
                       </div>
                       <p className="text-sm text-gray-400">
-                        Secure payments with Visa, Mastercard or Amex
+                        Direct STK Push payments to your Safaricom line
                       </p>
                     </div>
                   </div>
@@ -951,44 +1046,39 @@ const Checkout = () => {
               </div>
 
               {paymentStatus === 'loading' && (
-                <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                <div className="mt-6 p-4 bg-stone-50 dark:bg-stone-900/20 border border-stone-200 dark:border-stone-800 rounded-lg">
                   <div className="flex items-center space-x-3">
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
-                    <p className="text-blue-600 dark:text-blue-400">
-                      {isWaitingForMpesa ? 'Waiting for you to enter your M-PESA PIN...' : 'Processing payment...'}
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-[#A16207]"></div>
+                    <p className="text-stone-700 dark:text-stone-300 font-medium">
+                      Initializing payment secure frame...
                     </p>
                   </div>
-                  {isWaitingForMpesa && (
-                    <p className="text-xs text-blue-500 dark:text-blue-400 mt-2 italic">
-                      Please don't refresh this page. We'll automatically confirm your payment once it's complete.
-                    </p>
-                  )}
                 </div>
               )}
 
               {paymentStatus === 'success' && (
-                <div className="mt-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                <div className="mt-6 p-4 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800 rounded-lg">
                   <div className="flex items-center space-x-3">
-                    <FiCheckCircle className="text-green-600 w-5 h-5" />
-                    <p className="text-green-600 dark:text-green-400">Payment successful!</p>
+                    <FiCheckCircle className="text-emerald-600 w-5 h-5" />
+                    <p className="text-emerald-700 dark:text-emerald-300">Payment successful!</p>
                   </div>
                 </div>
               )}
 
               {paymentStatus === 'failed' && (
-                <div className="mt-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                <div className="mt-6 p-4 bg-rose-50 dark:bg-rose-950/20 border border-rose-200 dark:border-rose-800 rounded-lg">
                   <div className="flex items-center space-x-3 mb-3">
-                    <FiXCircle className="text-red-600 w-5 h-5" />
-                    <p className="text-red-600 dark:text-red-400">Payment failed. Please try again.</p>
+                    <FiXCircle className="text-rose-600 w-5 h-5" />
+                    <p className="text-rose-700 dark:text-rose-300 font-semibold">Payment failed. Please try again.</p>
                   </div>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
-                    There was an issue initiating the payment. Please try again.
+                    There was an issue initiating the payment window. Please try again.
                   </p>
                   <button
                     onClick={() => {
                       setPaymentStatus('idle');
                     }}
-                    className="w-full bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 text-red-700 dark:text-red-400 font-medium py-2 px-4 rounded-lg transition-colors"
+                    className="w-full bg-rose-100 dark:bg-rose-900/30 hover:bg-rose-200 dark:hover:bg-rose-900/50 text-rose-700 dark:text-rose-400 font-medium py-2 px-4 rounded-lg transition-colors cursor-pointer"
                   >
                     Try Again
                   </button>
@@ -999,9 +1089,9 @@ const Checkout = () => {
               <button
                 onClick={handlePayment}
                 disabled={paymentStatus === 'loading' || paymentStatus === 'success'}
-                className="w-full mt-6 bg-black hover:bg-gray-800 text-white transition-colors duration-300 font-bold py-4 px-6 rounded-lg shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full mt-6 bg-[#1C1917] hover:bg-[#44403C] text-white transition-colors duration-300 font-bold py-4 px-6 rounded-lg shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
-                {paymentStatus === 'loading' ? 'Processing...' : 'Pay with M-PESA'}
+                {paymentStatus === 'loading' ? 'Processing...' : 'Pay with Card'}
               </button>
             </motion.div>
 

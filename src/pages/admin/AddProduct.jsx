@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
-import { FiArrowLeft, FiUpload, FiX, FiPlus, FiTrash2 } from 'react-icons/fi';
+import { motion, AnimatePresence } from 'framer-motion';
+import { FiArrowLeft, FiUpload, FiX, FiPlus, FiTrash2, FiRefreshCw } from 'react-icons/fi';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { removeBackground as imglyRemoveBackground } from '@imgly/background-removal';
 import { adminApi } from '../../utils/adminApi';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://seekonbackend-production-da47.up.railway.app';
@@ -56,6 +57,9 @@ const getColorValue = (colorName) => {
 const AddProduct = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const [runAIBackgroundRemoval, setRunAIBackgroundRemoval] = useState(false);
+  const [isProcessingAI, setIsProcessingAI] = useState(false);
+  const [aiProgress, setAiProgress] = useState(0);
   
   // Dynamic categories from API - hierarchical structure
   const [dbCategories, setDbCategories] = useState([]);
@@ -312,9 +316,34 @@ const AddProduct = () => {
     if (!formData.price || formData.price <= 0) return toast.error('Valid price is required');
     if (images.length === 0) return toast.error('At least one product image is required');
 
+    let filesToUpload = [...images];
+
+    // Local WebAssembly AI background removal
+    if (runAIBackgroundRemoval) {
+      setIsProcessingAI(true);
+      setAiProgress(0);
+      try {
+        const tempFiles = [];
+        for (let i = 0; i < images.length; i++) {
+          setAiProgress(Math.round((i / images.length) * 100));
+          const file = images[i];
+          const transparentBlob = await imglyRemoveBackground(file, { model: 'small' });
+          const transparentFile = new File([transparentBlob], file.name.replace(/\.[^/.]+$/, "") + '-nobg.png', { type: 'image/png' });
+          tempFiles.push(transparentFile);
+        }
+        setAiProgress(100);
+        filesToUpload = tempFiles;
+        toast.success('AI background removal completed!');
+      } catch (aiErr) {
+        console.error('⚠️ AI background removal failed, falling back to original images:', aiErr.message);
+        toast.error('AI background removal failed. Using original images.');
+      } finally {
+        setIsProcessingAI(false);
+      }
+    }
+
     // 2. CAPTURE STATE IN CLOSURE (Crucial for background processing)
     // We must copy the exact state right now before resetting the form
-    const filesToUpload = [...images];
     const currentFormData = { ...formData };
     const productName = currentFormData.name;
     
@@ -497,6 +526,25 @@ const AddProduct = () => {
             className="hidden"
             disabled={isUploading}
           />
+
+          {/* Run AI Background Removal Checkbox */}
+          <div className="mt-4 p-4 bg-white/5 border border-white/10 rounded-lg flex items-center justify-between">
+            <div className="flex flex-col pr-4">
+              <span className="text-white text-sm font-semibold mb-0.5">Run AI Background Removal</span>
+              <span className="text-gray-400 text-xs leading-relaxed">
+                Automatically strips image background locally in browser WebAssembly using `imglyRemoveBackground` before dispatching. Zero server load.
+              </span>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input 
+                type="checkbox" 
+                checked={runAIBackgroundRemoval} 
+                onChange={(e) => setRunAIBackgroundRemoval(e.target.checked)}
+                className="sr-only peer" 
+              />
+              <div className="w-11 h-6 bg-gray-600 rounded-full peer peer-focus:ring-2 peer-focus:ring-[#A16207] peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#A16207]"></div>
+            </label>
+          </div>
 
           {isUploading && (
             <div className="mt-4 text-center">
@@ -840,6 +888,50 @@ const AddProduct = () => {
           </button>
         </div>
       </form>
+
+      {/* Local AI Background Removal Overlay (Liquid Glass) */}
+      <AnimatePresence>
+        {isProcessingAI && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+          >
+            <motion.div 
+              initial={{ scale: 0.95, y: 15 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 15 }}
+              className="bg-[#1C1917]/95 border border-[#D6D3D1]/20 rounded-2xl max-w-md w-full p-8 text-center shadow-2xl relative overflow-hidden"
+            >
+              <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-[#A16207]/10 rounded-full blur-[60px]" />
+              
+              <FiRefreshCw className="animate-spin text-[#A16207] mx-auto mb-6" size={44} />
+              
+              <h3 className="font-serif text-2xl text-white font-semibold mb-3">
+                Decentralized AI Processing
+              </h3>
+              
+              <p className="text-gray-300 text-sm mb-6 leading-relaxed">
+                Stripping background from selected images directly inside your browser's WebAssembly environment. This ensures zero load on the cloud application server.
+              </p>
+
+              {/* Progress Bar */}
+              <div className="w-full bg-stone-800 rounded-full h-2 mb-2 overflow-hidden border border-stone-700/50">
+                <div 
+                  className="bg-[#A16207] h-full transition-all duration-300 rounded-full" 
+                  style={{ width: `${aiProgress}%` }}
+                />
+              </div>
+              
+              <div className="flex justify-between text-xs text-gray-400 font-medium">
+                <span>Removing background...</span>
+                <span>{aiProgress}%</span>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
