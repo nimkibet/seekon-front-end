@@ -46,12 +46,12 @@ const BotStatus = () => {
   useEffect(() => {
     fetchStatus();
     
-    // Poll status every 5 seconds
+    // Poll status every 3 seconds
     const interval = setInterval(() => {
       if (pollingActive) {
         fetchStatus();
       }
-    }, 5000);
+    }, 3000);
 
     return () => clearInterval(interval);
   }, [pollingActive]);
