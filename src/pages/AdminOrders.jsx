@@ -543,7 +543,7 @@ const AdminOrders = () => {
                   <div className="space-y-2.5">
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-400">Subtotal</span>
-                      <span className="text-white font-semibold font-mono">KSh {(selectedOrder.totalAmount || 0).toLocaleString()}</span>
+                      <span className="text-white font-semibold font-mono">KSh {((selectedOrder.totalAmount || 0) - (selectedOrder.shippingPrice || 0)).toLocaleString()}</span>
                     </div>
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-400">Shipping Cost</span>
@@ -556,7 +556,7 @@ const AdminOrders = () => {
                     <div className="flex justify-between text-lg font-bold text-white pt-3 border-t border-white/10">
                       <span>Grand Total</span>
                       <span className="text-emerald-400 font-mono font-bold text-xl">
-                        KSh {((selectedOrder.totalAmount || 0) + (selectedOrder.shippingPrice || 0)).toLocaleString()}
+                        KSh {(selectedOrder.totalAmount || 0).toLocaleString()}
                       </span>
                     </div>
                   </div>

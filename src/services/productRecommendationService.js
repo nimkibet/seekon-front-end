@@ -4,10 +4,11 @@
  */
 
 import axios from 'axios';
+import { API_URL } from '../config/api.js';
 
 class ProductRecommendationService {
   constructor() {
-    this.baseURL = import.meta.env.VITE_API_URL || 'https://seekonbackend-production-da47.up.railway.app/api';
+    this.baseURL = API_URL;
     
     this.client = axios.create({
       baseURL: this.baseURL,
