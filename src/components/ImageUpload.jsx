@@ -104,19 +104,19 @@ const ImageUpload = ({
         return newPreviews;
       });
 
-      // Upload to server for background removal and Cloudinary storage
-      const imageUploadPromises = uploadResults.map(async (result) => {
+      // Upload to server sequentially to avoid overloading the CPU/RAM of the Azure VM
+      const imageDataArray = [];
+      for (const result of uploadResults) {
         const serverResult = await uploadAndRemoveBgOnServer(result.file);
         if (serverResult.success && serverResult.data) {
-          return {
+          imageDataArray.push({
             url: serverResult.data.url,
             publicId: serverResult.data.publicId
-          };
+          });
+        } else {
+          throw new Error(serverResult.message || 'Upload failed');
         }
-        throw new Error(serverResult.message || 'Upload failed');
-      });
-
-      const imageDataArray = await Promise.all(imageUploadPromises);
+      }
       console.log('[DEBUG] Uploaded images:', imageDataArray);
 
       if (imageDataArray.length > 1 && onAddImages) {
