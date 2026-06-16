@@ -3,10 +3,9 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FiArrowLeft, FiUpload, FiX, FiPlus, FiTrash2, FiRefreshCw } from 'react-icons/fi';
 import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import { removeBackground as imglyRemoveBackground } from '@imgly/background-removal';
 import { adminApi } from '../../utils/adminApi';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://seekonbackend-production-da47.up.railway.app';
+const API_URL = import.meta.env.VITE_API_URL || 'http://4.224.81.245:5000';
 
 const getAuthToken = () => {
   return localStorage.getItem('adminToken') || 
@@ -197,65 +196,15 @@ const AddProduct = () => {
     multipleImageInputRef.current?.click();
   };
 
-  // Handle sequential background removal for newly selected files
+  // Add newly selected files directly to state (local processing stripped)
   const processAndAddFiles = async (selectedFiles) => {
     if (selectedFiles.length === 0) return;
 
-    const startIndex = images.length;
     const newPreviews = selectedFiles.map(file => URL.createObjectURL(file));
 
     // Append raw files and initial previews to state immediately
     setImages(prev => [...prev, ...selectedFiles]);
     setImagesPreview(prev => [...prev, ...newPreviews]);
-
-    if (runAIBackgroundRemoval) {
-      setIsImageProcessing(true);
-
-      for (let i = 0; i < selectedFiles.length; i++) {
-        const currentIndex = startIndex + i;
-        setProcessingIndices(prev => [...prev, currentIndex]);
-        setAiProgress(0);
-
-        const file = selectedFiles[i];
-        try {
-          const transparentBlob = await imglyRemoveBackground(file, {
-            model: 'small',
-            onProgress: (pct) => {
-              setAiProgress(Math.round(pct * 100));
-            }
-          });
-
-          const transparentFile = new File(
-            [transparentBlob],
-            file.name.replace(/\.[^/.]+$/, "") + '-nobg.png',
-            { type: 'image/png' }
-          );
-          const transparentUrl = URL.createObjectURL(transparentFile);
-
-          setImages(prev => {
-            const updated = [...prev];
-            updated[currentIndex] = transparentFile;
-            return updated;
-          });
-
-          setImagesPreview(prev => {
-            const updated = [...prev];
-            URL.revokeObjectURL(updated[currentIndex]);
-            updated[currentIndex] = transparentUrl;
-            return updated;
-          });
-
-          toast.success(`Background removed for ${file.name}`);
-        } catch (aiErr) {
-          console.error('⚠️ AI background removal failed for file:', file.name, aiErr.message);
-          toast.error(`Background removal failed for ${file.name}. Using original image.`);
-        } finally {
-          setProcessingIndices(prev => prev.filter(idx => idx !== currentIndex));
-        }
-      }
-
-      setIsImageProcessing(false);
-    }
   };
 
   // Handle single image selection
@@ -305,11 +254,14 @@ const AddProduct = () => {
   const uploadImageToServer = async (file) => {
     const token = getAuthToken();
     const formData = new FormData();
-    
-    // Append as 'images' field (array) to match backend multer config
-    formData.append('images', file);
+    formData.append('file', file); // 'file' matches backend multer parser
 
-    const response = await fetch(`${API_URL}/api/upload`, {
+    // If background removal is checked, route to backend tool endpoint
+    const endpoint = runAIBackgroundRemoval 
+      ? `${API_URL}/api/tools/remove-bg` 
+      : `${API_URL}/api/upload`;
+
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
         ...(token && { 'Authorization': `Bearer ${token}` }),
@@ -318,33 +270,48 @@ const AddProduct = () => {
     });
 
     if (!response.ok) {
-      throw new Error('Upload failed');
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.message || 'Upload failed');
     }
 
     const data = await response.json();
+    
+    // Support return of array or single object
+    if (data.data && Array.isArray(data.data) && data.data.length > 0) {
+      return data.data[0].url;
+    }
     return data.data.url;
   };
 
-  // Upload multiple images directly to the server (No Polling)
+  // Upload multiple images directly to the server
   const uploadMultipleImagesToServer = async (files) => {
     const token = getAuthToken();
     const finalUrls = [];
 
+    // Use tools endpoint if background removal is requested
+    const endpoint = runAIBackgroundRemoval 
+      ? `${API_URL}/api/tools/remove-bg` 
+      : `${API_URL}/api/upload`;
+
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       const formData = new FormData();
-      formData.append('images', file); // Multer catch-all will grab this
+      formData.append('file', file); // Multer catch-all will grab this
 
-      const uploadRes = await fetch(`${API_URL}/api/upload`, {
+      const uploadRes = await fetch(endpoint, {
         method: 'POST',
         headers: { ...(token && { 'Authorization': `Bearer ${token}` }) },
         body: formData,
       });
 
-      if (!uploadRes.ok) throw new Error('Failed to upload image');
+      if (!uploadRes.ok) {
+        const errData = await uploadRes.json().catch(() => ({}));
+        throw new Error(errData.message || 'Failed to upload image');
+      }
+      
       const uploadData = await uploadRes.json();
       
-      // Extract the URL from the response data array
+      // Extract the URL from the response data structure
       if (uploadData.data && Array.isArray(uploadData.data) && uploadData.data.length > 0) {
         finalUrls.push(uploadData.data[0].url);
       } else if (uploadData.data && uploadData.data.url) {
