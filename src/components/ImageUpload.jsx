@@ -3,7 +3,7 @@ import { FiUpload, FiX, FiImage, FiLoader } from 'react-icons/fi';
 import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://seekonbackend-production-da47.up.railway.app';
+const API_URL = import.meta.env.VITE_API_URL || 'http://4.224.81.245:5000';
 
 // Helper function to get auth token
 const getAuthToken = () => {
@@ -23,7 +23,7 @@ const ImageUpload = ({
 }) => {
   const [previews, setPreviews] = useState(initialImage ? [initialImage] : []);
   const [isUploading, setIsUploading] = useState(false);
-  const [isProcessingAI, setIsProcessingAI] = useState(false);
+  const [isProcessingAI, setIsProcessingAI] = useState(false); // Kept for state compatibility
   const [error, setError] = useState('');
   const [inputType, setInputType] = useState('file'); // 'file' or 'url'
   const [urlInput, setUrlInput] = useState('');
@@ -49,19 +49,19 @@ const ImageUpload = ({
   const handleUrlChange = (e) => {
     const url = e.target.value;
     setUrlInput(url);
-    setPreview(url);
+    setPreviews(url ? [url] : []);
     if (onImageUpload) {
       onImageUpload(url);
     }
   };
 
-  const uploadFileToServer = async (file) => {
+  const uploadAndRemoveBgOnServer = async (file) => {
     const token = getAuthToken();
     
     const formData = new FormData();
     formData.append('file', file);
 
-    const response = await fetch(`${API_URL}/api/upload`, {
+    const response = await fetch(`${API_URL}/api/tools/remove-bg`, {
       method: 'POST',
       headers: {
         ...(token && { 'Authorization': `Bearer ${token}` }),
@@ -71,16 +71,10 @@ const ImageUpload = ({
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || 'Upload failed');
+      throw new Error(errorData.message || 'Background removal upload failed');
     }
 
     return response.json();
-  };
-
-  // Process image - AI background removal disabled
-  const processWithAI = async (originalFile) => {
-    // AI background removal has been disabled
-    return originalFile;
   };
 
   const handleFileChange = async (e) => {
@@ -99,62 +93,51 @@ const ImageUpload = ({
     setIsUploading(true);
 
     try {
-      // Use original files directly (AI processing disabled)
-      const processedFiles = await Promise.all(
-        files.map(async (file) => {
-          return await processWithAI(file);
-        })
-      );
-
-      // Show preview immediately using local URL from processed image
-      const uploadPromises = processedFiles.map(async (file) => {
+      // Show local previews immediately using original selected files
+      const uploadResults = files.map(file => {
         const localPreview = URL.createObjectURL(file);
         return { localPreview, file };
       });
-
-      const uploadResults = await Promise.all(uploadPromises);
       
-      // Add local previews immediately
       setPreviews(prev => {
         const newPreviews = multiple ? [...prev, ...uploadResults.map(r => r.localPreview)] : [uploadResults[0].localPreview];
         return newPreviews;
       });
 
-      // Upload to server and get real URLs
+      // Upload to server for background removal and Cloudinary storage
       const imageUploadPromises = uploadResults.map(async (result) => {
-        const serverResult = await uploadFileToServer(result.file);
+        const serverResult = await uploadAndRemoveBgOnServer(result.file);
         if (serverResult.success && serverResult.data) {
           return {
             url: serverResult.data.url,
             publicId: serverResult.data.publicId
           };
         }
-        throw new Error('Upload failed');
+        throw new Error(serverResult.message || 'Upload failed');
       });
 
       const imageDataArray = await Promise.all(imageUploadPromises);
       console.log('[DEBUG] Uploaded images:', imageDataArray);
 
       if (imageDataArray.length > 1 && onAddImages) {
-        // Multiple files uploaded - add as new images instead of replacing
         console.log('[DEBUG] Calling onAddImages with:', imageDataArray);
         onAddImages(imageDataArray);
       } else if (onImageUpload) {
-        // Single file or no onAddImages callback
-        // Always add as new images when multiple=true
         console.log('[DEBUG] Calling onImageUpload with:', imageDataArray);
-        onImageUpload(imageDataArray); // Pass entire array to add as new images
+        onImageUpload(imageDataArray);
       }
       
       // Clear previews after all uploads complete
       setPreviews(initialImage ? [initialImage] : []);
 
-      toast.success(imageDataArray.length > 1 ? `${imageDataArray.length} images uploaded successfully!` : 'Image uploaded successfully!');
+      toast.success(imageDataArray.length > 1 
+        ? `${imageDataArray.length} images processed and uploaded successfully!` 
+        : 'Image processed and uploaded successfully!'
+      );
     } catch (error) {
       console.error('Upload error:', error);
-      toast.error('Failed to upload image(s). Please try again.');
+      toast.error('Failed to process and upload image(s). Please try again.');
       setError('Upload failed: ' + error.message);
-      // Clear previews on error
       setPreviews(initialImage ? [initialImage] : []);
     } finally {
       setIsUploading(false);
@@ -191,15 +174,12 @@ const ImageUpload = ({
     setIsUploading(true);
 
     try {
-      // Use original file directly (AI processing disabled)
-      const processedFile = await processWithAI(file);
-      
       // Show preview immediately using local URL
-      const localPreview = URL.createObjectURL(processedFile);
-      setPreview(localPreview);
+      const localPreview = URL.createObjectURL(file);
+      setPreviews(multiple ? prev => [...prev, localPreview] : [localPreview]);
 
-      // Upload to server/Cloudinary
-      const result = await uploadFileToServer(processedFile);
+      // Upload to server/Cloudinary for background removal
+      const result = await uploadAndRemoveBgOnServer(file);
 
       if (result.success && result.data) {
         const imageData = {
@@ -211,16 +191,15 @@ const ImageUpload = ({
           onImageUpload(imageData);
         }
 
-        toast.success('Image uploaded successfully!');
+        toast.success('Image processed and uploaded successfully!');
       } else {
-        throw new Error('Upload failed');
+        throw new Error(result.message || 'Upload failed');
       }
     } catch (error) {
       console.error('Upload error:', error);
-      toast.error('Failed to upload image. Please try again.');
+      toast.error('Failed to process and upload image. Please try again.');
       setError('Upload failed: ' + error.message);
-      // Clear preview on error
-      setPreview(null);
+      setPreviews(initialImage ? [initialImage] : []);
     } finally {
       setIsUploading(false);
     }
