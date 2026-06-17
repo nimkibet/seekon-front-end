@@ -30,7 +30,15 @@ const apiCall = async (endpoint, options = {}) => {
     if (!response.ok) {
       // Try to get error message from response
       const errorData = await response.json().catch(() => ({}));
-      const errorMessage = errorData.message || errorData.error || response.statusText;
+      let errorMessage = errorData.message || errorData.error || response.statusText;
+      
+      if (errorData.errors) {
+        const details = Object.entries(errorData.errors)
+          .map(([field, msg]) => `${field}: ${msg}`)
+          .join(', ');
+        errorMessage = `${errorMessage} (${details})`;
+      }
+      
       console.error('API Error:', errorData);
       throw new Error(errorMessage);
     }
