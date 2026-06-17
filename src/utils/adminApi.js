@@ -105,11 +105,11 @@ export const adminApi = {
   getProduct: (id) => apiCall(`/products/${id}`),
   createProduct: (productData) => apiCall('/products', {
     method: 'POST',
-    body: JSON.stringify(productData),
+    body: productData instanceof FormData ? productData : JSON.stringify(productData),
   }),
   updateProduct: (id, productData) => apiCall(`/products/${id}`, {
     method: 'PUT',
-    body: JSON.stringify(productData),
+    body: productData instanceof FormData ? productData : JSON.stringify(productData),
   }),
   deleteProduct: (id) => apiCall(`/products/${id}`, { method: 'DELETE' }),
 
