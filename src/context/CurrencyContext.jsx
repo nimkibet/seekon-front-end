@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { api } from '../utils/api';
+import { API_ORIGIN } from '../config/api.js';
 
 const CurrencyContext = createContext();
 
@@ -7,7 +7,7 @@ const CurrencyContext = createContext();
 const DEFAULT_EXCHANGE_RATE = 130;
 
 // API URL for settings
-const API_URL = import.meta.env.VITE_API_URL || 'https://api.seekonapparelglobal.com';
+const API_URL = API_ORIGIN;
 
 export const useCurrency = () => {
   const context = useContext(CurrencyContext);
