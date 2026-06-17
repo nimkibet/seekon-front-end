@@ -26,7 +26,7 @@ const AdminNewsletter = () => {
                     localStorage.getItem('token') || 
                     sessionStorage.getItem('token');
       const response = await axios.get(
-        `${import.meta.env.VITE_API_URL || 'https://seekonbackend-production-da47.up.railway.app'}/api/admin/subscribers`,
+        `${import.meta.env.VITE_API_URL || 'https://api.seekonapparelglobal.com'}/api/admin/subscribers`,
         {
           headers: { Authorization: `Bearer ${token}` }
         }
@@ -55,7 +55,7 @@ const AdminNewsletter = () => {
                     localStorage.getItem('token') || 
                     sessionStorage.getItem('token');
       const response = await axios.post(
-        `${import.meta.env.VITE_API_URL || 'https://seekonbackend-production-da47.up.railway.app'}/api/admin/newsletter/broadcast`,
+        `${import.meta.env.VITE_API_URL || 'https://api.seekonapparelglobal.com'}/api/admin/newsletter/broadcast`,
         {
           subject: formData.subject,
           htmlBody: formData.htmlBody

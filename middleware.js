@@ -18,7 +18,7 @@ export default async function middleware(request) {
       try {
         // Fetch product data from the live backend
         // We use the production backend URL to ensure we get real data
-        const backendUrl = 'https://seekonbackend-production-da47.up.railway.app';
+        const backendUrl = 'https://api.seekonapparelglobal.com';
         const response = await fetch(`${backendUrl}/api/products/${productId}`);
         
         if (response.ok) {

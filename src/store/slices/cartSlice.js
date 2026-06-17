@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 
 // API configuration
-const API_URL = import.meta.env.VITE_API_URL || 'https://seekonbackend-production-da47.up.railway.app';
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.seekonapparelglobal.com';
 
 const getAuthToken = () =>
   localStorage.getItem('token') || 

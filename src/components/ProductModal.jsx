@@ -4,7 +4,7 @@ import { FiX, FiSave, FiPlus, FiTrash2, FiZap, FiClock, FiArrowRight } from 'rea
 import ImageUpload from './ImageUpload';
 import toast from 'react-hot-toast';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://seekonbackend-production-da47.up.railway.app';
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.seekonapparelglobal.com';
 
 const getAuthToken = () => {
   return localStorage.getItem('adminToken') || 

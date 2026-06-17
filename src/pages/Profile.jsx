@@ -9,7 +9,7 @@ import { getUserAvatar, setUserAvatar, initializeUserAvatar } from '../utils/use
 import toast from 'react-hot-toast';
 import RecentlyViewed from '../components/RecentlyViewed';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://seekonbackend-production-da47.up.railway.app';
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.seekonapparelglobal.com';
 
 const Profile = () => {
   const { user, isAuthenticated } = useAuth();

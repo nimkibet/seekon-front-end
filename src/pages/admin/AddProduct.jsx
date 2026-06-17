@@ -5,7 +5,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { adminApi } from '../../utils/adminApi';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://4.224.81.245:5000';
+const API_URL = import.meta.env.VITE_API_URL || 'https://api.seekonapparelglobal.com';
 
 const getAuthToken = () => {
   return localStorage.getItem('adminToken') || 
