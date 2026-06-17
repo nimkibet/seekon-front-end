@@ -61,25 +61,53 @@ const OrderDetails = () => {
   }
 
   const getStatusBadge = (status) => {
-    if (status === 'delivered' || status === 'completed') {
-      return (
-        <span className="px-4 py-2 bg-green-500 text-white rounded-full text-sm font-medium">
-          Approved
-        </span>
-      );
+    const cleanStatus = status?.toLowerCase();
+    switch (cleanStatus) {
+      case 'delivered':
+      case 'completed':
+        return (
+          <span className="px-4 py-2 bg-green-500 text-white rounded-full text-sm font-medium">
+            Delivered
+          </span>
+        );
+      case 'shipped':
+        return (
+          <span className="px-4 py-2 bg-purple-500 text-white rounded-full text-sm font-medium">
+            Shipped
+          </span>
+        );
+      case 'processing':
+        return (
+          <span className="px-4 py-2 bg-blue-500 text-white rounded-full text-sm font-medium">
+            Processing
+          </span>
+        );
+      case 'paid':
+        return (
+          <span className="px-4 py-2 bg-emerald-500 text-white rounded-full text-sm font-medium">
+            Paid
+          </span>
+        );
+      case 'pending':
+        return (
+          <span className="px-4 py-2 bg-yellow-500 text-black rounded-full text-sm font-medium">
+            Pending
+          </span>
+        );
+      case 'cancelled':
+      case 'failed':
+        return (
+          <span className="px-4 py-2 bg-red-500 text-white rounded-full text-sm font-medium">
+            {cleanStatus === 'cancelled' ? 'Cancelled' : 'Failed'}
+          </span>
+        );
+      default:
+        return (
+          <span className="px-4 py-2 bg-gray-500 text-white rounded-full text-sm font-medium">
+            {status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Processing'}
+          </span>
+        );
     }
-    if (status === 'shipped' || status === 'processing') {
-      return (
-        <span className="px-4 py-2 bg-yellow-500 text-black rounded-full text-sm font-medium">
-          Pending Delivery
-        </span>
-      );
-    }
-    return (
-      <span className="px-4 py-2 bg-gray-500 text-white rounded-full text-sm font-medium">
-        Processing
-      </span>
-    );
   };
 
   return (
@@ -139,7 +167,7 @@ const OrderDetails = () => {
                     <p className="text-base font-medium text-gray-900 dark:text-gray-100">{order.paymentMethod || 'M-Pesa'}</p>
                   </div>
                   <div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">Status:</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Payment Status:</p>
                     <p className={`text-base font-medium ${order.isPaid ? 'text-green-600 dark:text-green-400' : 'text-yellow-600 dark:text-yellow-400'}`}>
                       {order.isPaid ? 'Paid' : 'Pending Payment'}
                     </p>

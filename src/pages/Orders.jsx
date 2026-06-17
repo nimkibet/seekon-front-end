@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FiPackage, FiTruck, FiCheckCircle, FiClock, FiEye, FiRefreshCw } from 'react-icons/fi';
+import { FiPackage, FiTruck, FiCheckCircle, FiClock, FiEye, FiRefreshCw, FiAlertCircle } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../utils/api';
 import { formatPrice, formatDate } from '../utils/formatPrice';
@@ -35,30 +35,42 @@ const Orders = () => {
   }, [user]);
 
   const getStatusIcon = (status) => {
-    switch (status) {
+    const cleanStatus = status?.toLowerCase();
+    switch (cleanStatus) {
       case 'pending':
         return <FiClock className="w-5 h-5 text-yellow-500" />;
+      case 'paid':
+        return <FiCheckCircle className="w-5 h-5 text-emerald-500" />;
       case 'processing':
         return <FiPackage className="w-5 h-5 text-blue-500" />;
       case 'shipped':
         return <FiTruck className="w-5 h-5 text-purple-500" />;
       case 'delivered':
         return <FiCheckCircle className="w-5 h-5 text-green-500" />;
+      case 'cancelled':
+      case 'failed':
+        return <FiAlertCircle className="w-5 h-5 text-red-500" />;
       default:
         return <FiClock className="w-5 h-5 text-gray-500" />;
     }
   };
 
   const getStatusColor = (status) => {
-    switch (status) {
+    const cleanStatus = status?.toLowerCase();
+    switch (cleanStatus) {
       case 'pending':
         return 'text-yellow-600 dark:text-yellow-400 bg-yellow-100 dark:bg-yellow-900/20';
+      case 'paid':
+        return 'text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/20';
       case 'processing':
         return 'text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/20';
       case 'shipped':
         return 'text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/20';
       case 'delivered':
         return 'text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/20';
+      case 'cancelled':
+      case 'failed':
+        return 'text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/20';
       default:
         return 'text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-900/20';
     }
@@ -179,7 +191,7 @@ const Orders = () => {
                     <div className="flex items-center space-x-2">
                       {getStatusIcon(order.status)}
                       <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(order.status)}`}>
-                        {order.status?.charAt(0).toUpperCase() + order.status?.slice(1)}
+                        {order.status ? (order.status.charAt(0).toUpperCase() + order.status.slice(1).toLowerCase()) : 'Pending'}
                       </span>
                     </div>
                     <div className="text-sm text-gray-500 dark:text-gray-400">
@@ -222,7 +234,7 @@ const Orders = () => {
                   </div>
                   <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                     <Link
-                      to={`/orders/${order.id}`}
+                      to={`/orders/${order.id || order._id}`}
                       className="flex items-center justify-center space-x-2 px-4 py-2 sm:px-3 sm:py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors duration-200 w-full sm:w-auto"
                     >
                       <FiEye className="w-4 h-4 flex-shrink-0" />

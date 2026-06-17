@@ -78,14 +78,17 @@ const MyOrders = () => {
 
   // Filter orders based on active tab
   const filteredOrders = orders.filter(order => {
-    // Only show paid orders in the main order history
-    if (!order.isPaid && order.status === 'pending') return false;
+    const cleanStatus = order.status?.toLowerCase();
     
-    if (activeTab === 'all') return true;
-    if (activeTab === 'active') return ['pending', 'processing', 'shipped'].includes(order.status);
-    if (activeTab === 'delivered') return order.status === 'delivered';
+    if (cleanTab(activeTab) === 'all') return true;
+    if (cleanTab(activeTab) === 'active') return ['pending', 'paid', 'processing', 'shipped'].includes(cleanStatus);
+    if (cleanTab(activeTab) === 'delivered') return cleanStatus === 'delivered';
     return true;
   });
+
+  function cleanTab(tab) {
+    return tab?.toLowerCase();
+  }
 
   // Handle Buy Again - add items to cart with correct payload structure
   const handleBuyAgain = async (order) => {
@@ -146,9 +149,12 @@ const MyOrders = () => {
   };
 
   const getStatusIcon = (status) => {
-    switch (status) {
+    const cleanStatus = status?.toLowerCase();
+    switch (cleanStatus) {
       case 'pending':
         return <FiClock className="w-5 h-5" />;
+      case 'paid':
+        return <FiCheckCircle className="w-5 h-5" />;
       case 'processing':
         return <FiPackage className="w-5 h-5" />;
       case 'shipped':
@@ -156,6 +162,7 @@ const MyOrders = () => {
       case 'delivered':
         return <FiCheckCircle className="w-5 h-5" />;
       case 'cancelled':
+      case 'failed':
         return <FiAlertCircle className="w-5 h-5" />;
       default:
         return <FiClock className="w-5 h-5" />;
@@ -163,9 +170,12 @@ const MyOrders = () => {
   };
 
   const getStatusColor = (status) => {
-    switch (status) {
+    const cleanStatus = status?.toLowerCase();
+    switch (cleanStatus) {
       case 'pending':
         return 'bg-yellow-100 text-yellow-700 border-yellow-200';
+      case 'paid':
+        return 'bg-emerald-100 text-emerald-700 border-emerald-200';
       case 'processing':
         return 'bg-blue-100 text-blue-700 border-blue-200';
       case 'shipped':
@@ -173,6 +183,7 @@ const MyOrders = () => {
       case 'delivered':
         return 'bg-green-100 text-green-700 border-green-200';
       case 'cancelled':
+      case 'failed':
         return 'bg-red-100 text-red-700 border-red-200';
       default:
         return 'bg-gray-100 text-gray-700 border-gray-200';
@@ -249,7 +260,7 @@ const MyOrders = () => {
 
   // Count active orders for badge
   const activeOrdersCount = orders.filter(order => 
-    ['shipped', 'processing'].includes(order.status)
+    ['pending', 'paid', 'processing', 'shipped'].includes(order.status?.toLowerCase())
   ).length;
 
   if (isLoading) {
@@ -386,7 +397,7 @@ const MyOrders = () => {
                     {/* Status Badge */}
                     <span className={`px-2 py-1 rounded-full text-xs sm:text-sm font-medium border flex items-center gap-1 ${getStatusColor(order.status)}`}>
                       {getStatusIcon(order.status)}
-                      <span className="hidden sm:inline">{order.status.charAt(0).toUpperCase() + order.status.slice(1)}</span>
+                      <span className="hidden sm:inline">{order.status ? (order.status.charAt(0).toUpperCase() + order.status.slice(1).toLowerCase()) : 'Pending'}</span>
                     </span>
                     
                     {/* Order ID */}

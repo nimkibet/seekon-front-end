@@ -561,15 +561,18 @@ const Cart = () => {
                     </div>
                     <div className="flex items-center gap-4">
                       <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        order.status === 'Delivered' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
-                        order.status === 'Shipped' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
-                        order.status === 'Paid' || order.isPaid ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
+                        order.status?.toLowerCase() === 'delivered' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' :
+                        order.status?.toLowerCase() === 'shipped' ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' :
+                        order.status?.toLowerCase() === 'processing' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200' :
+                        order.status?.toLowerCase() === 'pending' ? 'bg-amber-100 text-amber-850 dark:bg-amber-950/20 dark:text-amber-350' :
+                        order.status?.toLowerCase() === 'cancelled' || order.status?.toLowerCase() === 'failed' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' :
+                        order.isPaid ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300' :
                         'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200'
                       }`}>
-                        {order.status || (order.isPaid ? 'Paid' : 'Pending')}
+                        {order.status ? (order.status.charAt(0).toUpperCase() + order.status.slice(1).toLowerCase()) : (order.isPaid ? 'Paid' : 'Pending')}
                       </span>
                       <span className="font-bold text-[#00A676] dark:text-green-400">{formatPrice(order.totalPrice || order.total)}</span>
-                      <Link to={`/order/${order._id || order.id}`} className="text-[#00A676] hover:underline text-sm">View</Link>
+                      <Link to={`/orders/${order._id || order.id}`} className="text-[#00A676] hover:underline text-sm">View</Link>
                     </div>
                   </div>
                   
