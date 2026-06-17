@@ -7,6 +7,51 @@ import { CurrencyProvider } from './context/CurrencyContext.jsx'
 import { GoogleOAuthProvider } from '@react-oauth/google'
 import { HelmetProvider } from 'react-helmet-async'
 
+// Global handlers for chunk loading/MIME errors (occurs when new deploys purge old bundle hashes)
+window.addEventListener('error', (e) => {
+  const message = e.message || '';
+  const isChunkError = 
+    message.includes('Failed to fetch dynamically imported module') ||
+    message.includes('Expected a JavaScript-or-Wasm module script') ||
+    message.includes('MIME type of "text/html"');
+
+  if (isChunkError) {
+    try {
+      const lastReload = sessionStorage.getItem('last_chunk_error_reload');
+      const now = Date.now();
+      if (!lastReload || now - parseInt(lastReload, 10) > 10000) {
+        sessionStorage.setItem('last_chunk_error_reload', now.toString());
+        console.warn('🔄 Global error: Chunk load error detected. Reloading to fetch latest assets...');
+        window.location.reload();
+      }
+    } catch (err) {
+      console.error('Error handling chunk error reload:', err);
+    }
+  }
+}, true);
+
+window.addEventListener('unhandledrejection', (e) => {
+  const message = e.reason?.message || '';
+  const isChunkError = 
+    message.includes('Failed to fetch dynamically imported module') ||
+    message.includes('Expected a JavaScript-or-Wasm module script') ||
+    message.includes('MIME type of "text/html"');
+
+  if (isChunkError) {
+    try {
+      const lastReload = sessionStorage.getItem('last_chunk_error_reload');
+      const now = Date.now();
+      if (!lastReload || now - parseInt(lastReload, 10) > 10000) {
+        sessionStorage.setItem('last_chunk_error_reload', now.toString());
+        console.warn('🔄 Global rejection: Chunk load error detected. Reloading to fetch latest assets...');
+        window.location.reload();
+      }
+    } catch (err) {
+      console.error('Error handling chunk rejection reload:', err);
+    }
+  }
+});
+
 console.log('🚀 Starting Seekon App initialization...');
 console.log('📦 React version:', React.version);
 console.log('🌍 Environment:', import.meta.env.MODE);
