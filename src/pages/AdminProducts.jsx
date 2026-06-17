@@ -240,6 +240,7 @@ const AdminProducts = () => {
       case 'active': return 'bg-green-500/20 text-green-400';
       case 'out_of_stock': return 'bg-red-500/20 text-red-400';
       case 'inactive': return 'bg-gray-500/20 text-gray-400';
+      case 'processing': return 'bg-yellow-500/20 text-yellow-400 animate-pulse';
       default: return 'bg-gray-500/20 text-gray-400';
     }
   };
@@ -482,12 +483,19 @@ const AdminProducts = () => {
               className="bg-white/10 backdrop-blur-xl rounded-xl border border-white/20 overflow-hidden hover:border-white/40 transition-all group cursor-pointer"
             >
               {/* Product Image */}
-              <div className="relative aspect-square bg-gray-800 overflow-hidden">
-                <img
-                  src={product.image}
-                  alt={product.name}
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                />
+              <div className="relative aspect-square bg-gray-800 overflow-hidden flex items-center justify-center">
+                {product.status === 'processing' ? (
+                  <div className="flex flex-col items-center justify-center p-4 text-center">
+                    <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-[#00A676] mb-3"></div>
+                    <span className="text-xs text-gray-400 font-medium animate-pulse">Processing images...</span>
+                  </div>
+                ) : (
+                  <img
+                    src={product.image || 'https://via.placeholder.com/300?text=No+Image'}
+                    alt={product.name}
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
+                  />
+                )}
                 {/* Category Badge */}
                 <div className="absolute top-2 left-2">
                   <span className={`px-2 py-1 rounded text-xs font-medium ${getCategoryColor(product.category)}`}>

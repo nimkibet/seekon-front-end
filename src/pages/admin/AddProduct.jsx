@@ -349,36 +349,42 @@ const AddProduct = () => {
     // 5. Fire and Forget Background Task (Do not await this directly in the main thread)
     (async () => {
       try {
-        // Upload all images at once using the new multiple upload function
-        const imageUrls = await uploadMultipleImagesToServer(filesToUpload);
+        const formDataPayload = new FormData();
+        formDataPayload.append('name', currentFormData.name);
+        formDataPayload.append('description', currentFormData.description);
+        formDataPayload.append('price', Number(currentFormData.price));
+        
+        const originalPrice = currentFormData.originalPrice ? Number(currentFormData.originalPrice) : Number(currentFormData.price);
+        formDataPayload.append('originalPrice', originalPrice);
+        
+        const discount = currentFormData.originalPrice ? Math.round((1 - Number(currentFormData.price) / Number(currentFormData.originalPrice)) * 100) : 0;
+        formDataPayload.append('discount', discount);
+        
+        formDataPayload.append('category', currentFormData.category);
+        formDataPayload.append('subCategory', currentFormData.subCategory || '');
+        formDataPayload.append('brand', currentFormData.brand);
+        formDataPayload.append('stock', Number(currentFormData.stock) || 0);
+        formDataPayload.append('sizes', currentFormData.sizes || '');
+        formDataPayload.append('colors', currentFormData.colors || '');
+        formDataPayload.append('isFeatured', currentFormData.isFeatured);
+        formDataPayload.append('isNew', currentFormData.isNew);
+        formDataPayload.append('newProduct', currentFormData.isNew);
+        formDataPayload.append('isFlashSale', currentFormData.isFlashSale);
+        
+        if (currentFormData.isFlashSale) {
+          if (currentFormData.flashSalePrice) formDataPayload.append('flashSalePrice', Number(currentFormData.flashSalePrice));
+          if (currentFormData.saleStartTime) formDataPayload.append('saleStartTime', currentFormData.saleStartTime);
+          if (currentFormData.saleEndTime) formDataPayload.append('saleEndTime', currentFormData.saleEndTime);
+        }
 
-        const productData = {
-          name: currentFormData.name,
-          description: currentFormData.description,
-          price: Number(currentFormData.price),
-          originalPrice: currentFormData.originalPrice ? Number(currentFormData.originalPrice) : Number(currentFormData.price),
-          discount: currentFormData.originalPrice ? Math.round((1 - Number(currentFormData.price) / Number(currentFormData.originalPrice)) * 100) : 0,
-          image: imageUrls[0],
-          images: imageUrls,
-          category: currentFormData.category,
-          subCategory: currentFormData.subCategory,
-          brand: currentFormData.brand,
-          stock: Number(currentFormData.stock) || 0,
-          sizes: currentFormData.sizes ? currentFormData.sizes.split(',').map(s => s.trim()).filter(s => s) : [],
-          colors: currentFormData.colors ? currentFormData.colors.split(',').map(c => c.trim()).filter(c => c) : [],
-          isFeatured: currentFormData.isFeatured,
-          isNew: currentFormData.isNew,
-          newProduct: currentFormData.isNew,
-          isFlashSale: currentFormData.isFlashSale,
-          flashSalePrice: currentFormData.isFlashSale && currentFormData.flashSalePrice ? Number(currentFormData.flashSalePrice) : null,
-          saleStartTime: currentFormData.isFlashSale && currentFormData.saleStartTime ? currentFormData.saleStartTime : null,
-          saleEndTime: currentFormData.isFlashSale && currentFormData.saleEndTime ? currentFormData.saleEndTime : null
-        };
+        filesToUpload.forEach(file => {
+          formDataPayload.append('images', file);
+        });
 
-        await adminApi.createProduct(productData);
+        await adminApi.createProduct(formDataPayload);
         
         // Update the specific toast to success
-        toast.success(`Product "${productName}" successfully added!`, { id: toastId, duration: 4000 });
+        toast.success(`Product "${productName}" successfully uploaded! Processing images...`, { id: toastId, duration: 4000 });
       } catch (error) {
         console.error('[DEBUG] Error creating product:', error);
         // Update the specific toast to error
