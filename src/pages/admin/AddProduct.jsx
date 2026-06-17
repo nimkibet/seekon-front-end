@@ -370,6 +370,7 @@ const AddProduct = () => {
         formDataPayload.append('isNew', currentFormData.isNew);
         formDataPayload.append('newProduct', currentFormData.isNew);
         formDataPayload.append('isFlashSale', currentFormData.isFlashSale);
+        formDataPayload.append('runAIBackgroundRemoval', runAIBackgroundRemoval);
         
         if (currentFormData.isFlashSale) {
           if (currentFormData.flashSalePrice) formDataPayload.append('flashSalePrice', Number(currentFormData.flashSalePrice));
