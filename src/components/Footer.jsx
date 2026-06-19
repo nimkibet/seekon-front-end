@@ -167,9 +167,7 @@ const Footer = () => {
               <h3 className="text-seekon-pureWhite font-bold text-lg mb-4">Company</h3>
               <ul className="space-y-3">
                 {[
-                  { name: 'About Us', path: '/about' },
-                  { name: 'Careers', path: '/careers' },
-                  { name: 'Press', path: '/press' }
+                  { name: 'About Us', path: '/about' }
                 ].map((item) => (
                   <li key={item.name}>
                     <Link
