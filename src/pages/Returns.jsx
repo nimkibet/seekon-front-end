@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { FiArrowLeft, FiRefreshCw, FiClock, FiShield, FiCheckCircle } from 'react-icons/fi';
+import { FiArrowLeft, FiClock, FiDollarSign, FiCheckCircle } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
 
 const Returns = () => {
@@ -17,52 +17,76 @@ const Returns = () => {
         >
           <Link 
             to="/" 
-            className="inline-flex items-center text-seekon-electricRed hover:text-seekon-electricRed/80 transition-colors duration-200 mb-6"
+            className="inline-flex items-center text-seekon-midnight hover:text-seekon-charcoalGray transition-colors duration-200 mb-6 font-medium"
           >
             <FiArrowLeft className="w-4 h-4 mr-2" />
             Back to Home
           </Link>
           
-          <h1 className="text-4xl font-bold text-seekon-midnight mb-4">Returns & Exchanges</h1>
-          <p className="text-seekon-charcoalGray text-lg">
-            Easy returns and exchanges within 30 days of purchase.
+          <h1 className="text-4xl font-bold text-seekon-midnight mb-4 tracking-tight">Returns & Exchanges</h1>
+          <p className="text-seekon-charcoalGray text-lg max-w-2xl leading-relaxed">
+            Convenient return and exchange services within 72 hours of your successful purchase.
           </p>
         </motion.div>
 
         <div className="space-y-12">
           
-          {/* Return Policy */}
+          {/* Return Policy Grid */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
           >
-            <h2 className="text-2xl font-semibold text-seekon-midnight mb-6">Return Policy</h2>
+            <h2 className="text-2xl font-bold text-seekon-midnight mb-6">Our Policy</h2>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-seekon-pureWhite p-6 rounded-lg shadow-lg">
-                <div className="w-12 h-12 bg-seekon-electricRed rounded-lg flex items-center justify-center mb-4">
-                  <FiClock className="w-6 h-6 text-seekon-pureWhite" />
+              {/* 72-Hour Window Card */}
+              <motion.div 
+                whileHover={{ y: -4 }}
+                className="bg-seekon-pureWhite p-6 rounded-xl border border-gray-200/60 flex flex-col justify-between"
+              >
+                <div>
+                  <div className="w-12 h-12 bg-seekon-midnight rounded-xl flex items-center justify-center mb-4">
+                    <FiClock className="w-6 h-6 text-seekon-pureWhite" />
+                  </div>
+                  <h3 className="font-bold text-seekon-midnight mb-2">72-Hour Window</h3>
+                  <p className="text-seekon-charcoalGray text-sm leading-relaxed">
+                    Return requests must be initiated within 72 hours of successful purchase verification.
+                  </p>
                 </div>
-                <h3 className="font-semibold text-seekon-midnight mb-2">30-Day Window</h3>
-                <p className="text-seekon-charcoalGray text-sm">Return items within 30 days of delivery for a full refund.</p>
-              </div>
+              </motion.div>
 
-              <div className="bg-seekon-pureWhite p-6 rounded-lg shadow-lg">
-                <div className="w-12 h-12 bg-seekon-electricRed rounded-lg flex items-center justify-center mb-4">
-                  <FiShield className="w-6 h-6 text-seekon-pureWhite" />
+              {/* Chargeable Returns Card */}
+              <motion.div 
+                whileHover={{ y: -4 }}
+                className="bg-seekon-pureWhite p-6 rounded-xl border border-gray-200/60 flex flex-col justify-between"
+              >
+                <div>
+                  <div className="w-12 h-12 bg-seekon-midnight rounded-xl flex items-center justify-center mb-4">
+                    <FiDollarSign className="w-6 h-6 text-seekon-pureWhite" />
+                  </div>
+                  <h3 className="font-bold text-seekon-midnight mb-2">Chargeable Returns</h3>
+                  <p className="text-seekon-charcoalGray text-sm leading-relaxed">
+                    Return shipping costs are chargeable on all orders and must be covered by the customer.
+                  </p>
                 </div>
-                <h3 className="font-semibold text-seekon-midnight mb-2">Free Returns</h3>
-                <p className="text-seekon-charcoalGray text-sm">Free return shipping on all orders over KSh 7,500.</p>
-              </div>
+              </motion.div>
 
-              <div className="bg-seekon-pureWhite p-6 rounded-lg shadow-lg">
-                <div className="w-12 h-12 bg-seekon-electricRed rounded-lg flex items-center justify-center mb-4">
-                  <FiCheckCircle className="w-6 h-6 text-seekon-pureWhite" />
+              {/* Easy Process Card */}
+              <motion.div 
+                whileHover={{ y: -4 }}
+                className="bg-seekon-pureWhite p-6 rounded-xl border border-gray-200/60 flex flex-col justify-between"
+              >
+                <div>
+                  <div className="w-12 h-12 bg-seekon-midnight rounded-xl flex items-center justify-center mb-4">
+                    <FiCheckCircle className="w-6 h-6 text-seekon-pureWhite" />
+                  </div>
+                  <h3 className="font-bold text-seekon-midnight mb-2">Streamlined Process</h3>
+                  <p className="text-seekon-charcoalGray text-sm leading-relaxed">
+                    Log in, select eligible items, and register your return request online in just a few taps.
+                  </p>
                 </div>
-                <h3 className="font-semibold text-seekon-midnight mb-2">Easy Process</h3>
-                <p className="text-seekon-charcoalGray text-sm">Simple online return process with prepaid labels.</p>
-              </div>
+              </motion.div>
             </div>
           </motion.div>
 
@@ -72,47 +96,55 @@ const Returns = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.4 }}
           >
-            <h2 className="text-2xl font-semibold text-seekon-midnight mb-6">How to Return</h2>
+            <h2 className="text-2xl font-bold text-seekon-midnight mb-6">How to Initiate a Return</h2>
             
-            <div className="bg-seekon-pureWhite p-8 rounded-lg shadow-lg">
+            <div className="bg-seekon-pureWhite p-8 rounded-xl border border-gray-200/60">
               <div className="space-y-6">
                 <div className="flex items-start space-x-4">
-                  <div className="w-8 h-8 bg-seekon-electricRed rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                  <div className="w-8 h-8 bg-seekon-midnight rounded-full flex items-center justify-center flex-shrink-0 mt-1">
                     <span className="text-seekon-pureWhite font-bold text-sm">1</span>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-seekon-midnight mb-2">Start Your Return</h3>
-                    <p className="text-seekon-charcoalGray">Log into your account and go to "Order History" to initiate a return. Select the items you want to return and choose your reason.</p>
+                    <h3 className="font-bold text-seekon-midnight mb-1">Start Your Return</h3>
+                    <p className="text-seekon-charcoalGray text-sm leading-relaxed">
+                      Log into your account and open your "Order History" within 72 hours of purchase. Select the active order, pick the items you wish to return, and specify the reason.
+                    </p>
                   </div>
                 </div>
 
                 <div className="flex items-start space-x-4">
-                  <div className="w-8 h-8 bg-seekon-electricRed rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                  <div className="w-8 h-8 bg-seekon-midnight rounded-full flex items-center justify-center flex-shrink-0 mt-1">
                     <span className="text-seekon-pureWhite font-bold text-sm">2</span>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-seekon-midnight mb-2">Print Return Label</h3>
-                    <p className="text-seekon-charcoalGray">Download and print your prepaid return label. If you don't have a printer, you can request a label by mail.</p>
+                    <h3 className="font-bold text-seekon-midnight mb-1">Confirm Return Cost</h3>
+                    <p className="text-seekon-charcoalGray text-sm leading-relaxed">
+                      Review the return shipping estimate. Since returns are chargeable, the return courier cost is paid directly to the carrier or deducted from the final refund amount.
+                    </p>
                   </div>
                 </div>
 
                 <div className="flex items-start space-x-4">
-                  <div className="w-8 h-8 bg-seekon-electricRed rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                  <div className="w-8 h-8 bg-seekon-midnight rounded-full flex items-center justify-center flex-shrink-0 mt-1">
                     <span className="text-seekon-pureWhite font-bold text-sm">3</span>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-seekon-midnight mb-2">Package Items</h3>
-                    <p className="text-seekon-charcoalGray">Place items in the original packaging or a secure box. Include the return label and any original tags or accessories.</p>
+                    <h3 className="font-bold text-seekon-midnight mb-1">Package Your Items</h3>
+                    <p className="text-seekon-charcoalGray text-sm leading-relaxed">
+                      Place the items in their original, undamaged packaging with all original labels, tags, and accessories intact. Wrap securely to prevent damage in transit.
+                    </p>
                   </div>
                 </div>
 
                 <div className="flex items-start space-x-4">
-                  <div className="w-8 h-8 bg-seekon-electricRed rounded-full flex items-center justify-center flex-shrink-0 mt-1">
+                  <div className="w-8 h-8 bg-seekon-midnight rounded-full flex items-center justify-center flex-shrink-0 mt-1">
                     <span className="text-seekon-pureWhite font-bold text-sm">4</span>
                   </div>
                   <div>
-                    <h3 className="font-semibold text-seekon-midnight mb-2">Ship Your Return</h3>
-                    <p className="text-seekon-charcoalGray">Drop off your package at any authorized shipping location or schedule a pickup. You'll receive email updates on your return status.</p>
+                    <h3 className="font-bold text-seekon-midnight mb-1">Dispatch to Seekon</h3>
+                    <p className="text-seekon-charcoalGray text-sm leading-relaxed">
+                      Drop off the package at our partner carrier stations or hand it over to our dispatched courier. You will receive WhatsApp updates as soon as the package reaches our inspection facility.
+                    </p>
                   </div>
                 </div>
               </div>
@@ -125,28 +157,33 @@ const Returns = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.6 }}
           >
-            <h2 className="text-2xl font-semibold text-seekon-midnight mb-6">Exchange Process</h2>
+            <h2 className="text-2xl font-bold text-seekon-midnight mb-6">Exchanges & Timelines</h2>
             
-            <div className="bg-seekon-pureWhite p-8 rounded-lg shadow-lg">
+            <div className="bg-seekon-pureWhite p-8 rounded-xl border border-gray-200/60">
               <div className="space-y-6">
                 <div>
-                  <h3 className="font-semibold text-seekon-midnight mb-2">Size Exchanges</h3>
-                  <p className="text-seekon-charcoalGray mb-4">Need a different size? We offer free size exchanges within 30 days. Simply select "Exchange" when starting your return and choose your new size.</p>
+                  <h3 className="font-bold text-seekon-midnight mb-2">Size Exchanges</h3>
+                  <p className="text-seekon-charcoalGray text-sm leading-relaxed">
+                    Need a different size? We offer sizing exchanges within 72 hours of purchase. Select "Exchange" in the returns section to verify size availability in real-time. Sizing exchange shipments are subject to standard delivery shipping fees.
+                  </p>
                 </div>
 
                 <div>
-                  <h3 className="font-semibold text-seekon-midnight mb-2">Color Exchanges</h3>
-                  <p className="text-seekon-charcoalGray mb-4">Want a different color? We can exchange items for different colors as long as they're in stock and within the return window.</p>
+                  <h3 className="font-bold text-seekon-midnight mb-2">Color & Item Exchanges</h3>
+                  <p className="text-seekon-charcoalGray text-sm leading-relaxed">
+                    If you prefer a different color or style, you can request an exchange for items of equal value within the 72-hour window, provided the product remains completely unused.
+                  </p>
                 </div>
 
                 <div>
-                  <h3 className="font-semibold text-seekon-midnight mb-2">Exchange Timeline</h3>
-                  <p className="text-seekon-charcoalGray">Exchanges typically take 7-10 business days to process. You'll receive tracking information for your new item once it ships.</p>
+                  <h3 className="font-bold text-seekon-midnight mb-2">Dispatch Timelines</h3>
+                  <p className="text-seekon-charcoalGray text-sm leading-relaxed">
+                    Once your exchange item is received and inspected at our hub, your new package is dispatched. Delivery takes under 2 hours within Nairobi and up to 18 hours for areas outside Nairobi.
+                  </p>
                 </div>
               </div>
             </div>
           </motion.div>
-
 
         </div>
       </div>
