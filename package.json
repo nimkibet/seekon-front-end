@@ -1,7 +1,12 @@
 {
-  "name": "seekon-frontend",
+  "name": "seekon-front-end",
   "private": true,
   "version": "0.0.0",
+  "description": "Seekon Apparel e-commerce frontend built with React, Vite, TailwindCSS, and Redux Toolkit.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nimkibet/seekon-front-end.git"
+  },
   "type": "module",
   "scripts": {
     "dev": "vite",

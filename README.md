@@ -1,4 +1,4 @@
-# Seekon Apparel - E-commerce Frontend
+# Seekon Frontend
 
 A modern, responsive e-commerce frontend built with React, Vite, TailwindCSS, Redux Toolkit, and React Router DOM. This application provides a premium shopping experience for sneakers and apparel, inspired by top brands like Nike, Adidas, and Converse.
 
@@ -36,11 +36,11 @@ A modern, responsive e-commerce frontend built with React, Vite, TailwindCSS, Re
 
 ## 🛠️ Tech Stack
 
-- **Frontend Framework**: React 18
+- **Frontend Framework**: React 19
 - **Build Tool**: Vite
 - **Styling**: TailwindCSS with custom design system
 - **State Management**: Redux Toolkit
-- **Routing**: React Router DOM v6
+- **Routing**: React Router DOM v7
 - **Animations**: Framer Motion
 - **Icons**: React Icons
 - **HTTP Client**: Axios
@@ -50,8 +50,8 @@ A modern, responsive e-commerce frontend built with React, Vite, TailwindCSS, Re
 
 1. **Clone the repository**
    ```bash
-   git clone <repository-url>
-   cd seekon-frontend
+   git clone https://github.com/nimkibet/seekon-front-end.git
+   cd seekon-front-end
    ```
 
 2. **Install dependencies**
