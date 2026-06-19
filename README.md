@@ -208,5 +208,7 @@ For support and questions, please contact:
 ---
 
 Built with ❤️ for sneaker and apparel enthusiasts.
-THE JOURNEY BEGINS WITH A GOOD SNEAKER 
+THE JOURNEY BEGINS WITH A GOOD SNEAKER
+
+Contribution test by petero-codes.
 
