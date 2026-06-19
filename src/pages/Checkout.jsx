@@ -452,7 +452,7 @@ const Checkout = () => {
                       {isCurrent && (
                         <motion.div
                           layoutId="activeCheckoutStepBackground"
-                          className="absolute inset-0 bg-[#00A676]/10 dark:bg-[#00A676]/20 rounded-2xl -m-2 z-0"
+                          className="absolute inset-0 bg-black/5 dark:bg-white/5 rounded-2xl -m-2 z-0"
                           transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                         />
                       )}
@@ -463,7 +463,7 @@ const Checkout = () => {
                         onClick={() => isCompleted && currentStep === 2 ? setCurrentStep(1) : null}
                         className={`w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all z-10 ${
                           isCompleted || isCurrent
-                            ? 'bg-[#00A676] border-[#00A676] text-white shadow-lg shadow-[#00A676]/20'
+                            ? 'bg-black border-black text-white dark:bg-white dark:border-white dark:text-black'
                             : 'border-gray-300 dark:border-gray-600 text-gray-400 bg-white dark:bg-gray-800'
                         } ${isCompleted && currentStep !== 3 ? 'cursor-pointer hover:scale-105' : 'cursor-default'}`}
                       >
@@ -484,7 +484,7 @@ const Checkout = () => {
                           initial={{ width: '0%' }}
                           animate={{ width: isCompleted ? '100%' : '0%' }}
                           transition={{ duration: 0.4 }}
-                          className="absolute inset-y-0 left-0 bg-[#00A676] rounded-full"
+                          className="absolute inset-y-0 left-0 bg-black dark:bg-white rounded-full"
                         />
                       </div>
                     )}
