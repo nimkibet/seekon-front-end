@@ -68,6 +68,7 @@ import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import AIChatAssistant from './components/AIChatAssistant';
 import ErrorBoundary from './components/ErrorBoundary';
+import ScrollToTop from './components/ScrollToTop';
 
 // Protected Route Component
 const ProtectedRoute = ({ children, requireAuth = true, requireAdmin = false }) => {
@@ -161,7 +162,8 @@ const App = () => {
         <AuthProvider>
           <SettingsProvider>
             <Router>
-            <div className="App">
+              <ScrollToTop />
+              <div className="App">
               <Suspense fallback={
                 <div className="min-h-screen flex items-center justify-center bg-gray-50">
                   <div className="text-center">
