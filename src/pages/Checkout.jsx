@@ -15,23 +15,26 @@ import { api } from '../utils/api';
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.seekonapparelglobal.com';
 
 export const shippingOptions = [
+  // Within Nairobi (FREE)
   { id: 'nairobi_cbd', label: 'Nairobi CBD / Town', price: 0 },
-  { id: 'pick_up_mtaani', label: 'Pick Up Mtaani', price: 150 },
-  { id: 'kitengela', label: 'Kitengela (Shipment through REMBO courier)', price: 200 },
-  { id: 'thika_juja', label: 'Thika, Juja (Shipment through Super Metro Courier)', price: 200 },
   { id: 'region_1', label: 'REGION 1: Upper-Hill, Statehouse, Rhapta Road, Parklands, Pangani, City Stadium', price: 0 },
   { id: 'region_2', label: 'REGION 2: Nairobi West, Madaraka, South B/C, Mbagathi, Kilimani, Riara Road, Jamhuri, Hurlingham, Yaya, Prestige', price: 0 },
   { id: 'region_3', label: 'Region 3: Kileleshwa, Lavington, Westlands, Mutahiga, Garden Estate, USIU, Ngumba Estate, EABL, All-Soaps', price: 0 },
   { id: 'region_4', label: 'REGION 4: Roysambu, Runda, Nyari Estate, Zimmerman, Kasarani, GM (General Motors), Ngong Racecourse, Langata, Loresho, Kitisuru', price: 0 },
+  { id: 'region_5', label: 'REGION 5: Fedha, Imara Daima, Umoja, Donholm, Tajmall, Pipeline, Buruburu, Jacaranda, Thindigwa, Karen, Ruaka, Githurai', price: 0 },
+  { id: 'region_6', label: 'REGION 6: Kikuyu, Kinoo, Muthiga, Kahawa Sukari, Kahawa West, KU, Nyayo Estate, Kayole, Nasra Garden, JKIA, Kerarapon-Karen', price: 0 },
+
+  // Outside Nairobi (Chargeable)
+  { id: 'pick_up_mtaani', label: 'Pick Up Mtaani', price: 150 },
+  { id: 'kitengela', label: 'Kitengela (Shipment through REMBO courier)', price: 200 },
+  { id: 'thika_juja', label: 'Thika, Juja (Shipment through Super Metro Courier)', price: 200 },
+  { id: 'region_7', label: 'REGION 7: Ngong Town, Kiambu, Ruiru, Rongai, Syokiamu', price: 600 },
   { id: 'central', label: 'CENTRAL REGION', price: 400 },
   { id: 'coast', label: 'COAST REGION', price: 400 },
   { id: 'eastern', label: 'EASTERN REGION', price: 400 },
   { id: 'nyanza', label: 'NYANZA REGION', price: 400 },
-  { id: 'region_5', label: 'REGION 5: Fedha, Imara Daima, Umoja, Donholm, Tajmall, Pipeline, Buruburu, Jacaranda, Thindigwa, Karen, Ruaka, Githurai', price: 0 },
   { id: 'rift_valley', label: 'RIFT VALLEY', price: 400 },
-  { id: 'western', label: 'WESTERN REGION', price: 400 },
-  { id: 'region_6', label: 'REGION 6: Kikuyu, Kinoo, Muthiga, Kahawa Sukari, Kahawa West, KU, Nyayo Estate, Kayole, Nasra Garden, JKIA, Kerarapon-Karen', price: 0 },
-  { id: 'region_7', label: 'REGION 7: Ngong Town, Kiambu, Ruiru, Rongai, Syokiamu', price: 600 }
+  { id: 'western', label: 'WESTERN REGION', price: 400 }
 ];
 
 /** Split "REGION 1: Area, Area..." into title + area list for the shipping picker UI */
