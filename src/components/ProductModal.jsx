@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FiX, FiSave, FiPlus, FiTrash2, FiZap, FiClock, FiArrowRight } from 'react-icons/fi';
 import ImageUpload from './ImageUpload';
 import toast from 'react-hot-toast';
+import { adminApi } from '../utils/adminApi';
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://api.seekonapparelglobal.com';
 
@@ -83,6 +84,7 @@ const emptyFormData = {
 const ProductModal = ({ isOpen, onClose, product, onSave }) => {
   // Dynamic categories from API - hierarchical structure
   const [dbCategories, setDbCategories] = useState([]);
+  const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     category: 'Sneakers',
@@ -181,6 +183,33 @@ const ProductModal = ({ isOpen, onClose, product, onSave }) => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }, 100);
   }, [product, isOpen]);
+
+  const handleGenerateDescription = async () => {
+    if (!formData.name || !formData.name.trim()) {
+      toast.error("Please enter a product name first");
+      return;
+    }
+    
+    setIsGeneratingDescription(true);
+    const toastId = toast.loading("Generating description...");
+    try {
+      const response = await adminApi.generateProductDescription(formData.name);
+      if (response.success) {
+        setFormData(prev => ({
+          ...prev,
+          description: response.description
+        }));
+        toast.success("Description generated successfully!", { id: toastId });
+      } else {
+        toast.error(response.message || "Failed to generate description", { id: toastId });
+      }
+    } catch (error) {
+      console.error("Error in generateDescription:", error);
+      toast.error(error.message || "Failed to generate description", { id: toastId });
+    } finally {
+      setIsGeneratingDescription(false);
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -606,9 +635,29 @@ const ProductModal = ({ isOpen, onClose, product, onSave }) => {
 
               {/* Description */}
               <div>
-                <label htmlFor="description" className="block text-gray-300 text-sm font-medium mb-2">
-                  Description <span className="text-red-500">*</span>
-                </label>
+                <div className="flex justify-between items-center mb-2">
+                  <label htmlFor="description" className="block text-gray-300 text-sm font-medium">
+                    Description <span className="text-red-500">*</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleGenerateDescription}
+                    disabled={isGeneratingDescription}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-zinc-800 to-zinc-900 hover:from-zinc-700 hover:to-zinc-800 border border-white/10 rounded-lg text-xs font-semibold text-white shadow-sm hover:shadow transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    {isGeneratingDescription ? (
+                      <>
+                        <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        <span>Generating...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-yellow-400">✨</span>
+                        <span>Auto-Generate</span>
+                      </>
+                    )}
+                  </button>
+                </div>
                 <textarea
                   id="description"
                   name="description"

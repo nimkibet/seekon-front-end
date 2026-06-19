@@ -56,6 +56,7 @@ const getColorValue = (colorName) => {
 const AddProduct = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
   const [runAIBackgroundRemoval, setRunAIBackgroundRemoval] = useState(false);
   const [isImageProcessing, setIsImageProcessing] = useState(false);
   const [processingIndices, setProcessingIndices] = useState([]);
@@ -165,6 +166,33 @@ const AddProduct = () => {
     ...dbCategories.flatMap(c => c.brands || []),
     ...Object.values(hardcodedFallback).flatMap(c => c.brands)
   ])];
+
+  const handleGenerateDescription = async () => {
+    if (!formData.name || !formData.name.trim()) {
+      toast.error("Please enter a product name first");
+      return;
+    }
+    
+    setIsGeneratingDescription(true);
+    const toastId = toast.loading("Generating description...");
+    try {
+      const response = await adminApi.generateProductDescription(formData.name);
+      if (response.success) {
+        setFormData(prev => ({
+          ...prev,
+          description: response.description
+        }));
+        toast.success("Description generated successfully!", { id: toastId });
+      } else {
+        toast.error(response.message || "Failed to generate description", { id: toastId });
+      }
+    } catch (error) {
+      console.error("Error in generateDescription:", error);
+      toast.error(error.message || "Failed to generate description", { id: toastId });
+    } finally {
+      setIsGeneratingDescription(false);
+    }
+  };
 
   // Handle input changes - with state reset for category changes
   const handleChange = (e) => {
@@ -588,9 +616,29 @@ const AddProduct = () => {
 
             {/* Description */}
             <div>
-              <label className="block text-gray-300 text-sm font-medium mb-2">
-                Description <span className="text-red-500">*</span>
-              </label>
+              <div className="flex justify-between items-center mb-2">
+                <label className="block text-gray-300 text-sm font-medium">
+                  Description <span className="text-red-500">*</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={handleGenerateDescription}
+                  disabled={isGeneratingDescription}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-zinc-800 to-zinc-900 hover:from-zinc-700 hover:to-zinc-800 border border-white/10 rounded-lg text-xs font-semibold text-white shadow-sm hover:shadow transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  {isGeneratingDescription ? (
+                    <>
+                      <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <span>Generating...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-yellow-400">✨</span>
+                      <span>Auto-Generate</span>
+                    </>
+                  )}
+                </button>
+              </div>
               <textarea
                 name="description"
                 value={formData.description}

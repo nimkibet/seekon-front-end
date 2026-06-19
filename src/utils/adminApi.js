@@ -112,6 +112,10 @@ export const adminApi = {
     body: productData instanceof FormData ? productData : JSON.stringify(productData),
   }),
   deleteProduct: (id) => apiCall(`/products/${id}`, { method: 'DELETE' }),
+  generateProductDescription: (productName) => apiCall('/products/generate-description', {
+    method: 'POST',
+    body: JSON.stringify({ productName }),
+  }),
 
   // Settings
   updateFlashSaleSettings: async (settings) => {
