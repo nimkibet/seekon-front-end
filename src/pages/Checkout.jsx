@@ -760,7 +760,13 @@ const Checkout = () => {
                       />
                       <div className="flex-1 min-w-0">
                         <h3 className="font-semibold text-gray-900 dark:text-white text-sm">{item.name}</h3>
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">{item.brand} • {item.size} • {item.color}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                          {[
+                            item.brand,
+                            item.size && item.size.trim(),
+                            item.color && item.color.trim()
+                          ].filter(Boolean).join(' • ')}
+                        </p>
 
                         {/* Quantity, Size, Color Controls */}
                         <div className="space-y-2">
@@ -782,64 +788,60 @@ const Checkout = () => {
                               </button>
                             </div>
                           </div>
-                          <div className="flex items-center space-x-2">
+                          <div className="flex flex-wrap items-center gap-2">
                             {(() => {
                               const product = products.find(p => p.id === item.id || p._id === item.id);
-                              const availableSizes = product?.sizes || [];
-                              const availableColors = product?.colors || [];
+                              const availableSizes = product?.sizes?.filter(s => s && s.trim()) || [];
+                              const availableColors = product?.colors?.filter(c => c && c.trim()) || [];
 
                               return (
                                 <>
-                                  <select
-                                    value={item.size || ''}
-                                    onChange={(e) => {
-                                      const newSize = e.target.value;
-                                      dispatch(updateCartItemVariant({
-                                        cartItemId: item.id,
-                                        newSize,
-                                        newColor: item.color
-                                      }));
-                                      dispatch(updateCartItemVariantAPI({
-                                        productId: item.id || item.productId,
-                                        size: newSize,
-                                        color: item.color
-                                      }));
-                                    }}
-                                    className="text-xs px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700"
-                                  >
-                                    {availableSizes.length > 0 ? (
-                                      availableSizes.map(size => (
+                                  {availableSizes.length > 0 && (
+                                    <select
+                                      value={item.size || ''}
+                                      onChange={(e) => {
+                                        const newSize = e.target.value;
+                                        dispatch(updateCartItemVariant({
+                                          cartItemId: item.id,
+                                          newSize,
+                                          newColor: item.color
+                                        }));
+                                        dispatch(updateCartItemVariantAPI({
+                                          productId: item.id || item.productId,
+                                          size: newSize,
+                                          color: item.color
+                                        }));
+                                      }}
+                                      className="text-xs px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700"
+                                    >
+                                      {availableSizes.map(size => (
                                         <option key={size} value={size}>{size}</option>
-                                      ))
-                                    ) : (
-                                      <option>{item.size || 'N/A'}</option>
-                                    )}
-                                  </select>
-                                  <select
-                                    value={item.color || ''}
-                                    onChange={(e) => {
-                                      const newColor = e.target.value;
-                                      dispatch(updateCartItemVariant({
-                                        cartItemId: item.id,
-                                        newSize: item.size,
-                                        newColor
-                                      }));
-                                      dispatch(updateCartItemVariantAPI({
-                                        productId: item.id || item.productId,
-                                        size: item.size,
-                                        color: newColor
-                                      }));
-                                    }}
-                                    className="text-xs px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700"
-                                  >
-                                    {availableColors.length > 0 ? (
-                                      availableColors.map(color => (
+                                      ))}
+                                    </select>
+                                  )}
+                                  {availableColors.length > 0 && (
+                                    <select
+                                      value={item.color || ''}
+                                      onChange={(e) => {
+                                        const newColor = e.target.value;
+                                        dispatch(updateCartItemVariant({
+                                          cartItemId: item.id,
+                                          newSize: item.size,
+                                          newColor
+                                        }));
+                                        dispatch(updateCartItemVariantAPI({
+                                          productId: item.id || item.productId,
+                                          size: item.size,
+                                          color: newColor
+                                        }));
+                                      }}
+                                      className="text-xs px-2 py-1 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700"
+                                    >
+                                      {availableColors.map(color => (
                                         <option key={color} value={color}>{color}</option>
-                                      ))
-                                    ) : (
-                                      <option>{item.color || 'N/A'}</option>
-                                    )}
-                                  </select>
+                                      ))}
+                                    </select>
+                                  )}
                                 </>
                               );
                             })()}
@@ -1017,7 +1019,13 @@ const Checkout = () => {
                       <img src={item.image} alt={item.name} className="w-16 h-16 rounded-lg object-cover" />
                       <div className="flex-1">
                         <h3 className="font-medium text-gray-900 dark:text-white text-sm">{item.name}</h3>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">{item.brand}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {[
+                            item.brand,
+                            item.size && item.size.trim(),
+                            item.color && item.color.trim()
+                          ].filter(Boolean).join(' • ')}
+                        </p>
                         <p className="text-xs text-gray-500 dark:text-gray-400">Qty: {item.quantity}</p>
                       </div>
                       <p className="font-bold text-gray-900 dark:text-white">{formatPrice(item.price * item.quantity)}</p>

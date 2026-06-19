@@ -75,6 +75,12 @@ const ProductDetail = () => {
   // Use API fetched product, fallback to Redux product
   const product = apiProduct || products.find(p => p.id === id);
 
+  // Helper variables for filtering out blank/empty sizes or colors
+  const validSizes = product?.sizes?.filter(s => s && s.trim()) || [];
+  const validColors = product?.colors?.filter(c => c && c.trim()) || [];
+  const hasValidSizes = validSizes.length > 0;
+  const hasValidColors = validColors.length > 0;
+
   useEffect(() => {
     if (product?.images?.length > 0) {
       const firstImage = typeof product.images[0] === 'string'
@@ -95,8 +101,10 @@ const ProductDetail = () => {
   // Set initial size and color when product loads
   useEffect(() => {
     if (product) {
-      setSelectedSize(product.sizes?.[0] || '');
-      setSelectedColor(product.colors?.[0] || '');
+      const vSizes = product.sizes?.filter(s => s && s.trim()) || [];
+      const vColors = product.colors?.filter(c => c && c.trim()) || [];
+      setSelectedSize(vSizes[0] || '');
+      setSelectedColor(vColors[0] || '');
     }
   }, [product]);
 
@@ -203,13 +211,13 @@ const ProductDetail = () => {
   const handleAddToCart = async () => {
     try {
       // Only validate size if the product actually has sizes configured
-      if (product.sizes && product.sizes.length > 0 && !selectedSize) {
+      if (hasValidSizes && !selectedSize) {
         toast.error('Please select a size');
         return;
       }
       
       // Only validate color if the product actually has colors configured
-      if (product.colors && product.colors.length > 0 && !selectedColor) {
+      if (hasValidColors && !selectedColor) {
         toast.error('Please select a color');
         return;
       }
@@ -504,58 +512,62 @@ const ProductDetail = () => {
             </div>
 
             {/* Size Selection */}
-            <div>
-              <div className="flex justify-between items-center mb-2 sm:mb-3">
-                <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">
-                  Size
-                </h3>
-                <button 
-                  onClick={() => setShowSizeGuide(true)} 
-                  className="text-sm text-gray-500 underline hover:text-black flex items-center gap-1"
-                >
-                  Size Guide
-                </button>
-              </div>
-              <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2">
-                {product.sizes?.map((size) => (
-                  <button
-                    key={size}
-                    onClick={() => setSelectedSize(size)}
-                    className={`py-1.5 sm:py-2 px-2 sm:px-3 rounded-lg border text-sm transition-colors duration-200 ${
-                      selectedSize === size
-                        ? 'border-primary-600 bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
-                        : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 text-gray-700 dark:text-gray-300'
-                    }`}
+            {hasValidSizes && (
+              <div>
+                <div className="flex justify-between items-center mb-2 sm:mb-3">
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">
+                    Size
+                  </h3>
+                  <button 
+                    onClick={() => setShowSizeGuide(true)} 
+                    className="text-sm text-gray-500 underline hover:text-black flex items-center gap-1"
                   >
-                    {size}
+                    Size Guide
                   </button>
-                ))}
+                </div>
+                <div className="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-2">
+                  {validSizes.map((size) => (
+                    <button
+                      key={size}
+                      onClick={() => setSelectedSize(size)}
+                      className={`py-1.5 sm:py-2 px-2 sm:px-3 rounded-lg border text-sm transition-colors duration-200 ${
+                        selectedSize === size
+                          ? 'border-primary-600 bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400'
+                          : 'border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 text-gray-700 dark:text-gray-300'
+                      }`}
+                    >
+                      {size}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Color Selection */}
-            <div>
-              <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2 sm:mb-3">
-                Color: <span className="font-normal">{selectedColor}</span>
-              </h3>
-              <div className="flex flex-wrap gap-2 sm:gap-3">
-                {product.colors.map((color) => (
-                  <button
-                    key={color}
-                    onClick={() => setSelectedColor(color)}
-                    className={`rounded-full border-2 transition-all duration-200 ${
-                      selectedColor === color
-                        ? 'w-14 h-14 sm:w-16 sm:h-16 border-gray-900 dark:border-white shadow-lg scale-110 ring-2 ring-offset-2 ring-gray-900 dark:ring-white'
-                        : 'w-10 h-10 sm:w-12 sm:h-12 border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 hover:scale-105'
-                    }`}
-                    style={{
-                      backgroundColor: getColorValue(color)
-                    }}
-                    title={color}
-                  />
-                ))}
+            {hasValidColors && (
+              <div>
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100 mb-2 sm:mb-3">
+                  Color: <span className="font-normal">{selectedColor}</span>
+                </h3>
+                <div className="flex flex-wrap gap-2 sm:gap-3">
+                  {validColors.map((color) => (
+                    <button
+                      key={color}
+                      onClick={() => setSelectedColor(color)}
+                      className={`rounded-full border-2 transition-all duration-200 ${
+                        selectedColor === color
+                          ? 'w-14 h-14 sm:w-16 sm:h-16 border-gray-900 dark:border-white shadow-lg scale-110 ring-2 ring-offset-2 ring-gray-900 dark:ring-white'
+                          : 'w-10 h-10 sm:w-12 sm:h-12 border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 hover:scale-105'
+                      }`}
+                      style={{
+                        backgroundColor: getColorValue(color)
+                      }}
+                      title={color}
+                    />
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Quantity */}
             <div>

@@ -109,6 +109,100 @@ const AddProduct = () => {
   const singleImageInputRef = useRef(null);
   const multipleImageInputRef = useRef(null);
 
+  // Quick select and generator states
+  const [rangeStart, setRangeStart] = useState('');
+  const [rangeEnd, setRangeEnd] = useState('');
+  const [rangeStep, setRangeStep] = useState('1');
+  const [isDragging, setIsDragging] = useState(false);
+
+  const generateSizeRange = () => {
+    const start = parseFloat(rangeStart);
+    const end = parseFloat(rangeEnd);
+    const step = parseFloat(rangeStep);
+
+    if (isNaN(start) || isNaN(end) || isNaN(step) || step <= 0) {
+      toast.error('Please enter valid numeric start, end, and step values');
+      return;
+    }
+
+    if (start > end) {
+      toast.error('Start size must be less than or equal to End size');
+      return;
+    }
+
+    const generated = [];
+    for (let current = start; current <= end; current += step) {
+      const rounded = Math.round(current * 10) / 10;
+      generated.push(rounded);
+    }
+
+    const existing = formData.sizes ? formData.sizes.split(',').map(s => s.trim()).filter(Boolean) : [];
+    const combined = [...new Set([...existing, ...generated.map(String)])];
+    
+    setFormData(prev => ({
+      ...prev,
+      sizes: combined.join(', ')
+    }));
+    toast.success(`Generated sizes: ${generated.join(', ')}`);
+  };
+
+  const handleToggleSizeChip = (size) => {
+    const currentSizes = formData.sizes
+      ? formData.sizes.split(',').map(s => s.trim()).filter(Boolean)
+      : [];
+    
+    let updatedSizes;
+    if (currentSizes.includes(size)) {
+      updatedSizes = currentSizes.filter(s => s !== size);
+    } else {
+      updatedSizes = [...currentSizes, size];
+    }
+    
+    setFormData(prev => ({
+      ...prev,
+      sizes: updatedSizes.join(', ')
+    }));
+  };
+
+  const handleToggleColorChip = (color) => {
+    const currentColors = formData.colors
+      ? formData.colors.split(',').map(c => c.trim()).filter(Boolean)
+      : [];
+    
+    const colorLower = color.toLowerCase();
+    const existingIndex = currentColors.findIndex(c => c.toLowerCase() === colorLower);
+    
+    let updatedColors;
+    if (existingIndex > -1) {
+      updatedColors = currentColors.filter((_, idx) => idx !== existingIndex);
+    } else {
+      updatedColors = [...currentColors, color];
+    }
+    
+    setFormData(prev => ({
+      ...prev,
+      colors: updatedColors.join(', ')
+    }));
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = () => {
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) {
+      processAndAddFiles(files);
+    }
+  };
+
   // Hardcoded fallback data (UPPERCASE to match DB)
   const hardcodedFallback = {
     SNEAKERS: { subCategories: ['ALL SNEAKERS', 'RUNNING', 'BASKETBALL', 'LIFESTYLE', 'HIGH TOPS', 'LOW TOPS', 'KIDS', 'MEN', 'WOMEN', 'SEEKON'], brands: ['NIKE', 'ADIDAS', 'JORDAN', 'PUMA', 'NEW BALANCE', 'CONVERSE', 'VANS', 'REEBOK', 'SEEKON'] },
@@ -444,6 +538,9 @@ const AddProduct = () => {
     });
     setImages([]);
     setImagesPreview([]);
+    setRangeStart('');
+    setRangeEnd('');
+    setRangeStep('1');
   };
 
   // Cleanup preview URLs on unmount
@@ -478,9 +575,26 @@ const AddProduct = () => {
         >
           <h2 className="text-lg font-semibold text-white mb-4">Product Images</h2>
           
+          {/* Drag & Drop Zone */}
+          <div
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            onClick={handleMultipleImageUpload}
+            className={`border-2 border-dashed rounded-xl p-8 text-center transition-all cursor-pointer mb-6 ${
+              isDragging
+                ? 'border-[#00A676] bg-[#00A676]/10 scale-[1.01]'
+                : 'border-white/20 bg-white/5 hover:border-white/40'
+            }`}
+          >
+            <FiUpload className={`w-8 h-8 mx-auto mb-3 transition-colors ${isDragging ? 'text-[#00A676]' : 'text-gray-400'}`} />
+            <p className="text-white font-medium mb-1">Drag & drop files here, or click to browse</p>
+            <p className="text-gray-400 text-xs">Supports JPG, JPEG, PNG, WEBP, GIF</p>
+          </div>
+
           <div className="mb-4">
             <p className="text-gray-400 text-sm mb-2">
-              Click the buttons below to add images one at a time or select multiple at once. All images will be stacked.
+              Or click the buttons below to select files. All images will be stacked.
             </p>
           </div>
 
@@ -783,33 +897,170 @@ const AddProduct = () => {
             </div>
 
             {/* Sizes */}
-            <div>
-              <label className="block text-gray-300 text-sm font-medium mb-2">
-                Sizes (comma separated)
-              </label>
-              <input
-                type="text"
-                name="sizes"
-                value={formData.sizes}
-                onChange={handleChange}
-                placeholder="7, 8, 9, 10, 11"
-                className="w-full px-4 py-2.5 bg-white/5 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-[#00A676] transition-colors"
-              />
+            <div className="space-y-3">
+              <div>
+                <label className="block text-gray-300 text-sm font-medium mb-2">
+                  Sizes (comma separated)
+                </label>
+                <input
+                  type="text"
+                  name="sizes"
+                  value={formData.sizes}
+                  onChange={handleChange}
+                  placeholder="7, 8, 9, 10, 11"
+                  className="w-full px-4 py-2.5 bg-white/5 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-[#00A676] transition-colors"
+                />
+              </div>
+
+              {/* Sizes Quick Chips */}
+              <div className="space-y-2 bg-white/5 p-3 rounded-lg border border-white/10">
+                <span className="block text-xs font-semibold text-gray-400">Quick Sizes (Click to toggle)</span>
+                
+                <div className="flex flex-wrap gap-1.5 items-center">
+                  <span className="text-[10px] text-gray-400 w-16">Clothing:</span>
+                  {['S', 'M', 'L', 'XL', 'XXL', 'XXXL'].map((size) => {
+                    const isSelected = formData.sizes.split(',').map(s => s.trim()).includes(size);
+                    return (
+                      <button
+                        key={size}
+                        type="button"
+                        onClick={() => handleToggleSizeChip(size)}
+                        className={`px-2 py-0.5 rounded text-xs transition-all ${
+                          isSelected
+                            ? 'bg-[#00A676] text-white border border-[#00A676]'
+                            : 'bg-white/5 text-gray-300 border border-white/10 hover:border-white/30'
+                        }`}
+                      >
+                        {size}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="flex flex-wrap gap-1.5 items-center">
+                  <span className="text-[10px] text-gray-400 w-16">Footwear:</span>
+                  {['36', '37', '38', '39', '40', '41', '42', '43', '44', '45', '46'].map((size) => {
+                    const isSelected = formData.sizes.split(',').map(s => s.trim()).includes(size);
+                    return (
+                      <button
+                        key={size}
+                        type="button"
+                        onClick={() => handleToggleSizeChip(size)}
+                        className={`px-2 py-0.5 rounded text-xs transition-all ${
+                          isSelected
+                            ? 'bg-[#00A676] text-white border border-[#00A676]'
+                            : 'bg-white/5 text-gray-300 border border-white/10 hover:border-white/30'
+                        }`}
+                      >
+                        {size}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="flex flex-wrap gap-1.5 items-center">
+                  <span className="text-[10px] text-gray-400 w-16">Other:</span>
+                  {['One Size'].map((size) => {
+                    const isSelected = formData.sizes.split(',').map(s => s.trim()).includes(size);
+                    return (
+                      <button
+                        key={size}
+                        type="button"
+                        onClick={() => handleToggleSizeChip(size)}
+                        className={`px-2 py-0.5 rounded text-xs transition-all ${
+                          isSelected
+                            ? 'bg-[#00A676] text-white border border-[#00A676]'
+                            : 'bg-white/5 text-gray-300 border border-white/10 hover:border-white/30'
+                        }`}
+                      >
+                        {size}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Size Range Generator */}
+                <div className="mt-3 pt-3 border-t border-white/10">
+                  <span className="block text-xs font-semibold text-gray-300 mb-2">⚡ Generate Size Range</span>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <input
+                      type="number"
+                      placeholder="Start"
+                      value={rangeStart}
+                      onChange={(e) => setRangeStart(e.target.value)}
+                      className="w-20 px-2 py-1 text-xs bg-white/5 border border-white/10 rounded text-white focus:outline-none focus:border-[#00A676]"
+                    />
+                    <input
+                      type="number"
+                      placeholder="End"
+                      value={rangeEnd}
+                      onChange={(e) => setRangeEnd(e.target.value)}
+                      className="w-20 px-2 py-1 text-xs bg-white/5 border border-white/10 rounded text-white focus:outline-none focus:border-[#00A676]"
+                    />
+                    <select
+                      value={rangeStep}
+                      onChange={(e) => setRangeStep(e.target.value)}
+                      className="px-1.5 py-1 text-xs bg-black border border-white/10 rounded text-white focus:outline-none focus:border-[#00A676]"
+                    >
+                      <option value="1">Step 1</option>
+                      <option value="0.5">Step 0.5</option>
+                    </select>
+                    <button
+                      type="button"
+                      onClick={generateSizeRange}
+                      className="px-3 py-1 bg-[#00A676] text-white text-xs font-medium rounded hover:bg-[#008f5f] transition-all"
+                    >
+                      Generate
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Colors */}
-            <div>
-              <label className="block text-gray-300 text-sm font-medium mb-2">
-                Colors (comma separated)
-              </label>
-              <input
-                type="text"
-                name="colors"
-                value={formData.colors}
-                onChange={handleChange}
-                placeholder="Black, White, Red"
-                className="w-full px-4 py-2.5 bg-white/5 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-[#00A676] transition-colors"
-              />
+            <div className="space-y-3">
+              <div>
+                <label className="block text-gray-300 text-sm font-medium mb-2">
+                  Colors (comma separated)
+                </label>
+                <input
+                  type="text"
+                  name="colors"
+                  value={formData.colors}
+                  onChange={handleChange}
+                  placeholder="Black, White, Red"
+                  className="w-full px-4 py-2.5 bg-white/5 border border-white/20 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-[#00A676] transition-colors"
+                />
+              </div>
+
+              {/* Colors Quick Chips */}
+              <div className="bg-white/5 p-3 rounded-lg border border-white/10">
+                <span className="block text-xs font-semibold text-gray-400 mb-2">Quick Colors (Click to toggle)</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {['Black', 'White', 'Red', 'Blue', 'Green', 'Yellow', 'Grey', 'Pink', 'Navy', 'Beige', 'Brown'].map((color) => {
+                    const isSelected = formData.colors.split(',').map(c => c.trim().toLowerCase()).includes(color.toLowerCase());
+                    return (
+                      <button
+                        key={color}
+                        type="button"
+                        onClick={() => handleToggleColorChip(color)}
+                        className={`flex items-center gap-1 px-2 py-0.5 rounded text-xs transition-all ${
+                          isSelected
+                            ? 'bg-[#00A676] text-white border border-[#00A676]'
+                            : 'bg-white/5 text-gray-300 border border-white/10 hover:border-white/30'
+                        }`}
+                      >
+                        <span 
+                          className="w-2.5 h-2.5 rounded-full border border-white/20"
+                          style={{ backgroundColor: getColorValue(color) }}
+                        />
+                        <span>{color}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               {/* Color Preview */}
               {formData.colors && (
                 <div className="flex flex-wrap gap-2 mt-3">
