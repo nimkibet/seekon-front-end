@@ -83,10 +83,7 @@ const Checkout = () => {
   const user = useSelector(state => state.user.user);
   const { products } = useSelector(state => state.products);
 
-  useEffect(() => {
-    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
-  }, [currentStep]);
-
+  const [currentStep, setCurrentStep] = useState(1); // 1: Delivery, 2: Payment, 3: Confirmation
   const [email, setEmail] = useState(user?.email || '');
   const [phoneNumber, setPhoneNumber] = useState(user?.phoneNumber || '');
   const [firstName, setFirstName] = useState('');
@@ -95,7 +92,6 @@ const Checkout = () => {
   const [address, setAddress] = useState('');
   const [zipCode, setZipCode] = useState(''); // Keep for potential future use or if backend expects it
 
-  const [currentStep, setCurrentStep] = useState(1); // 1: Delivery, 2: Payment, 3: Confirmation
   const [paymentStatus, setPaymentStatus] = useState('idle'); // idle, loading, success, failed
   const [paymentMethod, setPaymentMethod] = useState('CARD');
   const [isWaitingForMpesa, setIsWaitingForMpesa] = useState(false);
@@ -112,6 +108,10 @@ const Checkout = () => {
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
   const [discountAmount, setDiscountAmount] = useState(0);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [currentStep]);
 
   useEffect(() => {
     if (user?.name) {
