@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { FiArrowLeft, FiTrash2, FiMinus, FiPlus, FiMapPin, FiCreditCard, FiCheckCircle, FiXCircle, FiTag, FiSmartphone } from 'react-icons/fi';
 import { useSelector, useDispatch } from 'react-redux';
@@ -83,7 +83,21 @@ const Checkout = () => {
   const user = useSelector(state => state.user.user);
   const { products } = useSelector(state => state.products);
 
+  const stepContainerRef = useRef(null);
+  const stepRefs = useRef([]);
+
   const [currentStep, setCurrentStep] = useState(1); // 1: Delivery, 2: Payment, 3: Confirmation
+
+  useEffect(() => {
+    const activeStepElement = stepRefs.current[currentStep - 1];
+    if (activeStepElement) {
+      activeStepElement.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'center'
+      });
+    }
+  }, [currentStep]);
   const [email, setEmail] = useState(user?.email || '');
   const [phoneNumber, setPhoneNumber] = useState(user?.phoneNumber || '');
   const [firstName, setFirstName] = useState('');
@@ -411,44 +425,73 @@ const Checkout = () => {
             Homepage / {items[0]?.category || 'Products'} / Checkout
           </p>
 
-          {/* Progress Steps */}
-          <div className="flex items-center justify-center space-x-4 mb-8">
-            {['Delivery', 'Payment', 'Confirmation'].map((step, index) => {
-              const stepNumber = index + 1;
-              const isCompleted = stepNumber < currentStep;
-              const isCurrent = stepNumber === currentStep;
+          {/* Progress Steps with sliding indicator & mobile centering scroll */}
+          <div 
+            ref={stepContainerRef}
+            className="flex items-center justify-start md:justify-center overflow-x-auto scrollbar-none py-4 px-2 max-w-full mb-8 relative"
+            style={{
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none',
+              WebkitOverflowScrolling: 'touch'
+            }}
+          >
+            <div className="flex items-center space-x-1 sm:space-x-4 mx-auto">
+              {['Delivery', 'Payment', 'Confirmation'].map((step, index) => {
+                const stepNumber = index + 1;
+                const isCompleted = stepNumber < currentStep;
+                const isCurrent = stepNumber === currentStep;
 
-              return (
-                <div key={step} className="flex items-center">
-                  <div className="flex flex-col items-center">
-                    <button
-                      type="button"
-                      disabled={!isCompleted || currentStep === 3 || paymentStatus === 'loading'}
-                      onClick={() => isCompleted && currentStep === 2 ? setCurrentStep(1) : null}
-                      className={`w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all ${
-                        isCompleted || isCurrent
-                          ? 'bg-black border-black text-white'
-                          : 'border-gray-300 dark:border-gray-600 text-gray-400 bg-white dark:bg-gray-800'
-                      } ${isCompleted && currentStep !== 3 ? 'cursor-pointer hover:scale-105' : 'cursor-default'}`}
-                    >
-                      <span className="font-bold text-lg">{stepNumber}</span>
-                    </button>
-                    <span className={`text-sm mt-2 font-medium ${
-                      isCompleted || isCurrent ? 'text-[#00A676]' : 'text-gray-500 dark:text-gray-400'
-                    }`}>
-                      {step}
-                    </span>
+                return (
+                  <div 
+                    key={step} 
+                    ref={el => stepRefs.current[index] = el}
+                    className="flex items-center shrink-0"
+                  >
+                    <div className="flex flex-col items-center relative px-4">
+                      {/* Sliding background indicator behind active step */}
+                      {isCurrent && (
+                        <motion.div
+                          layoutId="activeCheckoutStepBackground"
+                          className="absolute inset-0 bg-[#00A676]/10 dark:bg-[#00A676]/20 rounded-2xl -m-2 z-0"
+                          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                        />
+                      )}
+                      
+                      <button
+                        type="button"
+                        disabled={!isCompleted || currentStep === 3 || paymentStatus === 'loading'}
+                        onClick={() => isCompleted && currentStep === 2 ? setCurrentStep(1) : null}
+                        className={`w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all z-10 ${
+                          isCompleted || isCurrent
+                            ? 'bg-[#00A676] border-[#00A676] text-white shadow-lg shadow-[#00A676]/20'
+                            : 'border-gray-300 dark:border-gray-600 text-gray-400 bg-white dark:bg-gray-800'
+                        } ${isCompleted && currentStep !== 3 ? 'cursor-pointer hover:scale-105' : 'cursor-default'}`}
+                      >
+                        <span className="font-bold text-lg">{stepNumber}</span>
+                      </button>
+                      <span className={`text-sm mt-2 font-semibold z-10 ${
+                        isCompleted || isCurrent ? 'text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400'
+                      }`}>
+                        {step}
+                      </span>
+                    </div>
+                    {index < 2 && (
+                      <div className="w-12 sm:w-20 h-1 mx-2 relative shrink-0">
+                        {/* Base line */}
+                        <div className="absolute inset-0 bg-gray-300 dark:bg-gray-600 rounded-full" />
+                        {/* Active filling line */}
+                        <motion.div 
+                          initial={{ width: '0%' }}
+                          animate={{ width: isCompleted ? '100%' : '0%' }}
+                          transition={{ duration: 0.4 }}
+                          className="absolute inset-y-0 left-0 bg-[#00A676] rounded-full"
+                        />
+                      </div>
+                    )}
                   </div>
-                  {index < 2 && (
-                    <div className={`w-20 h-1 mx-4 transition-colors ${
-                      isCompleted
-                        ? 'bg-black'
-                        : 'bg-gray-300 dark:bg-gray-600'
-                    }`} />
-                  )}
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </div>
 
