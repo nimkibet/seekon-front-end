@@ -12,6 +12,7 @@ const BotStatus = () => {
   const [error, setError] = useState(null);
   const [pollingActive, setPollingActive] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -27,6 +28,25 @@ const BotStatus = () => {
       toast.error(err.message || 'Failed to reinitialize WhatsApp client.');
     } finally {
       setRefreshing(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    if (!window.confirm('Are you sure you want to force log out of the WhatsApp gateway and delete the session data? You will need to scan a new QR code to link it again.')) {
+      return;
+    }
+    setLoggingOut(true);
+    try {
+      await adminApi.logoutBotStatus();
+      toast.success('Successfully logged out and cleared session.');
+      setTimeout(() => {
+        fetchStatus();
+      }, 1500);
+    } catch (err) {
+      console.error('Failed to log out bot status:', err.message);
+      toast.error(err.message || 'Failed to log out WhatsApp client.');
+    } finally {
+      setLoggingOut(false);
     }
   };
 
@@ -136,14 +156,23 @@ const BotStatus = () => {
                     </div>
                   </div>
 
-                  <button
-                    onClick={handleRefresh}
-                    disabled={refreshing}
-                    className="mt-6 inline-flex items-center justify-center gap-2 px-4 py-2 border border-[#D6D3D1] hover:border-[#A16207] rounded-lg text-xs font-semibold text-[#44403C] hover:text-[#A16207] transition-all bg-white shadow-sm hover:shadow active:scale-95 cursor-pointer disabled:opacity-50 w-full"
-                  >
-                    <FiRefreshCw className={refreshing ? 'animate-spin' : ''} size={14} />
-                    {refreshing ? 'Reinitializing...' : 'Force Restart Gateway'}
-                  </button>
+                  <div className="flex gap-3 w-full mt-6">
+                    <button
+                      onClick={handleRefresh}
+                      disabled={refreshing || loggingOut}
+                      className="inline-flex items-center justify-center gap-2 px-4 py-2 border border-[#D6D3D1] hover:border-[#A16207] rounded-lg text-xs font-semibold text-[#44403C] hover:text-[#A16207] transition-all bg-white shadow-sm hover:shadow active:scale-95 cursor-pointer disabled:opacity-50 flex-1"
+                    >
+                      <FiRefreshCw className={refreshing ? 'animate-spin' : ''} size={14} />
+                      {refreshing ? 'Reinitializing...' : 'Restart Gateway'}
+                    </button>
+                    <button
+                      onClick={handleLogout}
+                      disabled={refreshing || loggingOut}
+                      className="inline-flex items-center justify-center gap-2 px-4 py-2 border border-rose-200 hover:border-rose-500 rounded-lg text-xs font-semibold text-rose-600 hover:text-rose-700 hover:bg-rose-50/50 transition-all bg-white shadow-sm hover:shadow active:scale-95 cursor-pointer disabled:opacity-50 flex-1"
+                    >
+                      {loggingOut ? 'Logging out...' : 'Force Logout'}
+                    </button>
+                  </div>
                 </motion.div>
               ) : (
                 <motion.div 
