@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { FiSettings, FiUser, FiLock, FiCreditCard, FiMail, FiShoppingBag, FiSave } from 'react-icons/fi';
+import { FiSettings, FiUser, FiLock, FiCreditCard, FiMail, FiShoppingBag, FiSave, FiPhone, FiPlus, FiTrash2 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
+import axios from 'axios';
+import { API_URL } from '../config/api';
 
 const AdminSettings = () => {
   const [activeTab, setActiveTab] = useState('general');
@@ -18,13 +20,75 @@ const AdminSettings = () => {
     enableSMS: false
   });
 
+  const [authorizedPhones, setAuthorizedPhones] = useState([]);
+  const [newPhone, setNewPhone] = useState('');
+  const [loadingPhones, setLoadingPhones] = useState(false);
+
+  useEffect(() => {
+    const fetchPhones = async () => {
+      setLoadingPhones(true);
+      try {
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token') || localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
+        const res = await axios.get(`${API_URL}/settings/authorized-phones`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.data && res.data.success) {
+          setAuthorizedPhones(res.data.phones);
+        }
+      } catch (err) {
+        console.error('Failed to load authorized phone numbers:', err);
+      } finally {
+        setLoadingPhones(false);
+      }
+    };
+    fetchPhones();
+  }, []);
+
+  const handleAddPhone = () => {
+    if (!newPhone.trim()) return;
+    const cleaned = newPhone.replace(/\D/g, '');
+    if (cleaned.length < 9) {
+      toast.error('Invalid phone number format.');
+      return;
+    }
+    if (authorizedPhones.includes(cleaned)) {
+      toast.error('Phone number already exists in list.');
+      return;
+    }
+    setAuthorizedPhones(prev => [...prev, cleaned]);
+    setNewPhone('');
+  };
+
+  const handleRemovePhone = (phone) => {
+    setAuthorizedPhones(prev => prev.filter(p => p !== phone));
+  };
+
+  const handleSavePhones = async () => {
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token') || localStorage.getItem('adminToken') || sessionStorage.getItem('adminToken');
+      const res = await axios.put(`${API_URL}/settings/authorized-phones`, {
+        phones: authorizedPhones
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.data && res.data.success) {
+        setAuthorizedPhones(res.data.phones);
+        toast.success('Authorized phone numbers updated successfully!');
+      }
+    } catch (err) {
+      console.error('Failed to save authorized phone numbers:', err);
+      toast.error('Failed to save phone numbers.');
+    }
+  };
+
   const tabs = [
     { id: 'general', label: 'General', icon: FiSettings },
     { id: 'account', label: 'Account', icon: FiUser },
     { id: 'security', label: 'Security', icon: FiLock },
     { id: 'payment', label: 'Payment', icon: FiCreditCard },
     { id: 'notifications', label: 'Notifications', icon: FiMail },
-    { id: 'shipping', label: 'Shipping', icon: FiShoppingBag }
+    { id: 'shipping', label: 'Shipping', icon: FiShoppingBag },
+    { id: 'status_cms', label: 'WhatsApp Status', icon: FiPhone }
   ];
 
   const handleSettingChange = (key, value) => {
@@ -34,8 +98,12 @@ const AdminSettings = () => {
     }));
   };
 
-  const handleSave = () => {
-    toast.success('Settings saved successfully!');
+  const handleSave = async () => {
+    if (activeTab === 'status_cms') {
+      await handleSavePhones();
+    } else {
+      toast.success('Settings saved successfully!');
+    }
   };
 
   const renderTabContent = () => {
@@ -293,6 +361,67 @@ const AdminSettings = () => {
                   />
                 </div>
               </div>
+            </div>
+          </div>
+        );
+
+      case 'status_cms':
+        return (
+          <div className="space-y-6">
+            <div className="bg-white/10 rounded-xl p-6 border border-white/20 animate-fadeIn">
+              <h3 className="text-lg font-bold text-white mb-2">WhatsApp Status Admin Settings</h3>
+              <p className="text-gray-400 text-sm mb-6 leading-relaxed">
+                Specify which admin WhatsApp phone numbers are authorized to broadcast status updates to the storefront. 
+                Any status updates posted by these phone numbers will be automatically processed and displayed on the storefront.
+              </p>
+
+              {loadingPhones ? (
+                <div className="text-white py-4 text-center">Loading settings...</div>
+              ) : (
+                <div className="space-y-6">
+                  {/* Add Phone Number Input */}
+                  <div className="flex gap-3">
+                    <input
+                      type="text"
+                      placeholder="e.g. 254700000000"
+                      value={newPhone}
+                      onChange={(e) => setNewPhone(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleAddPhone()}
+                      className="flex-1 px-4 py-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-[#00A676]"
+                    />
+                    <button
+                      onClick={handleAddPhone}
+                      className="px-5 py-2 bg-[#00A676] hover:bg-[#008A5E] text-white font-bold rounded-lg transition-colors flex items-center gap-1.5"
+                    >
+                      <FiPlus className="w-4 h-4" />
+                      <span>Add</span>
+                    </button>
+                  </div>
+
+                  {/* Phone Numbers List */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-3">Authorized Phone Numbers</label>
+                    {authorizedPhones.length === 0 ? (
+                      <p className="text-gray-500 text-sm italic py-2">No phone numbers configured. The system will fall back to environment variables list.</p>
+                    ) : (
+                      <div className="space-y-2.5 max-h-64 overflow-y-auto pr-2">
+                        {authorizedPhones.map(phone => (
+                          <div key={phone} className="flex items-center justify-between bg-white/5 border border-white/10 rounded-lg py-2.5 px-4 text-white">
+                            <span className="font-mono text-sm tracking-wide">{phone}</span>
+                            <button
+                              onClick={() => handleRemovePhone(phone)}
+                              className="text-red-400 hover:text-red-600 hover:bg-red-500/10 p-1.5 rounded-full transition-all"
+                              title="Remove number"
+                            >
+                              <FiTrash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         );
