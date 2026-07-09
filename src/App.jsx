@@ -60,6 +60,8 @@ const FlashSale = lazy(() => import('./pages/FlashSale'));
 const MyOrders = lazy(() => import('./pages/MyOrders'));
 const OrderSuccess = lazy(() => import('./pages/OrderSuccess'));
 const OutfitBuilder = lazy(() => import('./components/outfit/OutfitBuilder'));
+const StatusViewer = lazy(() => import('./pages/StatusViewer'));
+
 
 // Components
 import Layout from './components/Layout';
@@ -179,6 +181,8 @@ const App = () => {
                   <Login />
                 </PublicRoute>
               } />
+              
+              <Route path="/stories" element={<StatusViewer />} />
               
               <Route path="/register" element={
                 <PublicRoute>

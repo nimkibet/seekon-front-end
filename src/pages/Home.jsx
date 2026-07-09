@@ -32,6 +32,8 @@ const Home = () => {
   const [saleProducts, setSaleProducts] = useState([]);
   const [sneakers, setSneakers] = useState([]);
   const [apparel, setApparel] = useState([]);
+  const [hasStories, setHasStories] = useState(false);
+  const [storiesList, setStoriesList] = useState([]);
 
   // Dynamic hero settings from backend
   const [heroSettings, setHeroSettings] = useState({
@@ -127,6 +129,22 @@ const Home = () => {
     };
 
     fetchData();
+  }, []);
+
+  // Fetch active WhatsApp status count and updates
+  useEffect(() => {
+    const fetchStatusCount = async () => {
+      try {
+        const res = await axios.get(`${API_URL}/api/status`);
+        if (res.data && res.data.success && res.data.data.length > 0) {
+          setHasStories(true);
+          setStoriesList(res.data.data);
+        }
+      } catch (err) {
+        console.log("No active stories found.");
+      }
+    };
+    fetchStatusCount();
   }, []);
 
   // Timer logic
@@ -328,6 +346,49 @@ const Home = () => {
       <CustomHeroSection />
 
       <div className="max-w-7xl mx-auto px-2 sm:px-4 md:px-6 lg:px-8 py-8">
+        {/* Seekon Stories Tray */}
+        {hasStories && (
+          <div className="mb-10 bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 shadow-sm">
+            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2 mb-4">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#25D366] opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-[#25D366]"></span>
+              </span>
+              Live Drops (Disappears in 24h)
+            </h3>
+            <div className="flex items-center gap-4 overflow-x-auto py-2 scrollbar-none">
+              <Link 
+                to="/stories" 
+                className="flex flex-col items-center gap-2 group flex-shrink-0 focus:outline-none"
+              >
+                <div className="relative p-[3px] rounded-full bg-gradient-to-tr from-[#25D366] via-[#128C7E] to-[#34B7F1] group-hover:scale-105 active:scale-95 transition-all duration-300">
+                  <div className="w-16 h-16 rounded-full border-2 border-white dark:border-gray-800 overflow-hidden bg-black flex items-center justify-center">
+                    {storiesList[0] && storiesList[0].mediaType === 'image' ? (
+                      <img 
+                        src={storiesList[0].mediaUrl} 
+                        alt="Story drop" 
+                        className="w-full h-full object-cover" 
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-black flex items-center justify-center font-bold text-white text-lg">
+                        SA
+                      </div>
+                    )}
+                  </div>
+                  <span className="absolute bottom-0 right-0 w-5 h-5 bg-[#25D366] rounded-full border-2 border-white dark:border-gray-800 flex items-center justify-center text-white">
+                    <svg viewBox="0 0 24 24" className="w-3 h-3 fill-current">
+                      <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.37 9.863-9.73.001-2.597-1.002-5.037-2.825-6.863-1.823-1.825-4.251-2.83-6.852-2.831-5.437 0-9.862 4.371-9.865 9.73-.001 1.761.472 3.483 1.371 5.017l-.995 3.636 3.737-.981zm12.56-5.834c-.3-.15-1.771-.875-2.046-.975-.276-.1-.476-.15-.676.15-.2.3-.775.975-.95 1.175-.175.2-.35.225-.65.075-.3-.15-1.267-.467-2.414-1.492-.893-.797-1.496-1.78-1.671-2.08-.175-.3-.019-.462.13-.611.135-.135.3-.35.45-.525.15-.175.2-.3.3-.5.1-.2.05-.375-.025-.525-.075-.15-.676-1.631-.926-2.238-.244-.587-.492-.507-.676-.516-.175-.008-.375-.01-.575-.01-.2 0-.525.075-.8 1.05-.275.975-1.05 3.075-1.125 3.225-.075.15-.15.3-.025.525.9 1.484 2.22 2.69 4.025 3.284.475.156.844.25 1.135.342.477.151.91.13 1.25.079.379-.057 1.77-.726 2.021-1.426.251-.7 251-1.3 1.176-1.426-.075-.125-.275-.2-.575-.35z" />
+                    </svg>
+                  </span>
+                </div>
+                <span className="text-xs font-bold text-gray-800 dark:text-gray-200 group-hover:text-[#25D366] transition-colors">
+                  View Drops
+                </span>
+              </Link>
+            </div>
+          </div>
+        )}
+
         {/* Flash Sale Section */}
         {isFlashSaleActive && flashSaleProducts.length > 0 && (
           <motion.section
