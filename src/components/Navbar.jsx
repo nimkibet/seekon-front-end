@@ -23,6 +23,8 @@ import { useSettings } from '../context/SettingsContext';
 import SearchModal from './SearchModal';
 import toast from 'react-hot-toast';
 import { api } from '../utils/api';
+import axios from 'axios';
+import { API_URL } from '../config/api.js';
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -31,6 +33,21 @@ const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileExpanded, setMobileExpanded] = useState({});
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [hasStories, setHasStories] = useState(false);
+
+  useEffect(() => {
+    const checkStories = async () => {
+      try {
+        const res = await axios.get(`${API_URL}/status`);
+        if (res.data && res.data.success && res.data.data.length > 0) {
+          setHasStories(true);
+        }
+      } catch (err) {
+        // Ignore
+      }
+    };
+    checkStories();
+  }, []);
   const [activeOrdersCount, setActiveOrdersCount] = useState(0);
   const location = useLocation();
   
@@ -308,11 +325,22 @@ const Navbar = () => {
       highlight: true,
       className: 'bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent font-semibold border-b-2 border-purple-600'
     },
+    ...(hasStories ? [{
+      name: 'Live Drops',
+      path: '/stories',
+      icon: (
+        <span className="relative flex h-2.5 w-2.5 mr-1">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#25D366] opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#25D366]"></span>
+        </span>
+      ),
+      highlight: true,
+      className: 'text-[#25D366] hover:text-[#20BA5A] font-extrabold flex items-center transition-colors'
+    }] : []),
   ];
 
   return (
     <>
-      {/* Flash Sale Banner */}
       <AnimatePresence>
         {isFlashSaleActive && (
           <motion.div
