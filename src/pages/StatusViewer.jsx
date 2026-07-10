@@ -11,6 +11,7 @@ const StatusViewer = () => {
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(0);
   const [isMuted, setIsMuted] = useState(true);
+  const [isPaused, setIsPaused] = useState(false);
   const videoRef = useRef(null);
   const progressInterval = useRef(null);
 
@@ -31,22 +32,25 @@ const StatusViewer = () => {
     fetchStatuses();
   }, []);
 
+  // Reset pause state and progress when shifting index
+  useEffect(() => {
+    setIsPaused(false);
+    setProgress(0);
+  }, [currentIndex]);
+
   const handleNext = () => {
     if (currentIndex < statuses.length - 1) {
       setCurrentIndex(prev => prev + 1);
-      setProgress(0);
     } else {
-      // Exit viewer when reaching the end of the statuses
-      navigate('/');
+      // Loop back to the first story instead of exiting
+      setCurrentIndex(0);
     }
   };
 
   const handlePrev = () => {
     if (currentIndex > 0) {
       setCurrentIndex(prev => prev - 1);
-      setProgress(0);
     } else {
-      // Wrap around or do nothing (we will just stay on the first one or restart progress)
       setProgress(0);
     }
   };
@@ -56,11 +60,11 @@ const StatusViewer = () => {
     if (statuses.length === 0) return;
     const currentStatus = statuses[currentIndex];
 
-    // Reset progress
-    setProgress(0);
-
-    if (progressInterval.current) {
-      clearInterval(progressInterval.current);
+    if (isPaused) {
+      if (progressInterval.current) {
+        clearInterval(progressInterval.current);
+      }
+      return;
     }
 
     if (currentStatus.mediaType === 'image') {
@@ -83,12 +87,8 @@ const StatusViewer = () => {
         if (progressInterval.current) clearInterval(progressInterval.current);
       };
     } else {
-      // For video, progress is driven by the timeupdate event of the native video element
       const video = videoRef.current;
       if (!video) return;
-
-      // Force video play in case autoplay gets blocked
-      video.play().catch(err => console.log('Autoplay blocked:', err));
 
       const handleTimeUpdate = () => {
         if (video.duration) {
@@ -103,23 +103,42 @@ const StatusViewer = () => {
         }
       };
     }
-  }, [currentIndex, statuses]);
+  }, [currentIndex, statuses, isPaused]);
+
+  // Video play/pause synchronization
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || statuses.length === 0 || statuses[currentIndex]?.mediaType !== 'video') return;
+
+    if (isPaused) {
+      video.pause();
+    } else {
+      video.play().catch(err => console.log('Autoplay blocked:', err));
+    }
+  }, [isPaused, currentIndex, statuses]);
+
+  const handleTap = (clientX) => {
+    const screenWidth = window.innerWidth;
+    const leftBound = screenWidth * 0.25; // 25% left region to skip back
+    const rightBound = screenWidth * 0.75; // 25% right region to skip forward
+
+    if (clientX < leftBound) {
+      handlePrev();
+    } else if (clientX > rightBound) {
+      handleNext();
+    } else {
+      // Center tap toggles pause state
+      setIsPaused(prev => !prev);
+    }
+  };
 
   // Handle tap/click detection for mobile split screen
   const handleTouchStart = (e) => {
-    const screenWidth = window.innerWidth;
-    const clickX = e.touches ? e.touches[0].clientX : e.clientX;
-    
-    // Skip if clicking the WhatsApp CTA button or close button
     if (e.target.closest('.no-tap-navigation')) {
       return;
     }
-
-    if (clickX < screenWidth / 2) {
-      handlePrev();
-    } else {
-      handleNext();
-    }
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    handleTap(clientX);
   };
 
   const handleMouseDown = (e) => {
@@ -129,15 +148,7 @@ const StatusViewer = () => {
     if (e.target.closest('.no-tap-navigation')) {
       return;
     }
-
-    const screenWidth = window.innerWidth;
-    const clickX = e.clientX;
-
-    if (clickX < screenWidth / 2) {
-      handlePrev();
-    } else {
-      handleNext();
-    }
+    handleTap(e.clientX);
   };
 
   if (loading) {
@@ -277,6 +288,17 @@ const StatusViewer = () => {
               loop={false}
               onEnded={handleNext}
             />
+          )}
+
+          {/* PAUSE OVERLAY INDICATOR */}
+          {isPaused && (
+            <div className="absolute inset-0 bg-black/35 flex items-center justify-center z-20 pointer-events-none transition-all duration-300">
+              <div className="bg-black/60 p-4 rounded-full text-white backdrop-blur-sm animate-pulse">
+                <svg className="w-8 h-8 fill-current" viewBox="0 0 24 24">
+                  <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+                </svg>
+              </div>
+            </div>
           )}
 
           {/* CAPTION OVERLAY */}
