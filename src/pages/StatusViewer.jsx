@@ -181,9 +181,12 @@ const StatusViewer = () => {
   }
 
   const currentStatus = statuses[currentIndex];
-  const whatsappNumber = import.meta.env.VITE_WHATSAPP_NUMBER || '254712345678';
-  const encodedMediaUrl = encodeURIComponent(currentStatus.mediaUrl);
-  const whatsappUrl = `https://wa.me/${whatsappNumber}?text=Hi! I am interested in this item: ${encodedMediaUrl}`;
+  const whatsappNumber = import.meta.env.VITE_WHATSAPP_NUMBER || '254727672772';
+  const customMessage = `Hi! I would like to buy this item from Seekon Apparel:
+${currentStatus.caption ? `\nDescription: ${currentStatus.caption}` : ''}
+Image/Video: ${currentStatus.mediaUrl}
+Link: ${window.location.origin}/status`;
+  const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(customMessage)}`;
 
   return (
     <div className="fixed inset-0 bg-black overflow-hidden select-none z-50 flex items-center justify-center">
@@ -322,7 +325,7 @@ const StatusViewer = () => {
             <svg viewBox="0 0 24 24" className="w-5 h-5 fill-current">
               <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.37 9.863-9.73.001-2.597-1.002-5.037-2.825-6.863-1.823-1.825-4.251-2.83-6.852-2.831-5.437 0-9.862 4.371-9.865 9.73-.001 1.761.472 3.483 1.371 5.017l-.995 3.636 3.737-.981zm12.56-5.834c-.3-.15-1.771-.875-2.046-.975-.276-.1-.476-.15-.676.15-.2.3-.775.975-.95 1.175-.175.2-.35.225-.65.075-.3-.15-1.267-.467-2.414-1.492-.893-.797-1.496-1.78-1.671-2.08-.175-.3-.019-.462.13-.611.135-.135.3-.35.45-.525.15-.175.2-.3.3-.5.1-.2.05-.375-.025-.525-.075-.15-.676-1.631-.926-2.238-.244-.587-.492-.507-.676-.516-.175-.008-.375-.01-.575-.01-.2 0-.525.075-.8 1.05-.275.975-1.05 3.075-1.125 3.225-.075.15-.15.3-.025.525.9 1.484 2.22 2.69 4.025 3.284.475.156.844.25 1.135.342.477.151.91.13 1.25.079.379-.057 1.77-.726 2.021-1.426.251-.7 251-1.3 1.176-1.426-.075-.125-.275-.2-.575-.35z" />
             </svg>
-            Inquire on WhatsApp
+            Buy on WhatsApp
           </a>
         </div>
       </div>
