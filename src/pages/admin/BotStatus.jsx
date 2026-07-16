@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiCheckCircle, FiAlertTriangle, FiRefreshCw, FiArrowLeft } from 'react-icons/fi';
+import { FiCheckCircle, FiAlertTriangle, FiRefreshCw, FiArrowLeft, FiPhone } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
 import { QRCodeCanvas } from 'qrcode.react';
 import { adminApi } from '../../utils/adminApi';
@@ -13,6 +13,27 @@ const BotStatus = () => {
   const [pollingActive, setPollingActive] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [pairingCode, setPairingCode] = useState(null);
+  const [requestingCode, setRequestingCode] = useState(false);
+
+  const handleRequestPairingCode = async () => {
+    if (!phoneNumber) {
+      toast.error('Please enter a phone number.');
+      return;
+    }
+    setRequestingCode(true);
+    try {
+      const response = await adminApi.requestPairingCode(phoneNumber);
+      setPairingCode(response.code);
+      toast.success('Pairing code generated successfully.');
+    } catch (err) {
+      console.error('Failed to request pairing code:', err.message);
+      toast.error(err.message || 'Failed to request pairing code.');
+    } finally {
+      setRequestingCode(false);
+    }
+  };
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -219,11 +240,41 @@ const BotStatus = () => {
                   <button
                     onClick={handleRefresh}
                     disabled={refreshing}
-                    className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-[#A16207] hover:bg-[#854D0E] text-white rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95 cursor-pointer disabled:opacity-50 w-full"
+                    className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-[#A16207] hover:bg-[#854D0E] text-white rounded-lg text-sm font-semibold transition-all shadow-md hover:shadow-lg active:scale-95 cursor-pointer disabled:opacity-50 w-full mb-6"
                   >
                     <FiRefreshCw className={refreshing ? 'animate-spin' : ''} size={16} />
                     {refreshing ? 'Refreshing QR Code...' : 'Refresh QR Code'}
                   </button>
+
+                  {/* Phone Number Login Section */}
+                  <div className="w-full bg-[#FAFAF9] p-4 rounded-xl border border-[#D6D3D1]">
+                    <h3 className="text-sm font-semibold text-[#1C1917] mb-3 flex items-center justify-center gap-2">
+                      <FiPhone /> Or Login via Phone Number
+                    </h3>
+                    <div className="flex gap-2 mb-3">
+                      <input
+                        type="tel"
+                        placeholder="e.g. 254712345678"
+                        value={phoneNumber}
+                        onChange={(e) => setPhoneNumber(e.target.value)}
+                        className="flex-1 px-3 py-2 border border-[#D6D3D1] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#A16207]/50"
+                      />
+                      <button
+                        onClick={handleRequestPairingCode}
+                        disabled={requestingCode || !phoneNumber}
+                        className="px-4 py-2 bg-[#1C1917] hover:bg-[#292524] text-white rounded-lg text-sm font-medium disabled:opacity-50 transition-colors"
+                      >
+                        {requestingCode ? 'Requesting...' : 'Get Code'}
+                      </button>
+                    </div>
+                    {pairingCode && (
+                      <div className="p-3 bg-white border border-emerald-200 rounded-lg text-center">
+                        <p className="text-xs text-[#44403C] mb-1">Your Pairing Code:</p>
+                        <p className="font-mono text-2xl font-bold tracking-[0.2em] text-emerald-600">{pairingCode}</p>
+                        <p className="text-xs text-[#44403C] mt-2">Enter this code in the WhatsApp notification on your phone.</p>
+                      </div>
+                    )}
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>

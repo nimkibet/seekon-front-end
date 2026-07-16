@@ -233,6 +233,7 @@ export const adminApi = {
   getBotStatus: () => apiCall('/bot-status'),
   refreshBotStatus: () => apiCall('/bot-status/refresh', { method: 'POST' }),
   logoutBotStatus: () => apiCall('/bot-status/logout', { method: 'POST' }),
+  requestPairingCode: (phone) => apiCall('/bot-status/pairing-code', { method: 'POST', body: JSON.stringify({ phone }) }),
 };
 
 export default adminApi;
