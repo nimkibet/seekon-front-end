@@ -77,7 +77,7 @@ const BuyModal = ({ status, onClose }) => {
                     type="tel"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
-                    placeholder="07XXXXXXXX or 2547XXXXXXXX"
+                    placeholder="e.g. 07XXXXXXXX, 2547XXXXXXXX, or 7XXXXXXXX"
                     required
                     className="w-full bg-white/5 border border-white/10 text-white placeholder-white/30 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#25D366]/60 transition"
                   />
