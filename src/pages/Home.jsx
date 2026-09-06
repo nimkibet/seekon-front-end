@@ -1,0 +1,636 @@
+import React, { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
+import { useLocation, Link } from 'react-router-dom';
+import { FiArrowLeft, FiClock, FiZap } from 'react-icons/fi';
+import ProductCard from '../components/ProductCard';
+import ProductSkeleton from '../components/ProductSkeleton';
+import PromotionalBanner from '../components/PromotionalBanner';
+import FlashSaleCountdown from '../components/FlashSaleCountdown';
+import RecentlyViewed from '../components/RecentlyViewed';
+import SEO from '../components/SEO';
+import { useCurrency } from '../context/CurrencyContext';
+import axios from 'axios';
+import toast from 'react-hot-toast';
+import { API_ORIGIN } from '../config/api.js';
+
+const API_URL = API_ORIGIN;
+
+const Home = () => {
+  const location = useLocation();
+  const { formatPrice, currency, toggleCurrency } = useCurrency();
+  const [email, setEmail] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubscribing, setIsSubscribing] = useState(false);
+  const [endTime, setEndTime] = useState(null);
+  const [isFlashSaleActive, setIsFlashSaleActive] = useState(false);
+  const isAdminView = new URLSearchParams(location.search).get('admin') === 'true';
+
+  // Product state
+  const [flashSaleProducts, setFlashSaleProducts] = useState([]);
+  const [trendingProducts, setTrendingProducts] = useState([]);
+  const [newProducts, setNewProducts] = useState([]);
+  const [saleProducts, setSaleProducts] = useState([]);
+  const [sneakers, setSneakers] = useState([]);
+  const [apparel, setApparel] = useState([]);
+  const [hasStories, setHasStories] = useState(false);
+  const [storiesList, setStoriesList] = useState([]);
+
+  // Dynamic hero settings from backend
+  const [heroSettings, setHeroSettings] = useState({
+    heroVideoUrl: "",
+    heroHeading: "STEP INTO THE FUTURE",
+    heroSubtitle: "Discover the latest drops from Nike, Adidas, Jordan, and more.",
+    heroOverlayOpacity: 50,
+    heroHeight: 85,
+    heroHeadingSize: 'large',
+    showHeroBadge: true
+  });
+
+  const isVideo = (url) => url && (url.includes('/video/') || url.endsWith('.mp4') || url.endsWith('.webm'));
+  const fontSizeClasses = {
+    small: 'text-3xl md:text-5xl',
+    medium: 'text-4xl md:text-6xl',
+    large: 'text-5xl md:text-7xl',
+    xlarge: 'text-6xl md:text-8xl'
+  };
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+
+        // 1. Fetch Home Settings & Timer
+        try {
+          const homeRes = await axios.get(`${API_URL}/api/settings/home`);
+          if (homeRes.data) {
+            setHeroSettings(prev => ({ ...prev, ...homeRes.data }));
+          }
+        } catch (e) {
+          console.log("Using default home settings");
+        }
+
+        // 2. Fetch Flash Sale Settings
+        const settingsRes = await axios.get(`${API_URL}/api/settings/flash-sale`);
+        const settingsData = settingsRes.data.value || settingsRes.data;
+        
+        // Only show if active
+        const isActive = settingsData?.isActive === true;
+        setIsFlashSaleActive(isActive);
+        if (isActive && settingsData.endTime) {
+          setEndTime(new Date(settingsData.endTime).getTime());
+        }
+
+        // 3. FETCH REAL PRODUCTS
+        const productsRes = await axios.get(`${API_URL}/api/products`);
+        const allProducts = productsRes.data.products || productsRes.data || [];
+        console.log("Total Real Products Fetched:", allProducts.length);
+
+        // 4. FILTER FOR FLASH SALE (with safety checks)
+        const saleItems = allProducts.filter(p => 
+          p?.onFlashSale === true || 
+          (p?.flashSalePrice && p.flashSalePrice > 0 && p.flashSalePrice < p.price)
+        );
+        console.log("Real Flash Sale Items:", saleItems.length);
+        setFlashSaleProducts(saleItems.slice(0, 4));
+
+        // 5. Set other categories (exclude flash sale items)
+        const flashSaleIds = new Set(saleItems.map(p => p._id));
+        const remainingProducts = allProducts.filter(p => !flashSaleIds.has(p._id));
+        
+        // Helper function to check category match (handles both uppercase and lowercase and common typos)
+        const matchesCategory = (productCat, targetCat) => {
+          if (!productCat) return false;
+          const normalizedProductCat = productCat.toUpperCase();
+          const normalizedTargetCat = targetCat.toUpperCase();
+          
+          // Exact match
+          if (normalizedProductCat === normalizedTargetCat) return true;
+          
+          // Handle common typo: 'snekers' -> 'sneakers'/'snekers'
+          if (normalizedTargetCat === 'SNEKERS' || normalizedTargetCat === 'SNEAKERS') {
+            return normalizedProductCat === 'SNEKERS' || normalizedProductCat === 'SNEAKERS';
+          }
+          
+          return false;
+        };
+        
+        setTrendingProducts(remainingProducts.filter(p => p?.isFeatured).slice(0, 8));
+        setNewProducts(remainingProducts.filter(p => p?.newProduct).slice(0, 8));
+        setSaleProducts(remainingProducts.filter(p => p?.discount > 0).slice(0, 8));
+        setSneakers(remainingProducts.filter(p => matchesCategory(p?.category, 'SNEKERS')).slice(0, 4));
+        setApparel(remainingProducts.filter(p => matchesCategory(p?.category, 'APPAREL')).slice(0, 4));
+
+      } catch (error) {
+        console.error("Home fetch error:", error);
+        toast.error('Failed to load products');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  // Fetch active WhatsApp status count and updates
+  useEffect(() => {
+    const fetchStatusCount = async () => {
+      try {
+        const res = await axios.get(`${API_URL}/api/status`);
+        if (res.data && res.data.success && res.data.data.length > 0) {
+          setHasStories(true);
+          setStoriesList(res.data.data);
+        }
+      } catch (err) {
+        console.log("No active stories found.");
+      }
+    };
+    fetchStatusCount();
+  }, []);
+
+  // Timer logic
+  useEffect(() => {
+    if (!endTime || !isFlashSaleActive) return;
+    const timer = setInterval(() => {
+      const now = new Date().getTime();
+      const distance = endTime - now;
+      if (distance < 0) {
+        clearInterval(timer);
+        setEndTime(null);
+        setIsFlashSaleActive(false);
+      }
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [endTime, isFlashSaleActive]);
+
+  const handleNewsletterSubscribe = async (e) => {
+    e.preventDefault();
+    if (!email) {
+      toast.error('Please enter your email address');
+      return;
+    }
+    if (!/\S+@\S+\.\S+/.test(email)) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+    setIsSubscribing(true);
+    const toastId = toast.loading('Subscribing...');
+    try {
+      const response = await fetch(`${API_URL}/api/settings/subscribe`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      const data = await response.json();
+      if (response.ok && data.success) {
+        toast.success(data.message || 'Successfully subscribed!', { id: toastId });
+        setEmail('');
+      } else {
+        toast.error(data.message || 'Failed to subscribe', { id: toastId });
+      }
+    } catch (error) {
+      toast.error('Network error. Please try again later.', { id: toastId });
+    } finally {
+      setIsSubscribing(false);
+    }
+  };
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0 }
+  };
+
+  // Custom Hero Section
+  const CustomHeroSection = () => (
+    <div 
+      className="relative bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white overflow-hidden"
+      style={{ minHeight: `${heroSettings.heroHeight}vh` }}
+    >
+      {/* Currency Toggle - Bottom Right */}
+      <div className="absolute bottom-4 right-4 z-20">
+        <div className="bg-white/10 backdrop-blur-md rounded-full p-1 shadow-lg flex items-center">
+          <button
+            onClick={() => currency === 'USD' && toggleCurrency()}
+            className={`px-3 py-1.5 rounded-full text-sm font-bold transition-all ${
+              currency === 'KES' 
+                ? 'bg-[#00A676] text-white shadow-md' 
+                : 'text-gray-300 hover:text-white'
+            }`}
+          >
+            KSh
+          </button>
+          <button
+            onClick={() => currency === 'KES' && toggleCurrency()}
+            className={`px-3 py-1.5 rounded-full text-sm font-bold transition-all ${
+              currency === 'USD' 
+                ? 'bg-[#00A676] text-white shadow-md' 
+                : 'text-gray-300 hover:text-white'
+            }`}
+          >
+            USD
+          </button>
+        </div>
+      </div>
+      <div className="absolute inset-0 z-0">
+        {heroSettings.heroVideoUrl ? (
+          isVideo(heroSettings.heroVideoUrl) ? (
+            <video
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="w-full h-full object-cover opacity-50"
+            >
+              <source src={heroSettings.heroVideoUrl} type="video/mp4" />
+            </video>
+          ) : (
+            <img
+              src={heroSettings.heroVideoUrl}
+              alt="Hero Background"
+              className="w-full h-full object-cover opacity-50"
+            />
+          )
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-gray-900 via-black to-[#00A676]/40 opacity-80" />
+        )}
+      </div>
+      <div 
+        className="absolute inset-0 z-1"
+        style={{ backgroundColor: `rgba(0,0,0,${heroSettings.heroOverlayOpacity / 100})` }}
+      ></div>
+      <div className="container mx-auto px-4 py-20 relative z-10" style={{ paddingTop: `${heroSettings.heroHeight * 0.15}px`, paddingBottom: `${heroSettings.heroHeight * 0.15}px` }}>
+        <div className="flex flex-col md:flex-row items-center justify-between gap-12">
+          <div className="flex-1 text-center md:text-left">
+            {heroSettings.showHeroBadge && (
+              <div className="inline-flex items-center gap-2 bg-red-500/20 text-red-400 px-4 py-2 rounded-full text-sm font-bold mb-6">
+                <FiZap size={16} /> New Collection 2025
+              </div>
+            )}
+            <h1 className={`${fontSizeClasses[heroSettings.heroHeadingSize]} font-black mb-6 leading-tight tracking-tighter uppercase drop-shadow-lg transition-all duration-500`}>
+              {heroSettings.heroHeading}
+            </h1>
+            <p className="text-gray-300 text-lg md:text-xl mb-8 max-w-lg">
+              {heroSettings.heroSubtitle}
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
+              <Link 
+                to="/collection" 
+                className="inline-flex items-center justify-center gap-2 bg-white text-black px-8 py-4 rounded-full font-bold hover:bg-gray-100 transition-all hover:scale-105 shadow-xl"
+              >
+                Shop Now
+              </Link>
+              {isFlashSaleActive && (
+                <Link 
+                  to="/flash-sale" 
+                  className="inline-flex items-center justify-center gap-2 bg-red-600 text-white px-8 py-4 rounded-full font-bold hover:bg-red-700 transition-all hover:scale-105 shadow-xl"
+                >
+                  🔥 Flash Sale
+                </Link>
+              )}
+            </div>
+          </div>
+          {isFlashSaleActive && heroSettings.heroHeight > 60 && (
+            <div className="bg-white/10 backdrop-blur-md p-6 rounded-2xl border border-white/20 shadow-xl">
+              <div className="flex items-center gap-2 mb-4 text-sm font-bold uppercase tracking-widest opacity-80">
+                <FiClock size={16} /> Ending In
+              </div>
+              <div className="flex gap-3">
+                {['Days', 'Hours', 'Mins', 'Secs'].map((label) => {
+                  const values = { Days: Math.floor((endTime - new Date().getTime()) / (1000 * 60 * 60 * 24)), Hours: Math.floor(((endTime - new Date().getTime()) % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)), Mins: Math.floor(((endTime - new Date().getTime()) % (1000 * 60 * 60)) / (1000 * 60)), Secs: Math.floor(((endTime - new Date().getTime()) % (1000 * 60)) / 1000) };
+                  return (
+                    <div key={label} className="bg-white text-red-600 rounded-lg p-3 min-w-[70px] text-center">
+                      <div className="text-2xl md:text-3xl font-black">{String(Math.max(0, values[label] || 0)).padStart(2, '0')}</div>
+                      <div className="text-[10px] font-bold uppercase text-gray-500">{label}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+  // Generate 8 skeleton items for loading state
+  const skeletonItems = Array.from({ length: 8 }, (_, i) => i);
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <SEO />
+      {isAdminView && (
+        <div className="bg-gradient-to-r from-[#00A676] to-[#008A5E] text-white p-3 flex items-center justify-between shadow-lg sticky top-0 z-50">
+          <div className="flex items-center space-x-3">
+            <FiArrowLeft className="w-5 h-5" />
+            <span className="font-semibold">Admin Shop View Mode</span>
+          </div>
+          <Link to="/admin/dashboard" className="px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors font-medium">
+            Back to Dashboard
+          </Link>
+        </div>
+      )}
+
+      <PromotionalBanner 
+        message="Seekon Apparel — Live bold. Dress sharper. Walk your story. • NEW ARRIVALS: LIMITED TIME OFFER - UPTO 30% OFF ON SELECTED ITEMS!"
+        backgroundColor="bg-gradient-to-r from-red-600 to-orange-500"
+        textColor="text-white"
+        showIcons={true}
+        animated={true}
+        scrollSpeed="slow"
+      />
+      
+      <CustomHeroSection />
+
+      <div className="max-w-7xl mx-auto px-2 sm:px-4 md:px-6 lg:px-8 py-8">
+        {/* Seekon Stories Tray */}
+        {hasStories && (
+          <div className="mb-10 bg-white dark:bg-gray-800 p-5 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 shadow-sm">
+            <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2 mb-4">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#25D366] opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-[#25D366]"></span>
+              </span>
+              Live Drops (Disappears in 24h)
+            </h3>
+            <div className="flex items-center gap-4 overflow-x-auto py-2 scrollbar-none">
+              <Link 
+                to="/stories" 
+                className="flex flex-col items-center gap-2 group flex-shrink-0 focus:outline-none"
+              >
+                <div className="relative p-[3px] rounded-full bg-gradient-to-tr from-[#25D366] via-[#128C7E] to-[#34B7F1] group-hover:scale-105 active:scale-95 transition-all duration-300">
+                  <div className="w-16 h-16 rounded-full border-2 border-white dark:border-gray-800 overflow-hidden bg-black flex items-center justify-center">
+                    {storiesList[0] && storiesList[0].mediaType === 'image' ? (
+                      <img 
+                        src={storiesList[0].mediaUrl} 
+                        alt="Story drop" 
+                        className="w-full h-full object-cover" 
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-black flex items-center justify-center font-bold text-white text-lg">
+                        SA
+                      </div>
+                    )}
+                  </div>
+                  <span className="absolute bottom-0 right-0 w-5 h-5 bg-[#25D366] rounded-full border-2 border-white dark:border-gray-800 flex items-center justify-center text-white">
+                    <svg viewBox="0 0 24 24" className="w-3 h-3 fill-current">
+                      <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397.01 12.008.01c3.202.001 6.212 1.246 8.477 3.514 2.266 2.268 3.507 5.28 3.505 8.484-.004 6.657-5.34 11.997-11.953 11.997-2.005-.001-3.973-.502-5.724-1.455L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.37 9.863-9.73.001-2.597-1.002-5.037-2.825-6.863-1.823-1.825-4.251-2.83-6.852-2.831-5.437 0-9.862 4.371-9.865 9.73-.001 1.761.472 3.483 1.371 5.017l-.995 3.636 3.737-.981zm12.56-5.834c-.3-.15-1.771-.875-2.046-.975-.276-.1-.476-.15-.676.15-.2.3-.775.975-.95 1.175-.175.2-.35.225-.65.075-.3-.15-1.267-.467-2.414-1.492-.893-.797-1.496-1.78-1.671-2.08-.175-.3-.019-.462.13-.611.135-.135.3-.35.45-.525.15-.175.2-.3.3-.5.1-.2.05-.375-.025-.525-.075-.15-.676-1.631-.926-2.238-.244-.587-.492-.507-.676-.516-.175-.008-.375-.01-.575-.01-.2 0-.525.075-.8 1.05-.275.975-1.05 3.075-1.125 3.225-.075.15-.15.3-.025.525.9 1.484 2.22 2.69 4.025 3.284.475.156.844.25 1.135.342.477.151.91.13 1.25.079.379-.057 1.77-.726 2.021-1.426.251-.7 251-1.3 1.176-1.426-.075-.125-.275-.2-.575-.35z" />
+                    </svg>
+                  </span>
+                </div>
+                <span className="text-xs font-bold text-gray-800 dark:text-gray-200 group-hover:text-[#25D366] transition-colors">
+                  View Drops
+                </span>
+              </Link>
+            </div>
+          </div>
+        )}
+
+        {/* Flash Sale Section */}
+        {isFlashSaleActive && flashSaleProducts.length > 0 && (
+          <motion.section
+            initial="hidden"
+            animate="visible"
+            variants={containerVariants}
+            className="mb-16"
+          >
+            <div className="bg-gradient-to-r from-red-600 via-red-500 to-orange-500 rounded-2xl p-6 mb-6 text-white flex flex-col md:flex-row items-center justify-between gap-4 shadow-xl">
+              <div className="flex items-center gap-4">
+                <div className="bg-white/20 p-3 rounded-full animate-pulse">
+                  <FiZap size={32} />
+                </div>
+                <div>
+                  <h2 className="text-2xl md:text-3xl font-bold">Flash Sale</h2>
+                  <p className="text-white/80">Limited time offers - up to 70% OFF!</p>
+                </div>
+              </div>
+              {endTime && (
+                <div className="flex items-center gap-2 bg-black/20 px-4 py-2 rounded-lg">
+                  <FiClock size={20} />
+                  <span className="font-semibold">Ends in:</span>
+                  <div className="flex gap-2">
+                    {['Days', 'Hours', 'Mins', 'Secs'].map((label) => {
+                      const values = { Days: Math.floor((endTime - new Date().getTime()) / (1000 * 60 * 60 * 24)), Hours: Math.floor(((endTime - new Date().getTime()) % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)), Mins: Math.floor(((endTime - new Date().getTime()) % (1000 * 60 * 60)) / (1000 * 60)), Secs: Math.floor(((endTime - new Date().getTime()) % (1000 * 60)) / 1000) };
+                      return (
+                        <div key={label} className="bg-white text-red-600 rounded px-2 py-1 text-center min-w-[50px]">
+                          <div className="text-xl font-black">{String(Math.max(0, values[label] || 0)).padStart(2, '0')}</div>
+                          <div className="text-[10px] font-bold uppercase">{label}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            <motion.div variants={containerVariants} className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+              {isLoading ? (
+                skeletonItems.slice(0, 4).map((index) => (
+                  <ProductSkeleton key={`skeleton-flash-${index}`} />
+                ))
+              ) : (
+                flashSaleProducts.map((product) => {
+                const discount = product.price > product.flashSalePrice 
+                  ? Math.round((1 - product.flashSalePrice / product.price) * 100)
+                  : 0;
+                return (
+                  <Link 
+                    to={`/product/${product._id}?from=flashsale`}
+                    key={product._id}
+                  >
+                    <motion.div 
+                      variants={itemVariants}
+                      className="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all overflow-hidden group border border-gray-100 h-full"
+                    >
+                      <div className="relative aspect-square bg-gray-100">
+                        <img 
+                          src={product.images?.[0]?.url || product.image || 'https://placehold.co/400x400/png?text=No+Image'} 
+                          alt={product.name}
+                          loading="lazy"
+                          decoding="async"
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                        <div className="absolute top-2 left-2 flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-orange-500 to-red-500 rounded-full text-white text-xs font-bold">
+                          <FiZap className="w-3 h-3 animate-pulse" />
+                          FLASH SALE
+                        </div>
+                        <div className="absolute top-2 right-2 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded">
+                          {discount}% OFF
+                        </div>
+                        {product.saleEndTime && (
+                          <div className="absolute bottom-2 right-2 bg-black/70 backdrop-blur rounded-lg px-2 py-1">
+                            <FlashSaleCountdown endTime={product.saleEndTime} />
+                          </div>
+                        )}
+                      </div>
+                      <div className="p-4">
+                        <h3 className="font-bold text-gray-900 text-sm truncate mb-1">{product.name}</h3>
+                        <div className="flex items-center gap-2">
+                          <span className="text-red-600 font-bold text-lg">{formatPrice(product.flashSalePrice)}</span>
+                          {product.price > product.flashSalePrice && (
+                            <span className="text-gray-400 line-through text-sm">{formatPrice(product.price)}</span>
+                          )}
+                        </div>
+                      </div>
+                    </motion.div>
+                  </Link>
+                );
+              })
+              )}
+            </motion.div>
+            <div className="text-center mt-6">
+              <Link to="/flash-sale" className="inline-flex items-center gap-2 bg-red-600 text-white px-6 py-3 rounded-full font-bold hover:bg-red-700 transition-colors shadow-lg">
+                See All Flash Sale Items →
+              </Link>
+            </div>
+          </motion.section>
+        )}
+
+        {/* Trending Now */}
+        <motion.section initial="hidden" animate="visible" variants={containerVariants} className="mb-16">
+          <div className="flex items-center justify-between mb-8">
+            <div className="text-center flex-1">
+              <motion.h2 variants={itemVariants} className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Trending Now</motion.h2>
+              <motion.p variants={itemVariants} className="text-lg text-gray-600 max-w-2xl mx-auto">Discover the most popular sneakers and apparel</motion.p>
+            </div>
+            <Link to="/collection?filter=featured" className="text-[#00A676] hover:text-[#008A5E] font-medium ml-4">See All →</Link>
+          </div>
+          <motion.div variants={containerVariants} className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            {isLoading ? (
+              skeletonItems.map((index) => (
+                <ProductSkeleton key={`skeleton-trending-${index}`} />
+              ))
+            ) : (
+              trendingProducts.map((product) => (
+                <motion.div key={product._id} variants={itemVariants}>
+                  <ProductCard product={product} />
+                </motion.div>
+              ))
+            )}
+          </motion.div>
+        </motion.section>
+
+        {/* Shop by Category */}
+        <motion.section initial="hidden" animate="visible" variants={containerVariants} className="mb-16">
+          <div className="text-center mb-8">
+            <motion.h2 variants={itemVariants} className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">Shop by Category</motion.h2>
+            <motion.p variants={itemVariants} className="text-lg text-gray-600">Find exactly what you're looking for</motion.p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <motion.div variants={itemVariants} className="bg-white rounded-xl p-6 shadow-lg">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-semibold text-gray-900">Sneakers</h3>
+                <Link to="/collection?category=sneakers" className="text-[#00A676] hover:text-[#008A5E] text-sm font-medium">See All →</Link>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                {isLoading ? (
+                  skeletonItems.slice(0, 4).map((index) => (
+                    <ProductSkeleton key={`skeleton-sneakers-${index}`} />
+                  ))
+                ) : (
+                  sneakers.map((product) => (
+                    <ProductCard key={product._id} product={product} />
+                  ))
+                )}
+              </div>
+            </motion.div>
+            <motion.div variants={itemVariants} className="bg-white rounded-xl p-6 shadow-lg">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-semibold text-gray-900">Apparel</h3>
+                <Link to="/collection?category=apparel" className="text-[#00A676] hover:text-[#008A5E] text-sm font-medium">See All →</Link>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                {isLoading ? (
+                  skeletonItems.slice(0, 4).map((index) => (
+                    <ProductSkeleton key={`skeleton-apparel-${index}`} />
+                  ))
+                ) : (
+                  apparel.map((product) => (
+                    <ProductCard key={product._id} product={product} />
+                  ))
+                )}
+              </div>
+            </motion.div>
+          </div>
+        </motion.section>
+
+        {/* New Arrivals */}
+        <motion.section initial="hidden" animate="visible" variants={containerVariants} className="mb-16">
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900">New Arrivals</h2>
+            <Link to="/collection?filter=new" className="text-[#00A676] hover:text-[#008A5E] font-medium">See All →</Link>
+          </div>
+          <motion.div variants={containerVariants} className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            {isLoading ? (
+              skeletonItems.map((index) => (
+                <ProductSkeleton key={`skeleton-new-${index}`} />
+              ))
+            ) : (
+              newProducts.map((product) => (
+                <motion.div key={product._id} variants={itemVariants}>
+                  <ProductCard product={product} />
+                </motion.div>
+              ))
+            )}
+          </motion.div>
+        </motion.section>
+
+        {/* Sale Section */}
+        <motion.section initial="hidden" animate="visible" variants={containerVariants} className="mb-16">
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900">Limited Time Offers</h2>
+            <Link to="/collection?filter=sale" className="text-[#00A676] hover:text-[#008A5E] font-medium">See All →</Link>
+          </div>
+          <motion.div variants={containerVariants} className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            {isLoading ? (
+              skeletonItems.map((index) => (
+                <ProductSkeleton key={`skeleton-sale-${index}`} />
+              ))
+            ) : (
+              saleProducts.map((product) => (
+                <motion.div key={product._id} variants={itemVariants}>
+                  <ProductCard product={product} />
+                </motion.div>
+              ))
+            )}
+          </motion.div>
+        </motion.section>
+
+        {/* Newsletter */}
+        <motion.section initial="hidden" animate="visible" variants={containerVariants} className="rounded-2xl p-6 md:p-12 text-center bg-gradient-to-r from-gray-900 to-gray-800 text-white">
+          <motion.div variants={itemVariants}>
+            <h2 className="text-2xl md:text-4xl font-bold mb-4">Stay in the Loop</h2>
+            <p className="text-lg text-gray-300 mb-8 max-w-2xl mx-auto">Get exclusive access to new drops, special offers, and style tips.</p>
+            <div className="max-w-md mx-auto flex flex-col sm:flex-row gap-2">
+              <input
+                type="email"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="flex-1 px-4 py-3 rounded-lg text-gray-900 bg-white border-2 border-black focus:outline-none"
+              />
+              <motion.button 
+                whileHover={{ scale: 1.05 }} 
+                whileTap={{ scale: 0.95 }} 
+                onClick={handleNewsletterSubscribe} 
+                disabled={isSubscribing}
+                className="px-6 py-3 bg-black text-white font-semibold rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-70"
+              >
+                {isSubscribing ? 'Joining...' : 'Subscribe'}
+              </motion.button>
+            </div>
+          </motion.div>
+        </motion.section>
+      </div>
+
+      {/* Recently Viewed Section */}
+      <RecentlyViewed />
+    </div>
+  );
+};
+
+export default Home;
+

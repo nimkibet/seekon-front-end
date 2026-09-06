@@ -1,0 +1,120 @@
+import React from 'react'
+import ReactDOM from 'react-dom/client'
+import App from './App.jsx'
+import './index.css'
+import { Toaster } from 'react-hot-toast'
+import { CurrencyProvider } from './context/CurrencyContext.jsx'
+import { GoogleOAuthProvider } from '@react-oauth/google'
+import { HelmetProvider } from 'react-helmet-async'
+
+// Global handlers for chunk loading/MIME errors (occurs when new deploys purge old bundle hashes)
+window.addEventListener('error', (e) => {
+  const message = e.message || '';
+  const isChunkError = 
+    message.includes('Failed to fetch dynamically imported module') ||
+    message.includes('Expected a JavaScript-or-Wasm module script') ||
+    message.includes('MIME type of "text/html"');
+
+  if (isChunkError) {
+    try {
+      const lastReload = sessionStorage.getItem('last_chunk_error_reload');
+      const now = Date.now();
+      if (!lastReload || now - parseInt(lastReload, 10) > 10000) {
+        sessionStorage.setItem('last_chunk_error_reload', now.toString());
+        console.warn('🔄 Global error: Chunk load error detected. Reloading to fetch latest assets...');
+        window.location.reload();
+      }
+    } catch (err) {
+      console.error('Error handling chunk error reload:', err);
+    }
+  }
+}, true);
+
+window.addEventListener('unhandledrejection', (e) => {
+  const message = e.reason?.message || '';
+  const isChunkError = 
+    message.includes('Failed to fetch dynamically imported module') ||
+    message.includes('Expected a JavaScript-or-Wasm module script') ||
+    message.includes('MIME type of "text/html"');
+
+  if (isChunkError) {
+    try {
+      const lastReload = sessionStorage.getItem('last_chunk_error_reload');
+      const now = Date.now();
+      if (!lastReload || now - parseInt(lastReload, 10) > 10000) {
+        sessionStorage.setItem('last_chunk_error_reload', now.toString());
+        console.warn('🔄 Global rejection: Chunk load error detected. Reloading to fetch latest assets...');
+        window.location.reload();
+      }
+    } catch (err) {
+      console.error('Error handling chunk rejection reload:', err);
+    }
+  }
+});
+
+console.log('🚀 Starting Seekon App initialization...');
+console.log('📦 React version:', React.version);
+console.log('🌍 Environment:', import.meta.env.MODE);
+
+try {
+  const rootElement = document.getElementById('root');
+  console.log('🎯 Root element found:', !!rootElement);
+  
+  if (!rootElement) {
+    throw new Error('Root element not found in DOM');
+  }
+  
+  const root = ReactDOM.createRoot(rootElement);
+  console.log('⚛️ React root created successfully');
+  
+  root.render(
+    <React.StrictMode>
+      <HelmetProvider>
+        <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
+          <CurrencyProvider>
+            <App />
+            <Toaster
+              position="top-right"
+              toastOptions={{
+                duration: 1500,
+                style: {
+                  background: '#1F1F1F',
+                  color: '#FAFAFA',
+                  border: '1px solid #00A676',
+                  borderRadius: '12px',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                },
+                success: {
+                  iconTheme: {
+                    primary: '#00A676',
+                    secondary: '#FAFAFA',
+                  },
+                },
+                error: {
+                  iconTheme: {
+                    primary: '#ef4444',
+                    secondary: '#FAFAFA',
+                  },
+                },
+              }}
+            />
+          </CurrencyProvider>
+        </GoogleOAuthProvider>
+      </HelmetProvider>
+    </React.StrictMode>
+  );
+  
+  console.log('✅ App rendered successfully');
+} catch (error) {
+  console.error('❌ Error during app initialization:', error);
+  document.getElementById('root').innerHTML = `
+    <div style="padding: 20px; text-align: center; color: red; font-family: Arial, sans-serif;">
+      <h1>🚨 App Initialization Error</h1>
+      <p><strong>Error:</strong> ${error.message}</p>
+      <p><strong>Stack:</strong></p>
+      <pre style="text-align: left; background: #f5f5f5; padding: 10px; border-radius: 5px;">${error.stack}</pre>
+    </div>
+  `;
+}
+

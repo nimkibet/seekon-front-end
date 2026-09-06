@@ -1,0 +1,25 @@
+﻿# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+.next/
+out/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# OS artifacts
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+
+# Cache
+.cache/
+.parcel-cache/
