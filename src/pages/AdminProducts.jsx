@@ -491,8 +491,16 @@ const AdminProducts = () => {
                   </div>
                 ) : (
                   <img
-                    src={product.image || 'https://via.placeholder.com/300?text=No+Image'}
+                    src={(() => {
+                      const url = product.image || 'https://via.placeholder.com/300?text=No+Image';
+                      if (url.includes('cloudinary.com')) {
+                        return url.replace('/upload/', '/upload/w_300,h_300,q_auto,f_auto/');
+                      }
+                      return url;
+                    })()}
                     alt={product.name}
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                   />
                 )}

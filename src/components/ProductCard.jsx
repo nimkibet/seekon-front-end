@@ -196,7 +196,7 @@ const ProductCard = ({ product, viewMode = 'grid' }) => {
             alt={product.name}
             loading="lazy"
             decoding="async"
-            className="w-full h-full object-contain p-4 transition-transform duration-500 group-hover:scale-110 mix-blend-multiply dark:mix-blend-normal"
+            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
           />
           
           {/* Badges */}

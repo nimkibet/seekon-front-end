@@ -382,7 +382,7 @@ const ProductDetail = () => {
               <img
                 src={getOptimizedImageUrl(activeImage || product.images?.[0] || product.image, { width: 800, height: 800, quality: 'auto' })}
                 alt={product.name}
-                className="w-full h-full object-contain p-8 mix-blend-multiply dark:mix-blend-normal"
+                className="w-full h-full object-cover"
                 onError={(e) => {
                   e.target.src = '/placeholder-image.png';
                 }}
@@ -406,7 +406,7 @@ const ProductDetail = () => {
                     <img
                       src={getOptimizedImageUrl(imageUrl, { width: 200, height: 200, quality: 'auto' })}
                       alt={`${product.name} ${index + 1}`}
-                      className="w-full h-full object-contain p-1 mix-blend-multiply dark:mix-blend-normal"
+                      className="w-full h-full object-cover"
                     />
                   </button>
                 );

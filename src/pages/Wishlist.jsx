@@ -7,6 +7,7 @@ import { addToCart } from '../store/slices/cartSlice';
 import { removeFromWishlistLocal } from '../store/slices/wishlistSlice';
 import { formatPrice } from '../utils/formatPrice';
 import { useCurrency } from '../context/CurrencyContext';
+import { getOptimizedImageUrl } from '../utils/cloudinary';
 import toast from 'react-hot-toast';
 
 const Wishlist = () => {
@@ -110,8 +111,10 @@ const Wishlist = () => {
               <Link to={`/product/${item.id}`}>
                 <div className="relative aspect-square overflow-hidden">
                   <img
-                    src={item.image}
+                    src={getOptimizedImageUrl(item.image, { width: 400, height: 400, quality: 'auto' })}
                     alt={item.name}
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
                   

@@ -3,6 +3,7 @@ import axios from 'axios';
 import { Link } from 'react-router-dom';
 import { FiZap, FiClock } from 'react-icons/fi';
 import FlashSaleCountdown from '../components/FlashSaleCountdown';
+import { getOptimizedImageUrl } from '../utils/cloudinary';
 import { API_URL } from '../config/api.js';
 
 const FlashSale = () => {
@@ -115,8 +116,10 @@ const FlashSale = () => {
                 >
                   <div className="relative aspect-square bg-gray-100">
                     <img 
-                      src={product.images?.[0]?.url || product.image || 'https://placehold.co/400x400/png?text=No+Image'} 
+                      src={getOptimizedImageUrl(product.images?.[0]?.url || product.image || 'https://placehold.co/400x400/png?text=No+Image', { width: 400, height: 400, quality: 'auto' })} 
                       alt={product.name}
+                      loading="lazy"
+                      decoding="async"
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
                     {/* Flash Sale Badge */}
