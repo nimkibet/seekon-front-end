@@ -29,10 +29,10 @@ const posCall = async (endpoint, options = {}) => {
 };
 
 export const posApi = {
-  // 1. Product Search for Barcodes & SKUs (loads up to 1000 items to fetch all products)
+  // 1. Product Search for Barcodes & SKUs
   searchProducts: (q = '', limit = 1000) => posCall(`/products/search?q=${encodeURIComponent(q)}&limit=${limit}`),
 
-  // Fallback to main store products API if POS search is not populated
+  // Fallback to main store products API
   fetchAllStoreProducts: async () => {
     try {
       const res = await fetch(`${API_ORIGIN}/api/products?limit=1000`);
@@ -46,22 +46,35 @@ export const posApi = {
     return [];
   },
 
-  // Customer lookup by phone number to link walk-in to user account
+  // Customer lookup by phone number
   lookupCustomer: (phone = '') => posCall(`/customers/lookup?phone=${encodeURIComponent(phone)}`),
 
-  // 2. Checkout
+  // 2. Checkout (supports Walk-In & Social Media POD)
   checkout: (data) => posCall('/checkout', {
     method: 'POST',
     body: JSON.stringify(data)
   }),
 
-  // 3. Headless WhatsApp Queue
+  // 3. Social Media Active Deliveries & POD Reconciliation
+  getDeliveries: () => posCall('/deliveries'),
+
+  completeDeliveryPayment: (orderId, data) => posCall(`/orders/${orderId}/complete-payment`, {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }),
+
+  cancelDelivery: (orderId, data = {}) => posCall(`/orders/${orderId}/cancel-delivery`, {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }),
+
+  // 4. Headless WhatsApp Queue
   getPendingOrders: () => posCall('/orders/pending'),
   dismissPendingOrder: (id) => posCall(`/orders/pending/${id}/dismiss`, {
     method: 'PATCH'
   }),
 
-  // 4. Barcode URLs (for direct PDF stream in new tab or download)
+  // 5. Barcode & Receipt URLs and Direct Download Helpers
   getProductBarcodePdfUrl: (productId, copies = 21) => {
     const token = getAuthToken();
     return `${API_ORIGIN}/api/pos/barcodes/product/${productId}?copies=${copies}&token=${token || ''}`;
@@ -95,6 +108,17 @@ export const posApi = {
       }
     });
     if (!res.ok) throw new Error('Failed to download barcode sheet');
+    return res.blob();
+  },
+
+  downloadCategoryBarcodeSheetPdf: async (category) => {
+    const token = getAuthToken();
+    const res = await fetch(`${API_ORIGIN}/api/pos/barcodes/category/${encodeURIComponent(category)}`, {
+      headers: {
+        ...(token && { 'Authorization': `Bearer ${token}` })
+      }
+    });
+    if (!res.ok) throw new Error('Failed to download category barcodes');
     return res.blob();
   }
 };
