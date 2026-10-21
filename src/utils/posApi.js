@@ -29,8 +29,25 @@ const posCall = async (endpoint, options = {}) => {
 };
 
 export const posApi = {
-  // 1. Product Search for Barcodes & SKUs
-  searchProducts: (q = '') => posCall(`/products/search?q=${encodeURIComponent(q)}`),
+  // 1. Product Search for Barcodes & SKUs (loads up to 1000 items to fetch all products)
+  searchProducts: (q = '', limit = 1000) => posCall(`/products/search?q=${encodeURIComponent(q)}&limit=${limit}`),
+
+  // Fallback to main store products API if POS search is not populated
+  fetchAllStoreProducts: async () => {
+    try {
+      const res = await fetch(`${API_ORIGIN}/api/products?limit=1000`);
+      if (res.ok) {
+        const data = await res.json();
+        return data.products || [];
+      }
+    } catch (e) {
+      console.warn('Fallback fetch store products failed:', e.message);
+    }
+    return [];
+  },
+
+  // Customer lookup by phone number to link walk-in to user account
+  lookupCustomer: (phone = '') => posCall(`/customers/lookup?phone=${encodeURIComponent(phone)}`),
 
   // 2. Checkout
   checkout: (data) => posCall('/checkout', {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FiSearch,
@@ -9,16 +9,18 @@ import {
   FiCheckCircle,
   FiAlertCircle,
   FiPrinter,
-  FiDownload,
   FiRefreshCw,
   FiSend,
   FiUser,
   FiLogOut,
-  FiDollarSign,
-  FiSmartphone,
-  FiLayers,
   FiGrid,
-  FiArrowRight
+  FiArrowRight,
+  FiPause,
+  FiPlay,
+  FiPhone,
+  FiTag,
+  FiCheck,
+  FiX
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
@@ -28,73 +30,616 @@ import BarcodeScannerModal from '../components/pos/BarcodeScannerModal';
 const PosDashboard = () => {
   const { user, logout } = useAuth();
 
-  // Active Tab: 'pos' (50/50 Terminal) | 'queue' (WhatsApp Pool) | 'barcodes' (Sticker Sheets)
+  // Navigation tab: 'pos' (Terminal) | 'queue' (WhatsApp Pool) | 'barcodes' (Sticker Sheets)
   const [activeTab, setActiveTab] = useState('pos');
 
-  // Search & Barcode state
-  const [searchQuery, setSearchQuery] = useState('');
-  const [products, setProducts] = useState([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState('All');
+  // Master product catalog state (loaded once from DB display pool, then client-side filtered & sorted)
+  const [allProducts, setAllProducts] = useState([]);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(false);
+
+  // Search & Filtering state
+  const [topSearch, setTopSearch] = useState('');
+  const [quickBarcodeQuery, setQuickBarcodeQuery] = useState('');
+  const [quickBarcodeQty, setQuickBarcodeQty] = useState(1);
+  const [selectedCategory, setSelectedCategory] = useState('ALL');
+  const [stockFilter, setStockFilter] = useState('all'); // 'all' | 'in-stock' | 'low-stock'
+  const [sortBy, setSortBy] = useState('name-asc'); // 'name-asc' | 'name-desc' | 'price-low' | 'price-high' | 'stock-high' | 'stock-low' | 'newest'
   const [isCameraOpen, setIsCameraOpen] = useState(false);
 
-  // CRITICAL REQUIREMENT: autoFocus and useRef to ensure cursor is ALWAYS blinking here by default
-  const barcodeInputRef = useRef(null);
+  // Input Focus Management (continuous blinking cursor for USB hardware scanners)
+  const topSearchInputRef = useRef(null);
+  const quickBarcodeInputRef = useRef(null);
 
-  // Cart state
+  // Active Cart state
   const [cart, setCart] = useState([]);
+  const [cartDiscount, setCartDiscount] = useState(0);
+
+  // Held Carts (Vegas POS / Litaj Hardware style)
+  const [heldCarts, setHeldCarts] = useState([]);
+  const [isHeldCartsModalOpen, setIsHeldCartsModalOpen] = useState(false);
+
+  // Checkout Modal & Dynamic Payment Breakdown
+  const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
+  const [activePaymentMethod, setActivePaymentMethod] = useState('Cash'); // 'Cash' | 'M-Pesa' | 'Split'
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerName, setCustomerName] = useState('');
-  const [notes, setNotes] = useState('');
-
-  // Payment Breakdown
-  const [paymentMode, setPaymentMode] = useState('split'); // 'split' | 'cash' | 'mpesa'
+  const [linkedUser, setLinkedUser] = useState(null);
+  const [isSearchingUser, setIsSearchingUser] = useState(false);
   const [cashTendered, setCashTendered] = useState('');
   const [mpesaTendered, setMpesaTendered] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [mpesaRef, setMpesaRef] = useState('');
+  const [notes, setNotes] = useState('');
+  const [sendWhatsAppReceipt, setSendWhatsAppReceipt] = useState(true);
+  const [isSubmittingCheckout, setIsSubmittingCheckout] = useState(false);
 
-  // Success / Receipt Modal
+  // Sale Complete Receipt Modal
   const [completedOrderData, setCompletedOrderData] = useState(null);
 
-  // WhatsApp Queue state
+  // WhatsApp Headless Order Pool state
   const [pendingOrders, setPendingOrders] = useState([]);
   const [isLoadingQueue, setIsLoadingQueue] = useState(false);
-  const [activePendingOrderId, setActivePendingOrderId] = useState(null);
 
-  // 1. Always keep focus on the barcode search input
+  // ─────────────────────────────────────────────────────────────────────────
+  // 1. FOCUS WATCHDOG (Continuous Auto-Focus on Barcode/Search Input)
+  // ─────────────────────────────────────────────────────────────────────────
   const refocusBarcodeInput = () => {
+    // Never steal focus if an interactive modal is currently active
+    if (isCheckoutModalOpen || isHeldCartsModalOpen || isCameraOpen || completedOrderData) {
+      return;
+    }
     setTimeout(() => {
-      if (barcodeInputRef.current) {
-        barcodeInputRef.current.focus();
-        barcodeInputRef.current.select();
+      if (quickBarcodeInputRef.current && document.activeElement !== quickBarcodeInputRef.current) {
+        quickBarcodeInputRef.current.focus();
       }
-    }, 50);
+    }, 60);
   };
 
   useEffect(() => {
     refocusBarcodeInput();
-  }, [activeTab]);
+  }, [activeTab, isCheckoutModalOpen, isHeldCartsModalOpen, isCameraOpen, completedOrderData]);
 
-  // 2. Initial Products Load & Search Query Debounce
+  // 30-second Inactivity Watchdog (re-snaps focus to barcode scanner input)
   useEffect(() => {
-    fetchProducts(searchQuery);
-  }, [searchQuery]);
+    let timer = null;
+    const resetTimer = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        refocusBarcodeInput();
+      }, 30000);
+    };
 
-  const fetchProducts = async (query = '') => {
+    const events = ['mousemove', 'mousedown', 'keydown', 'touchstart'];
+    events.forEach(evt => window.addEventListener(evt, resetTimer, { passive: true }));
+    resetTimer();
+
+    return () => {
+      if (timer) clearTimeout(timer);
+      events.forEach(evt => window.removeEventListener(evt, resetTimer));
+    };
+  }, [isCheckoutModalOpen, isHeldCartsModalOpen]);
+
+  // Keyboard Shortcuts (F2: Checkout, F3: Top Search, Esc: Reset / Cancel)
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'F2') {
+        e.preventDefault();
+        if (cart.length > 0 && !isCheckoutModalOpen) {
+          handleOpenCheckout();
+        }
+      } else if (e.key === 'F3') {
+        e.preventDefault();
+        topSearchInputRef.current?.focus();
+        topSearchInputRef.current?.select();
+      } else if (e.key === 'Escape') {
+        if (isCheckoutModalOpen) setIsCheckoutModalOpen(false);
+        if (isHeldCartsModalOpen) setIsHeldCartsModalOpen(false);
+        if (isCameraOpen) setIsCameraOpen(false);
+        refocusBarcodeInput();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [cart, isCheckoutModalOpen, isHeldCartsModalOpen, isCameraOpen]);
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 2. LOAD PRODUCT CATALOG (Connects to full display pool + offline cache)
+  // ─────────────────────────────────────────────────────────────────────────
+  const loadFullCatalog = async () => {
     try {
-      setIsSearching(true);
-      const res = await posApi.searchProducts(query);
-      if (res.success) {
-        setProducts(res.products || []);
+      setIsLoadingProducts(true);
+
+      // Attempt 1: Fetch from dedicated POS endpoint with high limit (1000 items)
+      const posRes = await posApi.searchProducts('', 1000).catch(() => null);
+
+      let loaded = [];
+      if (posRes?.success && Array.isArray(posRes.products) && posRes.products.length > 0) {
+        loaded = posRes.products;
+      } else {
+        // Fallback: Fetch directly from the main store display pool (/api/products)
+        console.log('🔄 Fetching from main store display pool...');
+        const storeProducts = await posApi.fetchAllStoreProducts();
+        if (storeProducts && storeProducts.length > 0) {
+          loaded = storeProducts.map(p => ({
+            ...p,
+            _id: p._id || p.id,
+            stock: typeof p.stock === 'number' ? p.stock : 0,
+            inStock: (typeof p.stock === 'number' ? p.stock > 0 : true) && p.inStock !== false,
+            image: p.image || p.images?.[0] || '',
+            barcode: p.barcode || (p._id ? `7${String(p._id).slice(-11)}` : '700000000001')
+          }));
+        }
+      }
+
+      if (loaded.length > 0) {
+        setAllProducts(loaded);
+        localStorage.setItem('seekon_pos_inventory_cache', JSON.stringify(loaded));
+      } else {
+        // Restore from offline cache if network failed
+        const cached = localStorage.getItem('seekon_pos_inventory_cache');
+        if (cached) {
+          setAllProducts(JSON.parse(cached));
+          toast('Loaded products from local cache (offline mode)');
+        }
       }
     } catch (err) {
-      console.error('Error fetching POS products:', err);
+      console.error('Failed to load POS catalog:', err);
+      const cached = localStorage.getItem('seekon_pos_inventory_cache');
+      if (cached) {
+        setAllProducts(JSON.parse(cached));
+      }
     } finally {
-      setIsSearching(false);
+      setIsLoadingProducts(false);
+      refocusBarcodeInput();
     }
   };
 
-  // 3. Fetch WhatsApp Queue
+  useEffect(() => {
+    loadFullCatalog();
+
+    // Load held carts from local storage
+    const savedHeld = localStorage.getItem('seekon_held_carts');
+    if (savedHeld) {
+      try {
+        setHeldCarts(JSON.parse(savedHeld));
+      } catch (e) {
+        console.warn('Failed to parse held carts:', e);
+      }
+    }
+  }, []);
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 3. CATEGORIES & DYNAMIC FILTERING & MULTI-MODE SORTING
+  // ─────────────────────────────────────────────────────────────────────────
+  // Dynamically extract unique categories from the live product pool
+  const categories = useMemo(() => {
+    const set = new Set();
+    allProducts.forEach(p => {
+      const cat = (p.category || '').trim();
+      if (cat) set.add(cat);
+    });
+    return ['ALL', ...Array.from(set).sort((a, b) => a.localeCompare(b))];
+  }, [allProducts]);
+
+  // Reactive filtering and sorting (Instant zero-latency execution)
+  const filteredAndSortedProducts = useMemo(() => {
+    const query = (quickBarcodeQuery || topSearch || '').trim().toLowerCase();
+
+    // 1. Filter
+    let list = allProducts.filter(item => {
+      // Category Filter
+      const matchCat = selectedCategory === 'ALL' ||
+        (item.category && item.category.toLowerCase() === selectedCategory.toLowerCase());
+
+      // Stock Filter
+      let matchStock = true;
+      if (stockFilter === 'in-stock') {
+        matchStock = item.stock > 0;
+      } else if (stockFilter === 'low-stock') {
+        matchStock = item.stock > 0 && item.stock <= 5;
+      }
+
+      // Search Filter (Search in name, category, brand, barcode, SKU, tags)
+      let matchQuery = true;
+      if (query) {
+        const nameMatch = (item.name || '').toLowerCase().includes(query);
+        const catMatch = (item.category || '').toLowerCase().includes(query);
+        const brandMatch = (item.brand || '').toLowerCase().includes(query);
+        const barcodeMatch = String(item.barcode || '').toLowerCase().includes(query);
+        const skuMatch = String(item.sku || '').toLowerCase().includes(query);
+        matchQuery = nameMatch || catMatch || brandMatch || barcodeMatch || skuMatch;
+      }
+
+      return matchCat && matchStock && matchQuery;
+    });
+
+    // 2. Sort
+    return list.sort((a, b) => {
+      switch (sortBy) {
+        case 'name-asc':
+          return (a.name || '').localeCompare(b.name || '');
+        case 'name-desc':
+          return (b.name || '').localeCompare(a.name || '');
+        case 'price-low':
+          return Number(a.price || 0) - Number(b.price || 0);
+        case 'price-high':
+          return Number(b.price || 0) - Number(a.price || 0);
+        case 'stock-high':
+          return Number(b.stock || 0) - Number(a.stock || 0);
+        case 'stock-low':
+          return Number(a.stock || 0) - Number(b.stock || 0);
+        case 'newest':
+        default:
+          return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+      }
+    });
+  }, [allProducts, topSearch, quickBarcodeQuery, selectedCategory, stockFilter, sortBy]);
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 4. INSTANT BARCODE / NAME QUICK ADD (Bottom Bar like Litaj Hardware)
+  // ─────────────────────────────────────────────────────────────────────────
+  const handleQuickBarcodeAdd = (e) => {
+    if (e) e.preventDefault();
+    const query = quickBarcodeQuery.trim().toLowerCase();
+    const qty = Math.max(1, parseFloat(quickBarcodeQty) || 1);
+
+    if (!query) return;
+
+    // Multi-level exact hierarchy matching:
+    // 1. Exact barcode match
+    // 2. Exact SKU match
+    // 3. Exact name match
+    // 4. Starts-with name
+    // 5. Includes name or category
+    const match =
+      allProducts.find(p => String(p.barcode || '').toLowerCase() === query) ||
+      allProducts.find(p => String(p.sku || '').toLowerCase() === query) ||
+      allProducts.find(p => (p.name || '').toLowerCase() === query) ||
+      allProducts.find(p => (p.name || '').toLowerCase().startsWith(query)) ||
+      allProducts.find(p => (p.name || '').toLowerCase().includes(query));
+
+    if (match) {
+      addToCart(match, qty);
+      setQuickBarcodeQuery('');
+      setQuickBarcodeQty(1);
+      toast.success(`Added ${qty}x ${match.name}`);
+    } else {
+      toast.error(`No item found matching "${query}"`);
+    }
+
+    refocusBarcodeInput();
+  };
+
+  const handleCameraScan = (decodedBarcode) => {
+    if (!decodedBarcode) return;
+    const clean = String(decodedBarcode).trim();
+    setQuickBarcodeQuery(clean);
+
+    const match = allProducts.find(
+      p => String(p.barcode) === clean || String(p.sku).toLowerCase() === clean.toLowerCase()
+    );
+
+    if (match) {
+      addToCart(match, 1);
+      setQuickBarcodeQuery('');
+      toast.success(`Camera scanned: ${match.name}`);
+    } else {
+      toast(`Scanned: ${clean}. Search filtered.`);
+    }
+
+    setIsCameraOpen(false);
+    refocusBarcodeInput();
+  };
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 5. CART OPERATIONS & VALIDATIONS
+  // ─────────────────────────────────────────────────────────────────────────
+  const addToCart = (product, qtyToAdd = 1) => {
+    const validQty = Math.max(1, Number(qtyToAdd) || 1);
+
+    if (product.stock <= 0) {
+      toast.error(`"${product.name}" is out of stock!`);
+      refocusBarcodeInput();
+      return;
+    }
+
+    setCart(prevCart => {
+      const idx = prevCart.findIndex(item => item.productId === product._id);
+      if (idx > -1) {
+        const existing = prevCart[idx];
+        const newQty = existing.quantity + validQty;
+        if (newQty > product.stock) {
+          toast.error(`Stock limit reached! Available: ${product.stock}`);
+          return prevCart;
+        }
+        const updated = [...prevCart];
+        updated[idx] = {
+          ...existing,
+          quantity: newQty,
+          total: newQty * existing.price
+        };
+        return updated;
+      } else {
+        return [
+          ...prevCart,
+          {
+            productId: product._id,
+            name: product.name,
+            category: product.category || 'Apparel',
+            price: Number(product.price || 0),
+            stock: product.stock,
+            image: product.image || product.images?.[0] || '',
+            size: product.sizes?.[0] || 'Standard',
+            color: product.colors?.[0] || 'Standard',
+            quantity: validQty,
+            total: validQty * Number(product.price || 0)
+          }
+        ];
+      }
+    });
+
+    refocusBarcodeInput();
+  };
+
+  const updateCartQty = (productId, newQty) => {
+    const parsedQty = parseFloat(newQty);
+    setCart(prevCart => {
+      const idx = prevCart.findIndex(c => c.productId === productId);
+      if (idx === -1) return prevCart;
+
+      const item = prevCart[idx];
+      if (isNaN(parsedQty) || parsedQty <= 0) {
+        return prevCart.filter(c => c.productId !== productId);
+      }
+
+      if (parsedQty > item.stock) {
+        toast.error(`Cannot exceed stock count (${item.stock})`);
+        return prevCart;
+      }
+
+      const updated = [...prevCart];
+      updated[idx] = {
+        ...item,
+        quantity: parsedQty,
+        total: parsedQty * item.price
+      };
+      return updated;
+    });
+  };
+
+  const removeCartItem = (productId) => {
+    setCart(prevCart => prevCart.filter(c => c.productId !== productId));
+    refocusBarcodeInput();
+  };
+
+  const clearCart = () => {
+    if (cart.length === 0) return;
+    if (window.confirm('Clear all items from active cart?')) {
+      setCart([]);
+      setCartDiscount(0);
+      refocusBarcodeInput();
+      toast('Cart cleared');
+    }
+  };
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 6. TOTALS & DISCOUNT (Capped at 50% max)
+  // ─────────────────────────────────────────────────────────────────────────
+  const subtotal = useMemo(() => {
+    return cart.reduce((acc, item) => acc + (item.quantity * item.price), 0);
+  }, [cart]);
+
+  const maxDiscountAllowed = subtotal * 0.5;
+
+  const validDiscount = useMemo(() => {
+    const num = Math.max(0, parseFloat(cartDiscount) || 0);
+    return Math.min(num, maxDiscountAllowed);
+  }, [cartDiscount, maxDiscountAllowed]);
+
+  const grandTotal = Math.max(0, subtotal - validDiscount);
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 7. CART HOLD & RECALL (Vegas POS / Litaj Hardware Feature)
+  // ─────────────────────────────────────────────────────────────────────────
+  const handleHoldCart = () => {
+    if (cart.length === 0) {
+      toast.error('Cart is empty');
+      return;
+    }
+
+    const newHeld = {
+      id: Date.now().toString(),
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      date: new Date().toLocaleDateString('en-KE'),
+      cashier: user?.name || user?.email || 'Cashier',
+      items: [...cart],
+      discount: validDiscount,
+      total: grandTotal
+    };
+
+    const updated = [newHeld, ...heldCarts];
+    setHeldCarts(updated);
+    localStorage.setItem('seekon_held_carts', JSON.stringify(updated));
+
+    setCart([]);
+    setCartDiscount(0);
+    refocusBarcodeInput();
+    toast.success('Cart saved on HOLD ⏸️');
+  };
+
+  const handleRestoreHeldCart = (heldId) => {
+    const target = heldCarts.find(h => h.id === heldId);
+    if (!target) return;
+
+    if (cart.length > 0) {
+      if (!window.confirm('Overwriting current active cart with held cart. Proceed?')) {
+        return;
+      }
+    }
+
+    setCart(target.items);
+    setCartDiscount(target.discount || 0);
+
+    const remaining = heldCarts.filter(h => h.id !== heldId);
+    setHeldCarts(remaining);
+    localStorage.setItem('seekon_held_carts', JSON.stringify(remaining));
+
+    setIsHeldCartsModalOpen(false);
+    refocusBarcodeInput();
+    toast.success('Cart restored ▶️');
+  };
+
+  const handleDiscardHeldCart = (heldId) => {
+    const remaining = heldCarts.filter(h => h.id !== heldId);
+    setHeldCarts(remaining);
+    localStorage.setItem('seekon_held_carts', JSON.stringify(remaining));
+    toast('Held cart discarded');
+  };
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 8. DYNAMIC CHECKOUT MODAL & CUSTOMER LOOKUP
+  // ─────────────────────────────────────────────────────────────────────────
+  const handleOpenCheckout = () => {
+    if (cart.length === 0) {
+      toast.error('Cart is empty. Add items first.');
+      return;
+    }
+
+    if (grandTotal <= 0) {
+      toast.error('Grand total must be greater than zero.');
+      return;
+    }
+
+    // Default payment method and initial tender amounts
+    setActivePaymentMethod('Cash');
+    setCashTendered(String(grandTotal));
+    setMpesaTendered('0');
+    setMpesaRef('');
+    setIsCheckoutModalOpen(true);
+  };
+
+  // Debounced customer lookup by phone number
+  useEffect(() => {
+    if (!customerPhone || customerPhone.trim().length < 8) {
+      setLinkedUser(null);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        setIsSearchingUser(true);
+        const res = await posApi.lookupCustomer(customerPhone);
+        if (res.success && res.found && res.user) {
+          setLinkedUser(res.user);
+          if (!customerName || customerName === 'Walk-in Customer') {
+            setCustomerName(res.user.name);
+          }
+        } else {
+          setLinkedUser(null);
+        }
+      } catch (e) {
+        setLinkedUser(null);
+      } finally {
+        setIsSearchingUser(false);
+      }
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [customerPhone]);
+
+  // Payment Breakdown Calculations
+  const numCash = Math.max(0, parseFloat(cashTendered) || 0);
+  const numMpesa = Math.max(0, parseFloat(mpesaTendered) || 0);
+
+  const totalTendered = useMemo(() => {
+    if (activePaymentMethod === 'Cash') return numCash;
+    if (activePaymentMethod === 'M-Pesa') return numMpesa;
+    return numCash + numMpesa; // Split
+  }, [activePaymentMethod, numCash, numMpesa]);
+
+  const changeToReturn = Math.max(0, totalTendered - grandTotal);
+  const remainingBalance = Math.max(0, grandTotal - totalTendered);
+
+  // Submit Final Sale
+  const handleSubmitCheckout = async () => {
+    if (remainingBalance > 0) {
+      toast.error(`Payment incomplete! Remaining balance: KES ${remainingBalance.toLocaleString()}`);
+      return;
+    }
+
+    try {
+      setIsSubmittingCheckout(true);
+
+      const payload = {
+        items: cart.map(item => ({
+          productId: item.productId,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+          size: item.size,
+          color: item.color
+        })),
+        customerPhone: customerPhone.trim(),
+        customerName: customerName.trim() || linkedUser?.name || 'Walk-in Customer',
+        payments: {
+          cash: activePaymentMethod === 'M-Pesa' ? 0 : numCash,
+          mpesa: activePaymentMethod === 'Cash' ? 0 : numMpesa
+        },
+        paymentMethod: activePaymentMethod,
+        notes: notes.trim(),
+        sendWhatsAppReceipt
+      };
+
+      const res = await posApi.checkout(payload);
+
+      if (res.success) {
+        toast.success('Sale completed successfully! 🎉');
+
+        // Optimistically deduct stock in local inventory state
+        setAllProducts(prev => {
+          const map = new Map(cart.map(c => [c.productId, c.quantity]));
+          return prev.map(p => {
+            const deducted = map.get(p._id);
+            if (deducted) {
+              const updatedStock = Math.max(0, (p.stock || 0) - deducted);
+              return { ...p, stock: updatedStock, inStock: updatedStock > 0 };
+            }
+            return p;
+          });
+        });
+
+        // Set Completed Order Data for Receipt Preview Modal
+        setCompletedOrderData({
+          order: res.order,
+          receiptBase64: res.receiptBase64,
+          whatsappDispatched: res.whatsappDispatched,
+          whatsappError: res.whatsappError,
+          phone: customerPhone.trim()
+        });
+
+        // Reset Cart and Checkout states
+        setCart([]);
+        setCartDiscount(0);
+        setCustomerPhone('');
+        setCustomerName('');
+        setNotes('');
+        setCashTendered('');
+        setMpesaTendered('');
+        setIsCheckoutModalOpen(false);
+      } else {
+        toast.error(res.message || 'Checkout failed');
+      }
+    } catch (err) {
+      console.error('Checkout error:', err);
+      toast.error(err.message || 'Checkout failed');
+    } finally {
+      setIsSubmittingCheckout(false);
+    }
+  };
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // 9. WHATSAPP QUEUE OPERATIONS
+  // ─────────────────────────────────────────────────────────────────────────
   const fetchQueue = async () => {
     try {
       setIsLoadingQueue(true);
@@ -115,741 +660,619 @@ const PosDashboard = () => {
     }
   }, [activeTab]);
 
-  // 4. Barcode Enter Scanner Handler (USB Scanners send Enter key)
-  const handleBarcodeKeyDown = (e) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      const code = searchQuery.trim();
-      if (!code) return;
-
-      // Find exact match by barcode or SKU
-      const exactMatch = products.find(
-        p => String(p.barcode) === code || String(p.sku).toLowerCase() === code.toLowerCase()
-      );
-
-      if (exactMatch) {
-        addToCart(exactMatch);
-        setSearchQuery('');
-        toast.success(`Scanned: ${exactMatch.name}`);
-      } else if (products.length === 1) {
-        addToCart(products[0]);
-        setSearchQuery('');
-        toast.success(`Added: ${products[0].name}`);
-      } else {
-        toast.error(`No product found with barcode: ${code}`);
-      }
-      refocusBarcodeInput();
-    }
-  };
-
-  // 5. Camera Scan Detection
-  const handleCameraScan = (decodedBarcode) => {
-    if (!decodedBarcode) return;
-    setSearchQuery(decodedBarcode);
-
-    const match = products.find(
-      p => String(p.barcode) === decodedBarcode || String(p.sku) === decodedBarcode
-    );
-
-    if (match) {
-      addToCart(match);
-      toast.success(`Camera scanned: ${match.name}`);
-    } else {
-      fetchProducts(decodedBarcode);
-      toast(`Scanned ${decodedBarcode}. Filter applied.`);
-    }
-    refocusBarcodeInput();
-  };
-
-  // 6. Cart Operations
-  const addToCart = (product) => {
-    if (product.stock <= 0) {
-      toast.error(`${product.name} is out of stock!`);
-      refocusBarcodeInput();
-      return;
-    }
-
-    setCart(prevCart => {
-      const existingIdx = prevCart.findIndex(item => item.productId === product._id);
-      if (existingIdx > -1) {
-        const existing = prevCart[existingIdx];
-        if (existing.quantity >= product.stock) {
-          toast.error(`Cannot exceed stock count (${product.stock})`);
-          return prevCart;
-        }
-        const updated = [...prevCart];
-        updated[existingIdx] = {
-          ...existing,
-          quantity: existing.quantity + 1
-        };
-        return updated;
-      } else {
-        return [
-          ...prevCart,
-          {
-            productId: product._id,
-            name: product.name,
-            price: product.price,
-            stock: product.stock,
-            image: product.image || product.images?.[0] || '',
-            size: product.sizes?.[0] || 'Standard',
-            color: product.colors?.[0] || 'Standard',
-            quantity: 1
-          }
-        ];
-      }
-    });
-
-    // Auto update cash or mpesa tendered if single mode selected
-    refocusBarcodeInput();
-  };
-
-  const updateQuantity = (productId, delta) => {
-    setCart(prevCart => {
-      return prevCart
-        .map(item => {
-          if (item.productId === productId) {
-            const newQty = item.quantity + delta;
-            if (newQty > item.stock) {
-              toast.error(`Only ${item.stock} in stock`);
-              return item;
-            }
-            return newQty > 0 ? { ...item, quantity: newQty } : null;
-          }
-          return item;
-        })
-        .filter(Boolean);
-    });
-    refocusBarcodeInput();
-  };
-
-  const removeItem = (productId) => {
-    setCart(prevCart => prevCart.filter(item => item.productId !== productId));
-    refocusBarcodeInput();
-  };
-
-  const clearCart = () => {
-    setCart([]);
-    setCashTendered('');
-    setMpesaTendered('');
-    setCustomerPhone('');
-    setCustomerName('');
-    setActivePendingOrderId(null);
-    refocusBarcodeInput();
-  };
-
-  // Calculations
-  const cartSubtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const totalAmount = cartSubtotal;
-
-  const cashVal = parseFloat(cashTendered) || 0;
-  const mpesaVal = parseFloat(mpesaTendered) || 0;
-  const totalTendered = cashVal + mpesaVal;
-  const balanceChange = Math.max(0, totalTendered - totalAmount);
-  const remainingDue = Math.max(0, totalAmount - totalTendered);
-
-  // Sync quick payment modes
-  const handlePaymentModeSelect = (mode) => {
-    setPaymentMode(mode);
-    if (mode === 'cash') {
-      setCashTendered(String(totalAmount));
-      setMpesaTendered('0');
-    } else if (mode === 'mpesa') {
-      setMpesaTendered(String(totalAmount));
-      setCashTendered('0');
-    } else {
-      // Split mode: split 50/50 by default
-      const half = Math.round(totalAmount / 2);
-      setCashTendered(String(half));
-      setMpesaTendered(String(totalAmount - half));
-    }
-  };
-
-  // 7. Complete Sale Checkout (Phase 4)
-  const handleCompleteSale = async () => {
-    if (cart.length === 0) {
-      toast.error('Cart is empty!');
-      refocusBarcodeInput();
-      return;
-    }
-
-    if (totalTendered < totalAmount) {
-      toast.error(`Payment incomplete! Remaining due: KES ${remainingDue.toLocaleString()}`);
-      return;
-    }
-
-    try {
-      setIsSubmitting(true);
-
-      const payload = {
-        items: cart.map(it => ({
-          productId: it.productId,
-          name: it.name,
-          price: it.price,
-          quantity: it.quantity,
-          size: it.size,
-          color: it.color
-        })),
-        customerPhone: customerPhone.trim(),
-        customerName: customerName.trim() || 'Walk-in Customer',
-        payments: {
-          cash: cashVal,
-          mpesa: mpesaVal
-        },
-        paymentMethod: (cashVal > 0 && mpesaVal > 0) ? 'Split' : (cashVal > 0 ? 'Cash' : 'M-Pesa'),
-        notes,
-        pendingOrderId: activePendingOrderId
-      };
-
-      const res = await posApi.checkout(payload);
-
-      if (res.success) {
-        toast.success('Sale completed & stock deducted!');
-        setCompletedOrderData({
-          order: res.order,
-          whatsappDispatched: res.whatsappDispatched,
-          whatsappError: res.whatsappError,
-          receiptBase64: res.receiptBase64,
-          phone: customerPhone.trim()
-        });
-
-        clearCart();
-      }
-    } catch (err) {
-      console.error('Checkout error:', err);
-      toast.error(err.message || 'Checkout failed');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  // 8. Load WhatsApp Queue Order into POS Cart (Phase 5)
   const handleLoadQueueOrder = (order) => {
-    setCart([]);
-    setCustomerPhone(order.customerPhone || '');
-    setCustomerName(order.customerName || '');
-    setActivePendingOrderId(order._id);
+    // Fill customer info
+    if (order.customerPhone) setCustomerPhone(order.customerPhone);
+    if (order.customerName) setCustomerName(order.customerName);
 
-    // Map items
-    const loadedItems = order.items.map(it => ({
-      productId: it.product?._id || it.product || it._id,
-      name: it.name,
-      price: it.price,
-      stock: it.product?.stock || 99,
-      image: it.product?.image || '',
-      size: it.size || 'Standard',
-      color: it.color || 'Standard',
-      quantity: it.quantity || 1
-    }));
+    // Convert items into active cart format
+    const convertedItems = (order.items || []).map(item => {
+      const matched = allProducts.find(
+        p => (p.name || '').toLowerCase() === (item.productName || '').toLowerCase()
+      );
+      return {
+        productId: matched ? matched._id : (item.product || `manual-${Date.now()}`),
+        name: item.productName || item.name || 'WhatsApp Order Item',
+        category: matched?.category || 'Apparel',
+        price: Number(item.price || matched?.price || 0),
+        stock: matched?.stock || 99,
+        image: matched?.image || matched?.images?.[0] || '',
+        size: item.size || 'Standard',
+        color: item.color || 'Standard',
+        quantity: Number(item.quantity || 1),
+        total: Number(item.price || matched?.price || 0) * Number(item.quantity || 1)
+      };
+    });
 
-    setCart(loadedItems);
-
-    if (order.paymentMethod === 'Cash') {
-      setPaymentMode('cash');
-      setCashTendered(String(order.totalAmount));
-      setMpesaTendered('0');
-    } else if (order.paymentMethod === 'M-Pesa') {
-      setPaymentMode('mpesa');
-      setMpesaTendered(String(order.totalAmount));
-      setCashTendered('0');
-    } else if (order.payments?.cash || order.payments?.mpesa) {
-      setPaymentMode('split');
-      setCashTendered(String(order.payments.cash || 0));
-      setMpesaTendered(String(order.payments.mpesa || 0));
-    }
-
+    setCart(convertedItems);
     setActiveTab('pos');
-    toast.success(`Loaded WhatsApp order for ${order.customerPhone}`);
+    toast.success(`Loaded order #${order._id.slice(-6)} into POS cart!`);
     refocusBarcodeInput();
   };
 
   const handleDismissQueueOrder = async (orderId) => {
+    if (!window.confirm('Dismiss this order from WhatsApp queue?')) return;
     try {
       await posApi.dismissPendingOrder(orderId);
-      toast.success('Order removed from queue');
-      fetchQueue();
-    } catch (err) {
-      toast.error(err.message || 'Failed to dismiss');
+      setPendingOrders(prev => prev.filter(o => o._id !== orderId));
+      toast('Order dismissed from queue');
+    } catch (e) {
+      toast.error('Failed to dismiss order');
     }
   };
 
-  // Filter products by category
-  const categories = ['All', 'Footwear', 'Apparel', 'Accessories', 'Headwear'];
-  const filteredProducts = selectedCategory === 'All'
-    ? products
-    : products.filter(p => p.category?.toLowerCase() === selectedCategory.toLowerCase());
-
+  // ─────────────────────────────────────────────────────────────────────────
+  // RENDER: CLEAN BLUE & WHITE THEME
+  // ─────────────────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col font-sans select-none">
-      {/* Top Bar Header */}
-      <header className="h-14 bg-neutral-950 border-b border-neutral-800 px-4 sm:px-6 flex items-center justify-between z-30">
-        <div className="flex items-center space-x-6">
-          <div className="flex items-center space-x-2">
-            <span className="font-extrabold tracking-widest text-lg text-white">SEEKON</span>
-            <span className="text-xs uppercase px-2 py-0.5 rounded-full font-bold bg-neutral-800 text-emerald-400 border border-emerald-500/30">
-              POS Terminal
-            </span>
-          </div>
+    <div className="min-h-screen bg-slate-100 flex flex-col font-sans text-slate-800 select-none">
 
-          {/* Tab Switcher */}
-          <nav className="hidden sm:flex items-center space-x-1 bg-neutral-900 p-1 rounded-xl border border-neutral-800">
-            <button
-              onClick={() => setActiveTab('pos')}
-              className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all ${
-                activeTab === 'pos'
-                  ? 'bg-white text-black shadow-sm'
-                  : 'text-gray-400 hover:text-white'
-              }`}
-            >
-              POS Register
-            </button>
-            <button
-              onClick={() => setActiveTab('queue')}
-              className={`flex items-center space-x-1.5 px-3 py-1 text-xs font-semibold rounded-lg transition-all ${
-                activeTab === 'queue'
-                  ? 'bg-white text-black shadow-sm'
-                  : 'text-gray-400 hover:text-white'
-              }`}
-            >
-              <span>WhatsApp Queue</span>
-              {pendingOrders.length > 0 && (
-                <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-emerald-500 text-black">
-                  {pendingOrders.length}
+      {/* ========================================================= */}
+      {/* 1. TOP NAVIGATION BAR (Crisp Royal Blue & White Theme)     */}
+      {/* ========================================================= */}
+      <header className="bg-blue-600 text-white shadow-sm flex-shrink-0 sticky top-0 z-40 border-b border-blue-700">
+        <div className="w-full px-3 sm:px-6">
+          <div className="flex items-center justify-between h-14">
+
+            {/* Brand Logo & Name */}
+            <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-2">
+                <span className="w-8 h-8 rounded-lg bg-white text-blue-600 flex items-center justify-center font-black text-sm shadow-sm">
+                  SK
                 </span>
-              )}
-            </button>
-            <button
-              onClick={() => setActiveTab('barcodes')}
-              className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all ${
-                activeTab === 'barcodes'
-                  ? 'bg-white text-black shadow-sm'
-                  : 'text-gray-400 hover:text-white'
-              }`}
-            >
-              A4 Barcode Labels
-            </button>
-          </nav>
-        </div>
+                <span className="text-base sm:text-lg font-black tracking-tight text-white leading-none">
+                  Seekon <span className="text-blue-200">POS</span>
+                </span>
+              </div>
 
-        {/* User Identity & Logout */}
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-2 text-xs">
-            <div className="w-7 h-7 rounded-full bg-neutral-800 border border-neutral-700 flex items-center justify-center text-emerald-400">
-              <FiUser className="w-3.5 h-3.5" />
+              {/* Status Pill */}
+              <div className="hidden md:flex items-center space-x-2 text-xs font-semibold bg-blue-700/80 px-2.5 py-1 rounded-xl border border-blue-500/50">
+                <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                <span className="text-blue-100">Terminal Online</span>
+                <span className="text-blue-300">•</span>
+                <span className="capitalize text-white font-bold truncate max-w-[120px]">
+                  {user?.name || user?.email || 'Cashier'}
+                </span>
+              </div>
             </div>
-            <div className="hidden md:block">
-              <p className="font-medium text-gray-200 leading-none">{user?.name || user?.email || 'Cashier'}</p>
-              <p className="text-[10px] text-emerald-400 uppercase font-semibold">{user?.role || 'cashier'}</p>
+
+            {/* Desktop Keyboard Shortcuts (Hidden on mobile) */}
+            <div className="hidden lg:flex items-center space-x-2 text-xs text-blue-100 bg-blue-700/60 px-3 py-1 rounded-xl border border-blue-500/40">
+              <span><kbd className="bg-white/20 px-1.5 py-0.5 rounded text-[11px] font-bold text-white">F2</kbd> Checkout</span>
+              <span className="text-blue-300">•</span>
+              <span><kbd className="bg-white/20 px-1.5 py-0.5 rounded text-[11px] font-bold text-white">F3</kbd> Search</span>
+              <span className="text-blue-300">•</span>
+              <span><kbd className="bg-white/20 px-1.5 py-0.5 rounded text-[11px] font-bold text-white">Esc</kbd> Cancel</span>
+            </div>
+
+            {/* Navigation Tabs */}
+            <div className="flex items-center space-x-1.5">
+              <button
+                onClick={() => { setActiveTab('pos'); refocusBarcodeInput(); }}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 ${
+                  activeTab === 'pos'
+                    ? 'bg-white text-blue-700 shadow-sm'
+                    : 'text-blue-100 hover:bg-blue-500/50'
+                }`}
+              >
+                <span>💻</span>
+                <span>POS Terminal</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('queue')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 relative ${
+                  activeTab === 'queue'
+                    ? 'bg-white text-blue-700 shadow-sm'
+                    : 'text-blue-100 hover:bg-blue-500/50'
+                }`}
+              >
+                <span>📱</span>
+                <span>WhatsApp Queue</span>
+                {pendingOrders.length > 0 && (
+                  <span className="w-5 h-5 rounded-full bg-emerald-400 text-blue-900 text-[10px] font-black flex items-center justify-center">
+                    {pendingOrders.length}
+                  </span>
+                )}
+              </button>
+
+              <button
+                onClick={() => setActiveTab('barcodes')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center space-x-1.5 ${
+                  activeTab === 'barcodes'
+                    ? 'bg-white text-blue-700 shadow-sm'
+                    : 'text-blue-100 hover:bg-blue-500/50'
+                }`}
+              >
+                <span>🏷️</span>
+                <span>Barcode Labels</span>
+              </button>
+
+              <button
+                onClick={logout}
+                title="Sign Out"
+                className="p-2 rounded-xl text-blue-100 hover:text-white hover:bg-red-600/80 transition ml-1"
+              >
+                <FiLogOut className="w-4 h-4" />
+              </button>
             </div>
           </div>
-
-          {user?.role === 'admin' && (
-            <a
-              href="/admin/dashboard"
-              className="text-xs text-gray-400 hover:text-white bg-neutral-900 border border-neutral-800 px-2.5 py-1 rounded-lg transition-colors"
-            >
-              Admin Panel
-            </a>
-          )}
-
-          <button
-            onClick={logout}
-            className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-neutral-900 rounded-lg transition-colors"
-            title="Logout cashier session"
-          >
-            <FiLogOut className="w-4 h-4" />
-          </button>
         </div>
       </header>
 
-      {/* Main Content Area */}
-      <div className="flex-1 overflow-hidden">
-        {/* ========================================================= */}
-        {/* TAB 1: THE 50/50 FRONTEND POS REGISTER VIEW */}
-        {/* ========================================================= */}
+      {/* ========================================================= */}
+      {/* 2. MAIN APPLICATION WORKSPACE                             */}
+      {/* ========================================================= */}
+      <main className="flex-1 min-h-0 p-2 sm:p-3 overflow-hidden">
+
+        {/* ───────────────────────────────────────────────────────── */}
+        {/* TAB 1: 50/50 SPLIT POS WORKSPACE                         */}
+        {/* ───────────────────────────────────────────────────────── */}
         {activeTab === 'pos' && (
-          <div className="h-[calc(100vh-3.5rem)] grid grid-cols-1 lg:grid-cols-2 divide-y lg:divide-y-0 lg:divide-x divide-neutral-800">
-            {/* -------------------------------------------------------- */}
-            {/* LEFT SIDE: SEARCH & SCAN */}
-            {/* -------------------------------------------------------- */}
-            <div className="flex flex-col h-full bg-neutral-950/60 p-4 sm:p-5 overflow-hidden">
-              {/* Barcode Search Header */}
-              <div className="space-y-3 mb-4">
-                <div className="flex items-center space-x-2">
+          <div className="h-[calc(100vh-4.75rem)] flex flex-col lg:flex-row gap-3 overflow-hidden">
+
+            {/* ═════════════════════════════════════════════════════ */}
+            {/* LEFT SIDE: CATALOG, LIVE SEARCH, DYNAMIC SORTING    */}
+            {/* ═════════════════════════════════════════════════════ */}
+            <section className="w-full lg:w-7/12 flex flex-col gap-2.5 h-full overflow-hidden">
+
+              {/* Search & Filter Controls Card */}
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-3 flex flex-col gap-2.5 flex-shrink-0">
+                
+                {/* Search Bar Row */}
+                <div className="flex items-center gap-2">
                   <div className="relative flex-1">
-                    <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                      <FiSearch className="w-5 h-5" />
+                    </div>
                     <input
-                      ref={barcodeInputRef}
-                      autoFocus
+                      ref={topSearchInputRef}
                       type="text"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      onKeyDown={handleBarcodeKeyDown}
-                      placeholder="Search by Name or Barcode (Scanner Auto-Focused)..."
-                      className="w-full pl-10 pr-4 py-3 bg-neutral-900 border-2 border-neutral-700 focus:border-emerald-500 rounded-xl text-white placeholder-gray-500 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/20 font-medium transition-all shadow-inner"
+                      value={topSearch}
+                      onChange={(e) => setTopSearch(e.target.value)}
+                      placeholder="Search apparel by name, brand, SKU, or barcode (F3)..."
+                      className="w-full pl-11 pr-9 py-2.5 bg-slate-50 border-2 border-slate-200 rounded-xl font-bold text-sm sm:text-base text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:bg-white transition"
                     />
-                    {isSearching && (
-                      <div className="absolute right-3.5 top-1/2 -translate-y-1/2">
-                        <div className="w-4 h-4 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-                      </div>
+                    {topSearch && (
+                      <button
+                        onClick={() => { setTopSearch(''); topSearchInputRef.current?.focus(); }}
+                        className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 text-xl font-bold"
+                      >
+                        &times;
+                      </button>
                     )}
                   </div>
 
+                  {/* Camera Scanner Trigger */}
                   <button
                     onClick={() => setIsCameraOpen(true)}
-                    className="flex items-center space-x-1.5 px-4 py-3 bg-neutral-800 hover:bg-neutral-700 text-emerald-400 border border-neutral-700 rounded-xl font-medium text-xs transition-colors shrink-0"
-                    title="Open Camera Scanner"
+                    title="Scan with Camera"
+                    className="h-11 px-3.5 bg-blue-50 hover:bg-blue-100 active:bg-blue-200 text-blue-700 border border-blue-200 rounded-xl font-bold transition flex items-center gap-1.5 shadow-xs"
                   >
                     <FiCamera className="w-4 h-4" />
-                    <span className="hidden sm:inline">Camera</span>
+                    <span className="hidden sm:inline text-xs">Scan</span>
+                  </button>
+
+                  {/* Refresh Full Inventory */}
+                  <button
+                    onClick={loadFullCatalog}
+                    title="Reload Full Catalog from Server"
+                    disabled={isLoadingProducts}
+                    className="h-11 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold transition flex items-center justify-center disabled:opacity-50"
+                  >
+                    <FiRefreshCw className={`w-4 h-4 ${isLoadingProducts ? 'animate-spin text-blue-600' : ''}`} />
                   </button>
                 </div>
 
-                {/* Category Pills */}
-                <div className="flex items-center space-x-1.5 overflow-x-auto pb-1 scrollbar-none">
-                  {categories.map(cat => (
+                {/* Dynamic Category Chips Row */}
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 text-xs font-bold scrollbar-none">
+                  {categories.map(cat => {
+                    const isActive = selectedCategory.toLowerCase() === cat.toLowerCase();
+                    return (
+                      <button
+                        key={cat}
+                        onClick={() => setSelectedCategory(cat)}
+                        className={`flex-shrink-0 px-3 py-1.5 rounded-xl transition ${
+                          isActive
+                            ? 'bg-blue-600 text-white shadow-sm'
+                            : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                        }`}
+                      >
+                        {cat === 'ALL' ? 'All Items' : cat}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Dynamic Sorting & Stock Filter Bar */}
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 text-xs">
+                  
+                  {/* Sorting Selector */}
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-semibold text-slate-500">Sort by:</span>
+                    <select
+                      value={sortBy}
+                      onChange={(e) => setSortBy(e.target.value)}
+                      className="bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold px-2.5 py-1 rounded-lg border border-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer"
+                    >
+                      <option value="name-asc">Name (A → Z)</option>
+                      <option value="name-desc">Name (Z → A)</option>
+                      <option value="price-low">Price: Low to High</option>
+                      <option value="price-high">Price: High to Low</option>
+                      <option value="stock-high">Stock: High to Low</option>
+                      <option value="stock-low">Low Stock First</option>
+                      <option value="newest">Newest Added</option>
+                    </select>
+                  </div>
+
+                  {/* Stock Status Filter Chips */}
+                  <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-lg border border-slate-200 font-bold">
                     <button
-                      key={cat}
-                      onClick={() => {
-                        setSelectedCategory(cat);
-                        refocusBarcodeInput();
-                      }}
-                      className={`px-3 py-1 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
-                        selectedCategory === cat
-                          ? 'bg-neutral-200 text-black'
-                          : 'bg-neutral-900 text-gray-400 hover:text-white border border-neutral-800'
+                      onClick={() => setStockFilter('all')}
+                      className={`px-2 py-0.5 rounded-md transition ${
+                        stockFilter === 'all' ? 'bg-white text-blue-700 shadow-xs' : 'text-slate-600'
                       }`}
                     >
-                      {cat}
+                      All
                     </button>
-                  ))}
+                    <button
+                      onClick={() => setStockFilter('in-stock')}
+                      className={`px-2 py-0.5 rounded-md transition ${
+                        stockFilter === 'in-stock' ? 'bg-white text-emerald-700 shadow-xs' : 'text-slate-600'
+                      }`}
+                    >
+                      In Stock
+                    </button>
+                    <button
+                      onClick={() => setStockFilter('low-stock')}
+                      className={`px-2 py-0.5 rounded-md transition ${
+                        stockFilter === 'low-stock' ? 'bg-white text-amber-700 shadow-xs' : 'text-slate-600'
+                      }`}
+                    >
+                      Low Stock (≤5)
+                    </button>
+                  </div>
+
+                  {/* Active Count Pill */}
+                  <span className="text-[11px] font-bold text-slate-500">
+                    Showing <span className="text-blue-700">{filteredAndSortedProducts.length}</span> of {allProducts.length}
+                  </span>
                 </div>
               </div>
 
-              {/* Product Catalog Grid */}
-              <div className="flex-1 overflow-y-auto pr-1 space-y-2 scrollbar-thin scrollbar-thumb-neutral-800">
-                {filteredProducts.length === 0 ? (
-                  <div className="h-64 flex flex-col items-center justify-center text-center p-6 text-gray-500">
-                    <FiAlertCircle className="w-10 h-10 mb-2 stroke-1" />
-                    <p className="text-sm">No products found</p>
-                    <p className="text-xs text-gray-600 mt-1">Try scanning a different barcode or typing a name</p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                    {filteredProducts.map(product => {
+              {/* Product List Container (Clean white card list) */}
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 flex-1 flex flex-col overflow-hidden">
+                <div className="px-3.5 py-2 bg-slate-50 border-b border-slate-200 flex justify-between items-center flex-shrink-0">
+                  <span className="text-xs font-black text-slate-600 uppercase tracking-wider">
+                    Store Catalog ({selectedCategory})
+                  </span>
+                  {isLoadingProducts && (
+                    <span className="text-xs font-bold text-blue-600 animate-pulse">Syncing catalog...</span>
+                  )}
+                </div>
+
+                {/* Scrollable Products List */}
+                <div className="flex-1 overflow-y-auto divide-y divide-slate-100 p-1">
+                  {filteredAndSortedProducts.length === 0 ? (
+                    <div className="py-16 text-center text-slate-400 font-medium">
+                      <div className="text-4xl mb-2">🔍</div>
+                      <div className="text-sm font-bold text-slate-700">No matching products found</div>
+                      <p className="text-xs text-slate-400 mt-1">Try clearing search filters or refreshing catalog</p>
+                    </div>
+                  ) : (
+                    filteredAndSortedProducts.map(product => {
                       const isOutOfStock = product.stock <= 0;
+                      const isLowStock = product.stock > 0 && product.stock <= 5;
+
                       return (
                         <div
                           key={product._id}
-                          onClick={() => addToCart(product)}
-                          className={`group relative p-3 rounded-xl border transition-all cursor-pointer flex flex-col justify-between ${
-                            isOutOfStock
-                              ? 'bg-neutral-950 border-neutral-900 opacity-50 cursor-not-allowed'
-                              : 'bg-neutral-900/70 hover:bg-neutral-900 border-neutral-800 hover:border-emerald-500/60 shadow-md hover:shadow-emerald-950/20'
-                          }`}
+                          onClick={() => addToCart(product, 1)}
+                          className="p-2.5 sm:p-3 hover:bg-blue-50/70 active:bg-blue-100/80 transition flex items-center justify-between gap-3 cursor-pointer select-none rounded-xl"
                         >
-                          <div>
-                            {/* Product Thumbnail */}
-                            <div className="w-full h-24 bg-neutral-950 rounded-lg overflow-hidden mb-2 flex items-center justify-center border border-neutral-800/60">
-                              {product.image ? (
-                                <img
-                                  src={product.image}
-                                  alt={product.name}
-                                  className="w-full h-full object-contain p-1 group-hover:scale-105 transition-transform"
-                                />
-                              ) : (
-                                <span className="text-xs text-gray-600">No Image</span>
-                              )}
-                            </div>
+                          {/* Image Thumbnail */}
+                          <div className="w-12 h-12 rounded-xl bg-slate-100 border border-slate-200 overflow-hidden flex-shrink-0 flex items-center justify-center">
+                            {product.image ? (
+                              <img
+                                src={product.image}
+                                alt={product.name}
+                                className="w-full h-full object-cover"
+                                onError={(e) => { e.target.style.display = 'none'; }}
+                              />
+                            ) : (
+                              <span className="text-xs text-slate-400 font-bold">SK</span>
+                            )}
+                          </div>
 
-                            {/* Details */}
-                            <h4 className="font-semibold text-xs text-gray-200 line-clamp-1 mb-1">
+                          {/* Product Details */}
+                          <div className="flex-1 min-w-0 pr-1">
+                            <h4 className="font-bold text-slate-900 text-sm sm:text-base leading-snug truncate">
                               {product.name}
                             </h4>
+                            <div className="flex flex-wrap items-center gap-1.5 mt-1 text-xs">
+                              <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 font-bold text-[11px]">
+                                {product.category || 'General'}
+                              </span>
 
-                            <div className="flex items-center justify-between text-[11px] mb-1">
-                              <span className="font-bold text-white">
-                                KES {product.price?.toLocaleString()}
-                              </span>
-                              <span className={`text-[10px] font-semibold px-1.5 py-0.2 rounded ${
-                                product.stock > 5
-                                  ? 'text-gray-400 bg-neutral-800'
-                                  : product.stock > 0
-                                  ? 'text-amber-400 bg-amber-950/40'
-                                  : 'text-red-400 bg-red-950/40'
-                              }`}>
-                                {product.stock > 0 ? `${product.stock} in stock` : 'Out of stock'}
-                              </span>
+                              {/* Stock status badge */}
+                              {isOutOfStock ? (
+                                <span className="px-2 py-0.5 rounded-md bg-red-100 text-red-700 font-bold text-[11px]">
+                                  Out of Stock
+                                </span>
+                              ) : isLowStock ? (
+                                <span className="px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 font-bold text-[11px]">
+                                  {product.stock} left
+                                </span>
+                              ) : (
+                                <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 font-bold text-[11px]">
+                                  {product.stock} in stock
+                                </span>
+                              )}
+
+                              {product.barcode && (
+                                <span className="hidden sm:inline font-mono text-[11px] text-slate-400 font-semibold">
+                                  #{product.barcode}
+                                </span>
+                              )}
                             </div>
                           </div>
 
-                          {/* Barcode Tag */}
-                          <div className="pt-1.5 border-t border-neutral-800/60 flex items-center justify-between text-[9px] text-gray-500 font-mono">
-                            <span>#{product.barcode}</span>
-                            <span className="text-emerald-400 font-sans group-hover:translate-x-0.5 transition-transform">+ Add</span>
+                          {/* Price & Add Action */}
+                          <div className="flex items-center gap-2.5 flex-shrink-0">
+                            <div className="text-right">
+                              <div className="text-[10px] uppercase font-bold text-slate-400">Price</div>
+                              <div className="text-sm sm:text-base font-black text-blue-700">
+                                KES {Number(product.price || 0).toLocaleString()}
+                              </div>
+                            </div>
+
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                addToCart(product, 1);
+                              }}
+                              disabled={isOutOfStock}
+                              title="Add to cart"
+                              className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-blue-600 hover:bg-blue-500 active:bg-blue-700 disabled:bg-slate-200 text-white font-black text-lg flex items-center justify-center shadow-sm shadow-blue-500/20 transition flex-shrink-0"
+                            >
+                              +
+                            </button>
                           </div>
                         </div>
                       );
-                    })}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* -------------------------------------------------------- */}
-            {/* RIGHT SIDE: CART & CHECKOUT */}
-            {/* -------------------------------------------------------- */}
-            <div className="flex flex-col h-full bg-black p-4 sm:p-5 overflow-hidden">
-              {/* Cart Header */}
-              <div className="flex items-center justify-between pb-3 border-b border-neutral-800">
-                <div className="flex items-center space-x-2">
-                  <h3 className="font-bold text-base text-white">Current Sale</h3>
-                  <span className="text-xs px-2 py-0.5 rounded-full font-bold bg-neutral-900 border border-neutral-800 text-gray-300">
-                    {cart.reduce((sum, it) => sum + it.quantity, 0)} Items
-                  </span>
-                  {activePendingOrderId && (
-                    <span className="text-[10px] uppercase tracking-wide bg-emerald-950/80 text-emerald-300 border border-emerald-800 px-2 py-0.5 rounded-full font-bold">
-                      WhatsApp Linked
-                    </span>
+                    })
                   )}
                 </div>
 
-                {cart.length > 0 && (
-                  <button
-                    onClick={clearCart}
-                    className="text-xs text-gray-500 hover:text-red-400 flex items-center space-x-1 transition-colors"
-                  >
-                    <FiTrash2 className="w-3.5 h-3.5" />
-                    <span>Clear</span>
-                  </button>
-                )}
-              </div>
-
-              {/* Cart Items List */}
-              <div className="flex-1 overflow-y-auto py-3 space-y-2 scrollbar-thin scrollbar-thumb-neutral-800 pr-1">
-                {cart.length === 0 ? (
-                  <div className="h-full flex flex-col items-center justify-center text-center p-6 text-gray-600">
-                    <FiLayers className="w-12 h-12 mb-3 stroke-1 text-neutral-800" />
-                    <p className="text-sm font-medium text-gray-400">Cart is empty</p>
-                    <p className="text-xs text-gray-600 mt-1 max-w-xs">
-                      Scan product barcodes on the left or select items from catalog to start the walk-in checkout.
-                    </p>
-                  </div>
-                ) : (
-                  cart.map(item => (
-                    <div
-                      key={item.productId}
-                      className="p-3 bg-neutral-950 border border-neutral-800/80 rounded-xl flex items-center justify-between gap-3 shadow-sm"
-                    >
-                      {/* Left: Thumbnail & Name */}
-                      <div className="flex items-center space-x-3 flex-1 min-w-0">
-                        <div className="w-10 h-10 bg-neutral-900 rounded-lg overflow-hidden shrink-0 border border-neutral-800 flex items-center justify-center">
-                          {item.image ? (
-                            <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
-                          ) : (
-                            <span className="text-[10px] text-gray-600">SKN</span>
-                          )}
-                        </div>
-                        <div className="truncate">
-                          <h5 className="font-semibold text-xs text-white truncate">{item.name}</h5>
-                          <p className="text-[11px] text-gray-400">
-                            KES {item.price?.toLocaleString()} each
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Middle: Qty Stepper */}
-                      <div className="flex items-center space-x-1 bg-neutral-900 border border-neutral-800 rounded-lg px-1.5 py-1 shrink-0">
-                        <button
-                          onClick={() => updateQuantity(item.productId, -1)}
-                          className="p-1 text-gray-400 hover:text-white transition-colors"
-                        >
-                          <FiMinus className="w-3 h-3" />
-                        </button>
-                        <span className="w-6 text-center text-xs font-bold text-white">
-                          {item.quantity}
-                        </span>
-                        <button
-                          onClick={() => updateQuantity(item.productId, 1)}
-                          className="p-1 text-gray-400 hover:text-white transition-colors"
-                        >
-                          <FiPlus className="w-3 h-3" />
-                        </button>
-                      </div>
-
-                      {/* Right: Subtotal & Delete */}
-                      <div className="text-right shrink-0">
-                        <p className="text-xs font-bold text-white">
-                          KES {(item.price * item.quantity).toLocaleString()}
-                        </p>
-                        <button
-                          onClick={() => removeItem(item.productId)}
-                          className="text-[10px] text-gray-500 hover:text-red-400 transition-colors mt-0.5"
-                        >
-                          Remove
-                        </button>
-                      </div>
+                {/* Quick Barcode / Instant Add Bar (Bottom like Litaj Hardware) */}
+                <form
+                  onSubmit={handleQuickBarcodeAdd}
+                  className="p-2.5 bg-slate-50 border-t border-slate-200 flex items-center gap-2 flex-shrink-0"
+                >
+                  <div className="relative flex-1">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                      <FiSearch className="w-4 h-4" />
                     </div>
-                  ))
-                )}
-              </div>
-
-              {/* Checkout Controls Panel */}
-              <div className="pt-3 border-t border-neutral-800 space-y-3 shrink-0">
-                {/* Customer Phone for WhatsApp Receipt */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <div>
-                    <label className="block text-[10px] uppercase font-bold text-gray-400 mb-1">
-                      Customer WhatsApp Phone *
-                    </label>
-                    <div className="relative">
-                      <FiSmartphone className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-                      <input
-                        type="text"
-                        value={customerPhone}
-                        onChange={(e) => setCustomerPhone(e.target.value)}
-                        placeholder="07XXXXXXXX or +254..."
-                        className="w-full pl-9 pr-3 py-2 bg-neutral-900 border border-neutral-800 rounded-lg text-xs text-white focus:outline-none focus:border-emerald-500 transition-colors"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-[10px] uppercase font-bold text-gray-400 mb-1">
-                      Customer Name (Optional)
-                    </label>
                     <input
+                      ref={quickBarcodeInputRef}
                       type="text"
-                      value={customerName}
-                      onChange={(e) => setCustomerName(e.target.value)}
-                      placeholder="e.g. Dennis"
-                      className="w-full px-3 py-2 bg-neutral-900 border border-neutral-800 rounded-lg text-xs text-white focus:outline-none focus:border-emerald-500 transition-colors"
+                      value={quickBarcodeQuery}
+                      onChange={(e) => setQuickBarcodeQuery(e.target.value)}
+                      placeholder="Instant barcode scan / Type product name & Enter to add..."
+                      className="w-full pl-9 pr-3.5 py-2.5 border-2 border-slate-300 rounded-xl font-bold text-xs sm:text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-xs"
+                      autoComplete="off"
                     />
                   </div>
-                </div>
-
-                {/* Payment Mode Selector */}
-                <div>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <label className="text-[10px] uppercase font-bold text-gray-400">
-                      Payment Mode
-                    </label>
-                    <div className="flex items-center space-x-1">
-                      {['split', 'cash', 'mpesa'].map(mode => (
-                        <button
-                          key={mode}
-                          onClick={() => handlePaymentModeSelect(mode)}
-                          className={`px-2.5 py-0.5 rounded text-[10px] font-bold uppercase transition-all ${
-                            paymentMode === mode
-                              ? 'bg-emerald-500 text-black shadow-sm'
-                              : 'bg-neutral-900 text-gray-400 hover:text-white border border-neutral-800'
-                          }`}
-                        >
-                          {mode}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Split Inputs */}
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <span className="block text-[10px] text-gray-400 mb-1">Cash (KES)</span>
-                      <input
-                        type="number"
-                        min="0"
-                        value={cashTendered}
-                        onChange={(e) => setCashTendered(e.target.value)}
-                        placeholder="0"
-                        className="w-full px-3 py-2 bg-neutral-900 border border-neutral-800 rounded-lg text-xs font-bold text-white focus:outline-none focus:border-emerald-500"
-                      />
-                    </div>
-                    <div>
-                      <span className="block text-[10px] text-gray-400 mb-1">M-Pesa (KES)</span>
-                      <input
-                        type="number"
-                        min="0"
-                        value={mpesaTendered}
-                        onChange={(e) => setMpesaTendered(e.target.value)}
-                        placeholder="0"
-                        className="w-full px-3 py-2 bg-neutral-900 border border-neutral-800 rounded-lg text-xs font-bold text-white focus:outline-none focus:border-emerald-500"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Live Financial Totals */}
-                <div className="p-3 bg-neutral-950 rounded-xl border border-neutral-800/80 space-y-1.5 text-xs">
-                  <div className="flex justify-between items-center text-gray-400">
-                    <span>Total Amount:</span>
-                    <span className="text-base font-extrabold text-white">
-                      KES {totalAmount.toLocaleString()}
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between items-center text-gray-400 text-[11px]">
-                    <span>Total Tendered:</span>
-                    <span className="font-semibold text-gray-200">
-                      KES {totalTendered.toLocaleString()}
-                    </span>
-                  </div>
-
-                  {remainingDue > 0 ? (
-                    <div className="flex justify-between items-center text-red-400 font-bold text-[11px] pt-1 border-t border-neutral-900">
-                      <span>Remaining Due:</span>
-                      <span>KES {remainingDue.toLocaleString()}</span>
-                    </div>
-                  ) : (
-                    <div className="flex justify-between items-center text-emerald-400 font-bold text-[11px] pt-1 border-t border-neutral-900">
-                      <span>Balance / Change:</span>
-                      <span>KES {balanceChange.toLocaleString()}</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Complete Sale Checkout Button */}
-                <button
-                  disabled={cart.length === 0 || isSubmitting || totalTendered < totalAmount}
-                  onClick={handleCompleteSale}
-                  className={`w-full py-3.5 px-4 rounded-xl font-bold text-sm flex items-center justify-center space-x-2 transition-all shadow-lg ${
-                    cart.length === 0 || totalTendered < totalAmount || isSubmitting
-                      ? 'bg-neutral-800 text-gray-500 cursor-not-allowed border border-neutral-700'
-                      : 'bg-emerald-500 hover:bg-emerald-400 text-black shadow-emerald-950/40 hover:scale-[1.01]'
-                  }`}
-                >
-                  {isSubmitting ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
-                      <span>Processing Sale & Stock Decrement...</span>
-                    </>
-                  ) : (
-                    <>
-                      <FiCheckCircle className="w-4 h-4" />
-                      <span>Complete Sale & Send WhatsApp Receipt</span>
-                    </>
-                  )}
-                </button>
+                  <input
+                    type="number"
+                    min="1"
+                    value={quickBarcodeQty}
+                    onChange={(e) => setQuickBarcodeQty(e.target.value)}
+                    className="w-16 border-2 border-slate-300 rounded-xl px-1.5 py-2.5 font-black text-center text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-xs"
+                    placeholder="Qty"
+                  />
+                  <button
+                    type="submit"
+                    className="h-10 px-4 bg-blue-600 active:bg-blue-700 hover:bg-blue-500 text-white font-bold rounded-xl text-xs sm:text-sm transition flex items-center gap-1 shadow-sm"
+                  >
+                    + Add
+                  </button>
+                </form>
               </div>
-            </div>
+            </section>
+
+            {/* ═════════════════════════════════════════════════════ */}
+            {/* RIGHT SIDE: CART & DYNAMIC CHECKOUT PANEL          */}
+            {/* ═════════════════════════════════════════════════════ */}
+            <section className="w-full lg:w-5/12 flex flex-col gap-2.5 h-full overflow-hidden">
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-200 flex-1 flex flex-col overflow-hidden">
+                
+                {/* Cart Header */}
+                <div className="p-3 sm:p-3.5 border-b border-slate-200 flex justify-between items-center bg-slate-50 flex-shrink-0">
+                  <div className="flex items-center space-x-2">
+                    <h2 className="text-base font-black text-slate-900 tracking-tight">Active Cart</h2>
+                    <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-blue-100 text-blue-700">
+                      {cart.reduce((sum, item) => sum + item.quantity, 0)} items
+                    </span>
+                  </div>
+
+                  {/* Cart Action Buttons */}
+                  <div className="flex items-center space-x-1.5">
+                    <button
+                      onClick={handleHoldCart}
+                      title="Hold Cart"
+                      className="text-xs font-bold px-2.5 py-1.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 transition flex items-center space-x-1"
+                    >
+                      <FiPause className="w-3 h-3" />
+                      <span>Hold</span>
+                    </button>
+
+                    <button
+                      onClick={() => setIsHeldCartsModalOpen(true)}
+                      title="Recall Held Cart"
+                      className="text-xs font-bold px-2.5 py-1.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 transition flex items-center space-x-1 relative"
+                    >
+                      <FiPlay className="w-3 h-3" />
+                      <span>Recall</span>
+                      {heldCarts.length > 0 && (
+                        <span className="w-4 h-4 rounded-full bg-blue-600 text-white text-[10px] font-black flex items-center justify-center">
+                          {heldCarts.length}
+                        </span>
+                      )}
+                    </button>
+
+                    <button
+                      onClick={clearCart}
+                      title="Clear Cart"
+                      className="text-xs font-bold px-2 py-1.5 rounded-xl bg-red-100 hover:bg-red-200 text-red-700 transition"
+                    >
+                      <FiTrash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Cart Items List Area */}
+                <div className="flex-1 overflow-y-auto p-2 sm:p-3 space-y-2">
+                  {cart.length === 0 ? (
+                    <div className="py-20 text-center text-slate-400 font-medium">
+                      <div className="text-4xl mb-2">🛒</div>
+                      <div className="font-bold text-slate-600 text-base">Cart is empty</div>
+                      <p className="text-xs text-slate-400 mt-1">Tap items on catalog or scan barcode to add</p>
+                    </div>
+                  ) : (
+                    cart.map(item => (
+                      <div
+                        key={item.productId}
+                        className="p-3 rounded-xl bg-white border border-slate-200 shadow-xs flex flex-col gap-2"
+                      >
+                        <div className="flex justify-between items-start gap-2">
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-bold text-slate-900 text-sm leading-snug truncate">{item.name}</h4>
+                            <div className="text-xs text-slate-500 font-semibold mt-0.5">
+                              KES {item.price.toLocaleString()} each • {item.size} / {item.color}
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => removeCartItem(item.productId)}
+                            className="text-slate-400 hover:text-red-600 active:text-red-700 p-1 transition"
+                            title="Remove"
+                          >
+                            <FiTrash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+
+                        {/* Stepper & Line Total */}
+                        <div className="flex justify-between items-center pt-2 border-t border-slate-100">
+                          <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl">
+                            <button
+                              onClick={() => updateCartQty(item.productId, item.quantity - 1)}
+                              className="w-7 h-7 rounded-lg bg-white active:bg-slate-200 text-slate-900 font-black text-sm shadow-xs flex items-center justify-center transition"
+                            >
+                              −
+                            </button>
+                            <input
+                              type="number"
+                              min="1"
+                              value={item.quantity}
+                              onChange={(e) => updateCartQty(item.productId, e.target.value)}
+                              className="w-12 h-7 text-center bg-transparent font-black text-sm text-slate-900 focus:outline-none"
+                            />
+                            <button
+                              onClick={() => updateCartQty(item.productId, item.quantity + 1)}
+                              className="w-7 h-7 rounded-lg bg-white active:bg-slate-200 text-slate-900 font-black text-sm shadow-xs flex items-center justify-center transition"
+                            >
+                              +
+                            </button>
+                          </div>
+
+                          <div className="text-right">
+                            <div className="text-[10px] text-slate-400 font-bold uppercase">Total</div>
+                            <div className="text-sm sm:text-base font-black text-slate-900">
+                              KES {item.total.toLocaleString()}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* Cart Totals & Checkout Trigger (Royal Blue / Navy Panel - strictly blue, not black) */}
+                <div className="p-3 sm:p-4 bg-gradient-to-br from-blue-700 via-blue-800 to-indigo-900 text-white rounded-b-2xl border-t border-blue-600 flex flex-col gap-2.5 flex-shrink-0">
+                  <div className="flex justify-between items-center text-xs text-blue-200">
+                    <span className="font-bold">SUBTOTAL</span>
+                    <span className="font-black text-white text-sm sm:text-base">
+                      KES {subtotal.toLocaleString()}
+                    </span>
+                  </div>
+
+                  <div className="flex justify-between items-center text-xs text-blue-200">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold">DISCOUNT (KES)</span>
+                      <input
+                        type="number"
+                        min="0"
+                        value={cartDiscount}
+                        onChange={(e) => setCartDiscount(e.target.value)}
+                        className="w-20 px-2 py-0.5 rounded-lg bg-blue-900/80 border border-blue-400/50 text-right text-xs font-bold text-amber-300 focus:outline-none focus:ring-1 focus:ring-white"
+                        placeholder="0"
+                      />
+                    </div>
+                    <span className="font-bold text-amber-300 text-xs sm:text-sm">
+                      − KES {validDiscount.toLocaleString()}
+                    </span>
+                  </div>
+
+                  {cartDiscount > maxDiscountAllowed && (
+                    <div className="text-[10px] text-amber-200 font-bold bg-amber-950/50 border border-amber-600/60 rounded px-2 py-0.5">
+                      Discount capped at 50% max (KES {maxDiscountAllowed.toLocaleString()})
+                    </div>
+                  )}
+
+                  <div className="h-px bg-blue-600/80 my-0.5"></div>
+
+                  {/* Grand Total */}
+                  <div className="flex justify-between items-baseline">
+                    <div>
+                      <span className="text-xs font-bold uppercase tracking-wider text-blue-200">TOTAL DUE</span>
+                      <div className="text-[11px] text-blue-300">All taxes included</div>
+                    </div>
+                    <div className="text-2xl sm:text-3xl font-black text-amber-300 tracking-tight">
+                      KES {grandTotal.toLocaleString()}
+                    </div>
+                  </div>
+
+                  {/* Complete Sale Button */}
+                  <button
+                    onClick={handleOpenCheckout}
+                    disabled={cart.length === 0}
+                    className="w-full py-3.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 disabled:bg-slate-600 disabled:opacity-50 text-slate-950 font-black text-sm sm:text-base transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/40"
+                  >
+                    <span>⚡</span>
+                    <span>COMPLETE SALE (F2)</span>
+                  </button>
+                </div>
+              </div>
+            </section>
           </div>
         )}
 
-        {/* ========================================================= */}
-        {/* TAB 2: WHATSAPP ORDER POOL QUEUE (PHASE 5) */}
-        {/* ========================================================= */}
+        {/* ───────────────────────────────────────────────────────── */}
+        {/* TAB 2: WHATSAPP HEADLESS ORDER POOL                      */}
+        {/* ───────────────────────────────────────────────────────── */}
         {activeTab === 'queue' && (
-          <div className="h-[calc(100vh-3.5rem)] p-4 sm:p-6 bg-neutral-950 overflow-y-auto">
-            <div className="max-w-5xl mx-auto">
-              <div className="flex items-center justify-between mb-6 pb-4 border-b border-neutral-800">
+          <div className="h-[calc(100vh-4.75rem)] p-3 sm:p-6 bg-slate-50 rounded-2xl border border-slate-200 overflow-y-auto">
+            <div className="max-w-4xl mx-auto">
+              <div className="flex justify-between items-center mb-6 pb-3 border-b border-slate-200">
                 <div>
-                  <h2 className="text-xl font-bold text-white">WhatsApp Headless Order Queue</h2>
-                  <p className="text-xs text-gray-400 mt-1">
-                    Manual order drop messages detected in the WhatsApp Command Center group.
+                  <h2 className="text-lg font-black text-slate-900">WhatsApp Command Center Queue</h2>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Orders dropped in WhatsApp command groups queued for cashier confirmation.
                   </p>
                 </div>
                 <button
                   onClick={fetchQueue}
-                  className="flex items-center space-x-1.5 px-3 py-2 bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 rounded-lg text-xs font-semibold text-gray-300 transition-colors"
+                  className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl flex items-center space-x-1.5 transition shadow-xs"
                 >
                   <FiRefreshCw className={`w-3.5 h-3.5 ${isLoadingQueue ? 'animate-spin' : ''}`} />
                   <span>Refresh Queue</span>
@@ -857,11 +1280,11 @@ const PosDashboard = () => {
               </div>
 
               {pendingOrders.length === 0 ? (
-                <div className="p-12 text-center bg-neutral-900/40 border border-neutral-800 rounded-2xl">
-                  <FiCheckCircle className="w-12 h-12 text-emerald-500 mx-auto mb-3" />
-                  <h3 className="text-base font-bold text-white">Queue is clear!</h3>
-                  <p className="text-xs text-gray-400 mt-1 max-w-sm mx-auto">
-                    Any manual order message typed in the WhatsApp group will instantly appear here for one-click checkout.
+                <div className="p-12 text-center bg-white rounded-2xl border border-slate-200 shadow-sm">
+                  <div className="text-4xl mb-2">💬</div>
+                  <h3 className="text-base font-bold text-slate-800">Queue is Clear</h3>
+                  <p className="text-xs text-slate-500 mt-1">
+                    No pending orders in WhatsApp Command Center. Drop manual order messages into the group to queue them here.
                   </p>
                 </div>
               ) : (
@@ -869,59 +1292,47 @@ const PosDashboard = () => {
                   {pendingOrders.map(order => (
                     <div
                       key={order._id}
-                      className="p-5 bg-neutral-900 border border-neutral-800 rounded-2xl flex flex-col justify-between hover:border-emerald-500/40 transition-colors"
+                      className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex flex-col justify-between"
                     >
                       <div>
-                        {/* Header */}
-                        <div className="flex items-start justify-between mb-3">
+                        <div className="flex justify-between items-start mb-2">
                           <div>
-                            <span className="text-[10px] font-mono text-gray-500 uppercase">
-                              QUEUE #{String(order._id).slice(-6)}
-                            </span>
-                            <h4 className="font-bold text-sm text-white">
-                              {order.customerName}
-                            </h4>
-                            <p className="text-xs font-semibold text-emerald-400 mt-0.5">
-                              +{order.customerPhone}
-                            </p>
+                            <h4 className="font-black text-slate-900 text-sm">{order.customerName}</h4>
+                            <p className="text-xs text-slate-500 font-mono">+{order.customerPhone}</p>
                           </div>
-                          <span className="text-xs font-bold px-2 py-1 bg-neutral-800 text-gray-300 rounded-lg">
+                          <span className="px-2 py-0.5 rounded-lg text-xs font-black bg-blue-100 text-blue-700">
                             KES {order.totalAmount?.toLocaleString()}
                           </span>
                         </div>
 
-                        {/* Items */}
-                        <div className="p-3 bg-black/60 rounded-xl mb-3 space-y-1.5 border border-neutral-800/60">
-                          <p className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Order Items</p>
-                          {order.items?.map((it, idx) => (
-                            <div key={idx} className="flex justify-between text-xs text-gray-300">
-                              <span>{it.quantity}x {it.name} {it.size ? `(${it.size})` : ''}</span>
-                              <span className="font-medium text-white">KES {(it.price * it.quantity).toLocaleString()}</span>
+                        {/* Line Items */}
+                        <div className="my-3 space-y-1 bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-xs">
+                          {(order.items || []).map((itm, i) => (
+                            <div key={i} className="flex justify-between text-slate-700">
+                              <span>{itm.quantity}x {itm.productName} ({itm.size})</span>
+                              <span className="font-bold">KES {((itm.price || 0) * (itm.quantity || 1)).toLocaleString()}</span>
                             </div>
                           ))}
                         </div>
 
-                        {/* Original WhatsApp message snippet */}
-                        <div className="mb-4">
-                          <p className="text-[10px] uppercase font-bold text-gray-500 mb-1">Raw Message</p>
-                          <p className="text-[11px] text-gray-400 bg-neutral-950 p-2 rounded-lg font-mono line-clamp-3">
-                            {order.rawMessage}
-                          </p>
+                        {/* Raw Message */}
+                        <div className="text-[11px] text-slate-500 bg-slate-50 p-2 rounded-lg font-mono line-clamp-2 mb-3">
+                          {order.rawMessage}
                         </div>
                       </div>
 
                       {/* Actions */}
-                      <div className="flex items-center space-x-2 pt-3 border-t border-neutral-800">
+                      <div className="flex items-center gap-2 pt-3 border-t border-slate-100">
                         <button
                           onClick={() => handleLoadQueueOrder(order)}
-                          className="flex-1 py-2 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs rounded-xl flex items-center justify-center space-x-1.5 transition-colors"
+                          className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition shadow-xs"
                         >
                           <span>Load into POS Cart</span>
                           <FiArrowRight className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => handleDismissQueueOrder(order._id)}
-                          className="px-3 py-2 bg-neutral-800 hover:bg-neutral-700 text-gray-400 hover:text-red-400 text-xs rounded-xl transition-colors"
+                          className="px-3 py-2 bg-slate-100 hover:bg-red-50 text-slate-600 hover:text-red-600 text-xs font-bold rounded-xl transition"
                         >
                           Dismiss
                         </button>
@@ -934,36 +1345,37 @@ const PosDashboard = () => {
           </div>
         )}
 
-        {/* ========================================================= */}
-        {/* TAB 3: A4 BARCODE LABEL GENERATOR (PHASE 2) */}
-        {/* ========================================================= */}
+        {/* ───────────────────────────────────────────────────────── */}
+        {/* TAB 3: A4 BARCODE STICKER SHEET GENERATOR                */}
+        {/* ───────────────────────────────────────────────────────── */}
         {activeTab === 'barcodes' && (
-          <div className="h-[calc(100vh-3.5rem)] p-4 sm:p-6 bg-neutral-950 overflow-y-auto">
+          <div className="h-[calc(100vh-4.75rem)] p-3 sm:p-6 bg-slate-50 rounded-2xl border border-slate-200 overflow-y-auto">
             <div className="max-w-4xl mx-auto">
-              <div className="mb-6 pb-4 border-b border-neutral-800">
-                <h2 className="text-xl font-bold text-white">A4 Barcode Label Sheet Generator</h2>
-                <p className="text-xs text-gray-400 mt-1">
+              <div className="mb-6 pb-3 border-b border-slate-200">
+                <h2 className="text-lg font-black text-slate-900">A4 Barcode Label Sheet Generator</h2>
+                <p className="text-xs text-slate-500 mt-0.5">
                   Generates standardized Code 128 sticker sheets (21 stickers per A4 page) for physical inventory tagging.
                 </p>
               </div>
 
-              <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-5 mb-6">
-                <h3 className="font-bold text-sm text-white mb-3">Print Stickers by Product</h3>
+              {/* Product Sheet Grid */}
+              <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm mb-6">
+                <h3 className="font-black text-sm text-slate-900 mb-3">Print Stickers by Product</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {products.map(prod => (
+                  {allProducts.slice(0, 30).map(prod => (
                     <div
                       key={prod._id}
-                      className="p-3 bg-neutral-950 border border-neutral-800 rounded-xl flex items-center justify-between"
+                      className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between"
                     >
                       <div className="truncate mr-2">
-                        <h4 className="font-semibold text-xs text-white truncate">{prod.name}</h4>
-                        <p className="text-[10px] font-mono text-gray-400 mt-0.5">#{prod.barcode}</p>
+                        <h4 className="font-bold text-xs text-slate-900 truncate">{prod.name}</h4>
+                        <p className="text-[10px] font-mono text-slate-500">#{prod.barcode}</p>
                       </div>
                       <a
                         href={posApi.getProductBarcodePdfUrl(prod._id, 21)}
                         target="_blank"
                         rel="noreferrer"
-                        className="px-3 py-1.5 bg-neutral-800 hover:bg-emerald-500 hover:text-black text-gray-300 font-semibold text-xs rounded-lg transition-colors shrink-0 flex items-center space-x-1"
+                        className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-lg transition shrink-0 flex items-center gap-1 shadow-xs"
                       >
                         <FiPrinter className="w-3 h-3" />
                         <span>Print A4</span>
@@ -974,18 +1386,18 @@ const PosDashboard = () => {
               </div>
 
               {/* Category Bulk Sheets */}
-              <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-5">
-                <h3 className="font-bold text-sm text-white mb-3">Print Bulk Sheets by Category</h3>
+              <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-sm">
+                <h3 className="font-black text-sm text-slate-900 mb-3">Print Bulk Sheets by Category</h3>
                 <div className="flex flex-wrap gap-2">
-                  {categories.filter(c => c !== 'All').map(cat => (
+                  {categories.filter(c => c !== 'ALL').map(cat => (
                     <a
                       key={cat}
                       href={posApi.getCategoryBarcodePdfUrl(cat)}
                       target="_blank"
                       rel="noreferrer"
-                      className="flex items-center space-x-1.5 px-4 py-2 bg-neutral-950 hover:bg-neutral-800 border border-neutral-800 rounded-xl text-xs font-semibold text-gray-200 transition-colors"
+                      className="flex items-center gap-1.5 px-4 py-2 bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-300 rounded-xl text-xs font-bold text-slate-700 hover:text-blue-700 transition"
                     >
-                      <FiGrid className="w-3.5 h-3.5 text-emerald-400" />
+                      <FiGrid className="w-3.5 h-3.5 text-blue-600" />
                       <span>{cat} Collection</span>
                     </a>
                   ))}
@@ -994,72 +1406,430 @@ const PosDashboard = () => {
             </div>
           </div>
         )}
-      </div>
+      </main>
 
-      {/* Camera Viewfinder Modal */}
-      <BarcodeScannerModal
-        isOpen={isCameraOpen}
-        onClose={() => {
-          setIsCameraOpen(false);
-          refocusBarcodeInput();
-        }}
-        onDetected={handleCameraScan}
-      />
-
-      {/* Sale Success & Receipt Preview Modal */}
+      {/* ========================================================= */}
+      {/* 3. DYNAMIC INTERACTIVE CHECKOUT MODAL (Litaj Hardware Style) */}
+      {/* ========================================================= */}
       <AnimatePresence>
-        {completedOrderData && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
+        {isCheckoutModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs">
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="w-full max-w-md bg-neutral-900 border border-neutral-800 rounded-2xl shadow-2xl overflow-hidden p-6 text-center"
+              className="w-full max-w-lg bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh]"
             >
-              <div className="w-14 h-14 bg-emerald-500/10 border border-emerald-500/30 rounded-full flex items-center justify-center mx-auto mb-4 text-emerald-400">
+              {/* Modal Header */}
+              <div className="p-4 bg-blue-600 text-white flex justify-between items-center">
+                <div>
+                  <h3 className="text-base font-black tracking-tight">Walk-in Checkout & Payment</h3>
+                  <p className="text-xs text-blue-100">Atomic stock deduction & WhatsApp receipt dispatch</p>
+                </div>
+                <button
+                  onClick={() => setIsCheckoutModalOpen(false)}
+                  className="p-1 rounded-lg text-blue-200 hover:text-white text-xl font-bold"
+                >
+                  &times;
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              <div className="p-4 sm:p-5 overflow-y-auto space-y-4 text-xs sm:text-sm">
+                
+                {/* Total Due Banner */}
+                <div className="p-3.5 rounded-xl bg-blue-50 border border-blue-200 flex justify-between items-center">
+                  <span className="font-bold text-blue-900">Total Amount Due:</span>
+                  <span className="text-2xl font-black text-blue-700">
+                    KES {grandTotal.toLocaleString()}
+                  </span>
+                </div>
+
+                {/* Customer Phone & Live User Linking */}
+                <div className="space-y-1.5">
+                  <label className="font-bold text-slate-700 flex justify-between items-center">
+                    <span>Customer Phone (WhatsApp & Account Link):</span>
+                    {isSearchingUser && (
+                      <span className="text-[11px] text-blue-600 animate-pulse font-normal">Checking user...</span>
+                    )}
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                      <FiPhone className="w-4 h-4" />
+                    </div>
+                    <input
+                      type="tel"
+                      value={customerPhone}
+                      onChange={(e) => setCustomerPhone(e.target.value)}
+                      placeholder="e.g. 0712345678 or 254712345678"
+                      className="w-full pl-9 pr-3.5 py-2.5 bg-slate-50 border-2 border-slate-200 rounded-xl font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white"
+                    />
+                  </div>
+
+                  {/* Customer Linked Badge */}
+                  {linkedUser ? (
+                    <div className="p-2 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold flex items-center gap-1.5">
+                      <FiCheckCircle className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                      <span>Linked Account: {linkedUser.name} ({linkedUser.email})</span>
+                    </div>
+                  ) : customerPhone.length >= 9 ? (
+                    <div className="text-[11px] text-slate-500 font-medium">
+                      👤 Walk-in customer. E-receipt will be sent to WhatsApp.
+                    </div>
+                  ) : null}
+                </div>
+
+                {/* Customer Name */}
+                <div className="space-y-1.5">
+                  <label className="font-bold text-slate-700">Customer Name:</label>
+                  <input
+                    type="text"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    placeholder="Walk-in Customer"
+                    className="w-full px-3.5 py-2.5 bg-slate-50 border-2 border-slate-200 rounded-xl font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white"
+                  />
+                </div>
+
+                {/* Payment Method Selector Tabs */}
+                <div className="space-y-1.5">
+                  <label className="font-bold text-slate-700">Payment Method:</label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {['Cash', 'M-Pesa', 'Split'].map(method => (
+                      <button
+                        key={method}
+                        type="button"
+                        onClick={() => {
+                          setActivePaymentMethod(method);
+                          if (method === 'Cash') {
+                            setCashTendered(String(grandTotal));
+                            setMpesaTendered('0');
+                          } else if (method === 'M-Pesa') {
+                            setCashTendered('0');
+                            setMpesaTendered(String(grandTotal));
+                          } else {
+                            // Split: 50/50 default
+                            const half = Math.floor(grandTotal / 2);
+                            setCashTendered(String(half));
+                            setMpesaTendered(String(grandTotal - half));
+                          }
+                        }}
+                        className={`py-2.5 rounded-xl font-bold text-xs sm:text-sm border-2 transition ${
+                          activePaymentMethod === method
+                            ? 'bg-blue-600 border-blue-600 text-white shadow-xs'
+                            : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                        }`}
+                      >
+                        {method === 'Cash' && '💵 Cash'}
+                        {method === 'M-Pesa' && '📱 M-Pesa'}
+                        {method === 'Split' && '⚖️ Split (Both)'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* ── Cash Panel ── */}
+                {activePaymentMethod === 'Cash' && (
+                  <div className="space-y-2 p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                    <label className="font-bold text-slate-700">Cash Amount Tendered (KES):</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={cashTendered}
+                      onChange={(e) => setCashTendered(e.target.value)}
+                      className="w-full px-3.5 py-2.5 border-2 border-slate-200 rounded-xl font-black text-base text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+
+                    {/* Quick Tender Pills */}
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => setCashTendered(String(grandTotal))}
+                        className="px-2.5 py-1 bg-white border border-slate-200 hover:bg-slate-100 rounded-lg text-xs font-bold text-slate-700"
+                      >
+                        Exact
+                      </button>
+                      {[500, 1000, 2000, 5000].map(amt => (
+                        <button
+                          key={amt}
+                          type="button"
+                          onClick={() => setCashTendered(String(amt))}
+                          className="px-2.5 py-1 bg-white border border-slate-200 hover:bg-slate-100 rounded-lg text-xs font-bold text-slate-700"
+                        >
+                          KES {amt.toLocaleString()}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* ── M-Pesa Panel ── */}
+                {activePaymentMethod === 'M-Pesa' && (
+                  <div className="space-y-2 p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                    <label className="font-bold text-slate-700">M-Pesa Amount (KES):</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={mpesaTendered}
+                      onChange={(e) => setMpesaTendered(e.target.value)}
+                      className="w-full px-3.5 py-2.5 border-2 border-slate-200 rounded-xl font-black text-base text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <input
+                      type="text"
+                      value={mpesaRef}
+                      onChange={(e) => setMpesaRef(e.target.value)}
+                      placeholder="M-Pesa Reference / Code (Optional, e.g. QKB712345)"
+                      className="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-xs font-semibold text-slate-900 bg-white uppercase"
+                    />
+                  </div>
+                )}
+
+                {/* ── Split Panel ── */}
+                {activePaymentMethod === 'Split' && (
+                  <div className="space-y-3 p-3 bg-slate-50 border border-slate-200 rounded-xl">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="font-bold text-slate-700 block mb-1">Cash (KES):</label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={cashTendered}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setCashTendered(val);
+                            const rem = Math.max(0, grandTotal - (parseFloat(val) || 0));
+                            setMpesaTendered(String(rem));
+                          }}
+                          className="w-full px-3 py-2 border-2 border-slate-200 rounded-xl font-black text-sm text-slate-900 bg-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="font-bold text-slate-700 block mb-1">M-Pesa (KES):</label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={mpesaTendered}
+                          onChange={(e) => setMpesaTendered(e.target.value)}
+                          className="w-full px-3 py-2 border-2 border-slate-200 rounded-xl font-black text-sm text-slate-900 bg-white"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const half = Math.floor(grandTotal / 2);
+                          setCashTendered(String(half));
+                          setMpesaTendered(String(grandTotal - half));
+                        }}
+                        className="flex-1 py-1 bg-white border border-slate-200 text-slate-700 font-bold rounded-lg text-xs"
+                      >
+                        50/50 Split
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const rem = Math.max(0, grandTotal - (parseFloat(cashTendered) || 0));
+                          setMpesaTendered(String(rem));
+                        }}
+                        className="flex-1 py-1 bg-white border border-slate-200 text-slate-700 font-bold rounded-lg text-xs"
+                      >
+                        Auto-Balance M-Pesa
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Dynamic Change & Balance Feedback Box */}
+                <div className="p-3 rounded-xl border flex justify-between items-center bg-slate-50">
+                  <div>
+                    <span className="text-xs text-slate-500 font-semibold">Total Paid:</span>
+                    <div className="font-black text-slate-900 text-sm">
+                      KES {totalTendered.toLocaleString()}
+                    </div>
+                  </div>
+
+                  {remainingBalance > 0 ? (
+                    <div className="text-right">
+                      <span className="text-xs font-bold text-red-600">Remaining Due:</span>
+                      <div className="text-base font-black text-red-600">
+                        KES {remainingBalance.toLocaleString()}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-right">
+                      <span className="text-xs font-bold text-emerald-600">Change to Return:</span>
+                      <div className="text-base font-black text-emerald-700">
+                        KES {changeToReturn.toLocaleString()}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* WhatsApp Receipt Toggle */}
+                <label className="flex items-center space-x-2 cursor-pointer pt-1">
+                  <input
+                    type="checkbox"
+                    checked={sendWhatsAppReceipt}
+                    onChange={(e) => setSendWhatsAppReceipt(e.target.checked)}
+                    className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="text-xs font-bold text-slate-700">
+                    Send branded PDF E-receipt to WhatsApp (+{customerPhone || 'phone'})
+                  </span>
+                </label>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-end gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setIsCheckoutModalOpen(false)}
+                  className="px-4 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-100 text-slate-700 font-bold text-xs"
+                >
+                  Cancel (Esc)
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSubmitCheckout}
+                  disabled={isSubmittingCheckout || remainingBalance > 0}
+                  className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:bg-slate-300 text-white font-black text-sm shadow-md transition flex items-center gap-1.5"
+                >
+                  {isSubmittingCheckout ? (
+                    <span>Processing Sale...</span>
+                  ) : (
+                    <>
+                      <span>Complete & Print Receipt</span>
+                      <FiCheck className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ========================================================= */}
+      {/* 4. HELD CARTS MODAL (Vegas POS / Litaj Hardware Style)    */}
+      {/* ========================================================= */}
+      <AnimatePresence>
+        {isHeldCartsModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden"
+            >
+              <div className="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
+                <h3 className="font-black text-slate-900 text-base">Held Carts List</h3>
+                <button
+                  onClick={() => setIsHeldCartsModalOpen(false)}
+                  className="text-slate-400 hover:text-slate-600 text-xl font-bold"
+                >
+                  &times;
+                </button>
+              </div>
+
+              <div className="p-4 max-h-96 overflow-y-auto space-y-2">
+                {heldCarts.length === 0 ? (
+                  <div className="py-8 text-center text-slate-400 text-xs">
+                    No held carts currently saved
+                  </div>
+                ) : (
+                  heldCarts.map(held => (
+                    <div
+                      key={held.id}
+                      className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex justify-between items-center hover:bg-blue-50/50 transition"
+                    >
+                      <div>
+                        <div className="text-xs font-bold text-slate-900">
+                          {held.timestamp} • {held.date} ({held.cashier})
+                        </div>
+                        <div className="text-[11px] text-slate-500 mt-0.5">
+                          {held.items.length} item(s) • Total: KES {held.total.toLocaleString()}
+                        </div>
+                      </div>
+                      <div className="flex gap-1.5">
+                        <button
+                          onClick={() => handleRestoreHeldCart(held.id)}
+                          className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-xs shadow-xs"
+                        >
+                          Restore
+                        </button>
+                        <button
+                          onClick={() => handleDiscardHeldCart(held.id)}
+                          className="px-2 py-1.5 bg-red-100 hover:bg-red-200 text-red-700 font-bold rounded-lg text-xs"
+                        >
+                          &times;
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* ========================================================= */}
+      {/* 5. SALE COMPLETED / RECEIPT PREVIEW MODAL                */}
+      {/* ========================================================= */}
+      <AnimatePresence>
+        {completedOrderData && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-xs">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="w-full max-w-md bg-white border border-slate-200 rounded-2xl shadow-2xl p-6 text-center overflow-hidden"
+            >
+              <div className="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-3">
                 <FiCheckCircle className="w-8 h-8" />
               </div>
 
-              <h3 className="text-xl font-bold text-white">Sale Completed!</h3>
-              <p className="text-xs text-gray-400 mt-1">
-                Stock decremented instantly from main inventory.
+              <h3 className="text-xl font-black text-slate-900">Sale Completed!</h3>
+              <p className="text-xs text-slate-500 mt-0.5">
+                Inventory decremented instantly from main store pool.
               </p>
 
               {/* Order Meta Box */}
-              <div className="my-5 p-4 bg-black rounded-xl border border-neutral-800/80 text-left text-xs space-y-1.5">
+              <div className="my-4 p-3.5 bg-slate-50 rounded-xl border border-slate-200 text-left text-xs space-y-1.5">
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Order Ref:</span>
-                  <span className="font-mono font-bold text-white">
-                    #SKN-{String(completedOrderData.order.id).slice(-6).toUpperCase()}
+                  <span className="text-slate-500">Order Ref:</span>
+                  <span className="font-mono font-bold text-slate-900">
+                    #SKN-{String(completedOrderData.order.id || completedOrderData.order._id).slice(-6).toUpperCase()}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Total Amount:</span>
-                  <span className="font-bold text-emerald-400">
-                    KES {completedOrderData.order.totalAmount?.toLocaleString()}
+                  <span className="text-slate-500">Total Paid:</span>
+                  <span className="font-black text-blue-700">
+                    KES {Number(completedOrderData.order.totalAmount || 0).toLocaleString()}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Payment:</span>
-                  <span className="font-semibold text-gray-200">
+                  <span className="text-slate-500">Payment:</span>
+                  <span className="font-bold text-slate-700">
                     {completedOrderData.order.paymentMethod}
                   </span>
                 </div>
 
-                {/* WhatsApp Status Indicator */}
-                <div className="pt-2 border-t border-neutral-900 flex items-center justify-between">
-                  <span className="text-gray-400">WhatsApp Receipt:</span>
+                <div className="pt-2 border-t border-slate-200 flex items-center justify-between">
+                  <span className="text-slate-500">WhatsApp Receipt:</span>
                   {completedOrderData.whatsappDispatched ? (
-                    <span className="text-emerald-400 font-semibold flex items-center space-x-1">
-                      <FiCheckCircle className="w-3 h-3" />
-                      <span>Sent to +{completedOrderData.phone}</span>
+                    <span className="text-emerald-700 font-bold flex items-center gap-1">
+                      <FiCheckCircle className="w-3.5 h-3.5" />
+                      <span>Sent (+{completedOrderData.phone})</span>
                     </span>
                   ) : completedOrderData.phone ? (
-                    <span className="text-amber-400 text-[11px]">
+                    <span className="text-amber-700 text-[11px] font-semibold">
                       {completedOrderData.whatsappError || 'Bot offline (Saved on server)'}
                     </span>
                   ) : (
-                    <span className="text-gray-500 text-[11px]">No phone supplied</span>
+                    <span className="text-slate-400 text-[11px]">No phone supplied</span>
                   )}
                 </div>
               </div>
@@ -1074,10 +1844,10 @@ const PosDashboard = () => {
                         `<iframe src="data:application/pdf;base64,${completedOrderData.receiptBase64}" frameborder="0" style="border:0; top:0px; left:0px; bottom:0px; right:0px; width:100%; height:100%;" allowfullscreen></iframe>`
                       );
                     }}
-                    className="w-full py-2.5 bg-neutral-800 hover:bg-neutral-700 text-white font-semibold text-xs rounded-xl flex items-center justify-center space-x-2 transition-colors border border-neutral-700"
+                    className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition border border-slate-200"
                   >
                     <FiPrinter className="w-4 h-4" />
-                    <span>View / Print PDF Receipt</span>
+                    <span>View / Print PDF E-Receipt</span>
                   </button>
                 )}
 
@@ -1086,7 +1856,7 @@ const PosDashboard = () => {
                     setCompletedOrderData(null);
                     refocusBarcodeInput();
                   }}
-                  className="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs rounded-xl transition-all shadow-lg shadow-emerald-950/40"
+                  className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-xl transition shadow-md"
                 >
                   Start Next Sale (Refocus Scanner)
                 </button>
@@ -1095,6 +1865,18 @@ const PosDashboard = () => {
           </div>
         )}
       </AnimatePresence>
+
+      {/* ========================================================= */}
+      {/* 6. CAMERA SCANNER MODAL                                   */}
+      {/* ========================================================= */}
+      <BarcodeScannerModal
+        isOpen={isCameraOpen}
+        onClose={() => {
+          setIsCameraOpen(false);
+          refocusBarcodeInput();
+        }}
+        onDetected={handleCameraScan}
+      />
     </div>
   );
 };
