@@ -1497,7 +1497,7 @@ const PosDashboard = () => {
                               <FiMapPin className="w-3.5 h-3.5 text-zinc-400 shrink-0 mt-0.5" />
                               <span className="font-semibold">{del.deliveryDetails?.location || 'Store Pickup'}</span>
                             </div>
-                            {del.deliveryDetails?.riderNotes && (
+                            {del.deliveryDetails?.riderNotes && del.deliveryDetails.riderNotes.trim() && !del.deliveryDetails.riderNotes.toLowerCase().includes('interception') && (
                               <div className="text-[11px] text-amber-800 bg-amber-50/60 p-1.5 rounded-lg font-medium">
                                 🛵 Note: {del.deliveryDetails.riderNotes}
                               </div>
