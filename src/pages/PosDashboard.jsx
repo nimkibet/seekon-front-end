@@ -875,12 +875,20 @@ const PosDashboard = () => {
             {/* Brand Logo & Name */}
             <div className="flex items-center space-x-3">
               <div className="flex items-center space-x-2.5">
-                <img
-                  src="/seekon_bg-removebg-preview.png"
-                  alt="Seekon Apparel"
-                  className="h-8 md:h-9 w-auto object-contain transition-transform hover:scale-105"
-                  onError={(e) => { e.target.src = FALLBACK_LOGO_URL; }}
-                />
+                <div className="p-1 rounded-xl bg-white/40 dark:bg-zinc-900/60 backdrop-blur-xs flex items-center">
+                  <img
+                    src="/seekon_bg-removebg-preview.png"
+                    alt="Seekon Apparel"
+                    className="h-8 md:h-9 w-auto object-contain transition-transform hover:scale-105 dark:hidden"
+                    onError={(e) => { e.target.src = FALLBACK_LOGO_URL; }}
+                  />
+                  <img
+                    src="/seekon_logo_white.png"
+                    alt="Seekon Apparel"
+                    className="h-8 md:h-9 w-auto object-contain transition-transform hover:scale-105 hidden dark:block"
+                    onError={(e) => { e.target.style.display = 'none'; }}
+                  />
+                </div>
                 <div className="flex items-center space-x-1.5">
                   <span className="text-base sm:text-lg font-black tracking-tighter text-zinc-950">
                     SEEKON
@@ -899,8 +907,8 @@ const PosDashboard = () => {
                 </span>
                 <span className="font-bold text-zinc-900">Terminal Online</span>
                 <span className="text-zinc-300">•</span>
-                <span className="capitalize text-zinc-600 font-medium truncate max-w-[120px]">
-                  {user?.name || user?.email || 'Cashier'}
+                <span className="text-zinc-600 font-medium truncate max-w-[200px]">
+                  Served by: <span className="font-bold text-zinc-950">{user?.name || user?.username || user?.email?.split('@')[0] || 'Cashier'}</span>
                 </span>
               </div>
             </div>
@@ -1353,6 +1361,12 @@ const PosDashboard = () => {
                       <NumberFlow value={effectiveGrandTotal} />
                     </div>
                   </div>
+                  <div className="flex justify-between text-zinc-400 text-[11px] pt-1">
+                    <span>Cashier Attendant</span>
+                    <span className="font-bold text-zinc-300">
+                      Served by: {user?.name || user?.username || user?.email?.split('@')[0] || 'Cashier'}
+                    </span>
+                  </div>
                 </div>
 
                 {/* Checkout CTA */}
@@ -1436,6 +1450,9 @@ const PosDashboard = () => {
                               </h4>
                               <p className="text-xs text-zinc-500 font-mono">
                                 +{del.deliveryDetails?.customerPhone || del.guestPhone}
+                              </p>
+                              <p className="text-[10px] text-zinc-400 font-medium mt-0.5">
+                                Served by: <span className="font-bold text-zinc-700">{del.cashier?.name || del.cashier?.email?.split('@')[0] || (del.notes?.includes('Interception') ? 'WhatsApp Bot' : 'Cashier')}</span>
                               </p>
                             </div>
 
@@ -1679,14 +1696,16 @@ const PosDashboard = () => {
               <div className="p-4 bg-zinc-950 text-white flex justify-between items-center border-b border-zinc-800">
                 <div className="flex items-center space-x-2.5">
                   <img
-                    src="/seekon_bg-removebg-preview.png"
+                    src="/seekon_logo_white.png"
                     alt="Seekon"
-                    className="h-6 w-auto object-contain brightness-0 invert"
-                    onError={(e) => { e.target.style.display = 'none'; }}
+                    className="h-6 w-auto object-contain"
+                    onError={(e) => { e.target.src = '/seekon_bg-removebg-preview.png'; e.target.className += ' brightness-0 invert'; }}
                   />
                   <div>
                     <h3 className="text-base font-black tracking-tight">Checkout & Order Logging</h3>
-                    <p className="text-xs text-zinc-400">Atomic stock deduction & WhatsApp receipt / dispatch slip</p>
+                    <p className="text-xs text-zinc-400">
+                      Served by: <span className="text-white font-bold">{user?.name || user?.username || user?.email?.split('@')[0] || 'Cashier'}</span>
+                    </p>
                   </div>
                 </div>
                 <button
