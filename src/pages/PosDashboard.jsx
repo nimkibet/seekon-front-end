@@ -55,6 +55,10 @@ const PosDashboard = () => {
   const [sortBy, setSortBy] = useState('name-asc');
   const [isCameraOpen, setIsCameraOpen] = useState(false);
 
+  // Mobile responsive view for POS terminal: 'catalog' | 'cart'
+  const [mobilePosView, setMobilePosView] = useState('catalog');
+  const [deliveryStatusFilter, setDeliveryStatusFilter] = useState('ALL');
+
   // Barcode Generation Tab search & filter state
   const [barcodeSearch, setBarcodeSearch] = useState('');
   const [barcodeCategory, setBarcodeCategory] = useState('ALL');
@@ -317,6 +321,12 @@ const PosDashboard = () => {
 
     return result;
   }, [allProducts, barcodeSearch, barcodeCategory]);
+
+  // Deliveries Tab filtered deliveries
+  const filteredDeliveries = useMemo(() => {
+    if (deliveryStatusFilter === 'ALL') return deliveries;
+    return deliveries.filter(d => d.paymentStatus === deliveryStatusFilter);
+  }, [deliveries, deliveryStatusFilter]);
 
   // ─────────────────────────────────────────────────────────────────────────
   // 3. CART OPERATIONS
@@ -952,8 +962,46 @@ const PosDashboard = () => {
               <span><kbd className="bg-zinc-100 px-1.5 py-0.5 rounded text-[11px] font-bold text-zinc-800 border border-zinc-200">Esc</kbd> Cancel</span>
             </div>
 
-            {/* Navigation Tabs */}
-            <div className="flex items-center space-x-1.5">
+            {/* Mobile Tab Navigation Dropdown (< md) */}
+            <div className="flex md:hidden items-center gap-1.5">
+              <div className="relative">
+                <select
+                  value={activeTab}
+                  onChange={(e) => {
+                    const tab = e.target.value;
+                    setActiveTab(tab);
+                    if (tab === 'deliveries') fetchDeliveries();
+                    if (tab === 'queue') fetchQueue();
+                    if (tab === 'pos') refocusBarcodeInput();
+                  }}
+                  aria-label="Navigation View"
+                  className="pl-2.5 pr-7 py-1.5 bg-zinc-900 text-white rounded-xl text-xs font-black appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-zinc-400 shadow-xs"
+                >
+                  <option value="pos">💻 POS Terminal</option>
+                  <option value="deliveries">
+                    🚚 Deliveries {deliveries.length > 0 ? `(${deliveries.length})` : ''}
+                  </option>
+                  <option value="queue">
+                    📱 WA Queue {pendingOrders.length > 0 ? `(${pendingOrders.length})` : ''}
+                  </option>
+                  <option value="barcodes">🏷️ Barcodes</option>
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-zinc-400 text-[10px]">
+                  ▼
+                </div>
+              </div>
+
+              <button
+                onClick={logout}
+                title="Sign Out"
+                className="p-1.5 rounded-xl text-zinc-500 hover:text-red-600 hover:bg-red-50 transition-all active:scale-95"
+              >
+                <FiLogOut className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Desktop Navigation Tabs (>= md) */}
+            <div className="hidden md:flex items-center space-x-1.5">
               <button
                 onClick={() => { setActiveTab('pos'); refocusBarcodeInput(); }}
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-150 active:scale-95 flex items-center space-x-1.5 ${
@@ -1029,67 +1077,129 @@ const PosDashboard = () => {
       {/* ========================================================= */}
       <main className="flex-1 w-full max-w-[1920px] mx-auto p-2 sm:p-3 overflow-hidden">
         {activeTab === 'pos' && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 h-[calc(100vh-4.75rem)]">
+          <div className="flex flex-col h-[calc(100vh-4.75rem)]">
+            {/* Mobile View Switcher (Catalog vs Cart) */}
+            <div className="lg:hidden flex items-center p-1 bg-zinc-200/80 rounded-xl mb-2 shrink-0">
+              <button
+                type="button"
+                onClick={() => setMobilePosView('catalog')}
+                className={`flex-1 py-1.5 rounded-lg text-xs font-black transition-all flex items-center justify-center gap-1.5 ${
+                  mobilePosView === 'catalog'
+                    ? 'bg-white text-zinc-950 shadow-xs'
+                    : 'text-zinc-600 hover:text-zinc-950'
+                }`}
+              >
+                <span>🛍️ Catalog</span>
+                <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-zinc-100 text-zinc-700">
+                  {filteredProducts.length}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setMobilePosView('cart')}
+                className={`flex-1 py-1.5 rounded-lg text-xs font-black transition-all flex items-center justify-center gap-1.5 ${
+                  mobilePosView === 'cart'
+                    ? 'bg-white text-zinc-950 shadow-xs'
+                    : 'text-zinc-600 hover:text-zinc-950'
+                }`}
+              >
+                <span>🛒 Cart</span>
+                <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+                  cart.length > 0 ? 'bg-zinc-900 text-white' : 'bg-zinc-100 text-zinc-700'
+                }`}>
+                  {cart.reduce((s, i) => s + i.quantity, 0)}
+                </span>
+                {cart.length > 0 && (
+                  <span className="text-[11px] font-mono font-bold text-emerald-700">
+                    KES {effectiveGrandTotal.toLocaleString()}
+                  </span>
+                )}
+              </button>
+            </div>
 
-            {/* ───────────────────────────────────────────────────────── */}
-            {/* LEFT 50%: CATALOG, SEARCH & QUICK SCAN                    */}
-            {/* ───────────────────────────────────────────────────────── */}
-            <div className="lg:col-span-6 flex flex-col bg-white/75 backdrop-blur-xl rounded-2xl border border-zinc-200/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden">
+            <div className="flex-1 flex flex-col lg:grid lg:grid-cols-12 gap-3 min-h-0">
+              {/* ───────────────────────────────────────────────────────── */}
+              {/* LEFT 50%: CATALOG, SEARCH & QUICK SCAN                    */}
+              {/* ───────────────────────────────────────────────────────── */}
+              <div className={`lg:col-span-6 flex flex-col bg-white/75 backdrop-blur-xl rounded-2xl border border-zinc-200/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden ${
+                mobilePosView === 'catalog' ? 'flex flex-1 min-h-0' : 'hidden lg:flex'
+              }`}>
 
-              {/* Search Header & Category Filters */}
-              <div className="p-3 border-b border-zinc-200/80 space-y-2.5 bg-white/50">
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-400">
-                      <FiSearch className="w-4 h-4" />
+                {/* Search Header & Category Filters */}
+                <div className="p-2.5 sm:p-3 border-b border-zinc-200/80 space-y-2 sm:space-y-2.5 bg-white/50">
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-zinc-400">
+                        <FiSearch className="w-4 h-4" />
+                      </div>
+                      <input
+                        ref={topSearchInputRef}
+                        type="text"
+                        value={topSearch}
+                        onChange={(e) => setTopSearch(e.target.value)}
+                        placeholder="Search inventory by Name, Barcode, SKU, Brand... (F3)"
+                        className="w-full pl-9 pr-8 py-2 bg-zinc-50/80 border border-zinc-200/80 rounded-xl text-xs font-semibold text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:bg-white transition-all"
+                      />
+                      {topSearch && (
+                        <button
+                          onClick={() => setTopSearch('')}
+                          className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-zinc-400 hover:text-zinc-600 text-xs"
+                        >
+                          <FiX className="w-4 h-4" />
+                        </button>
+                      )}
                     </div>
-                    <input
-                      ref={topSearchInputRef}
-                      type="text"
-                      value={topSearch}
-                      onChange={(e) => setTopSearch(e.target.value)}
-                      placeholder="Search inventory by Name, Barcode, SKU, Brand... (F3)"
-                      className="w-full pl-9 pr-8 py-2 bg-zinc-50/80 border border-zinc-200/80 rounded-xl text-xs font-semibold text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:bg-white transition-all"
-                    />
-                    {topSearch && (
-                      <button
-                        onClick={() => setTopSearch('')}
-                        className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-zinc-400 hover:text-zinc-600 text-xs"
-                      >
-                        <FiX className="w-4 h-4" />
-                      </button>
-                    )}
+
+                    <button
+                      onClick={() => setIsCameraOpen(true)}
+                      className="px-3 py-2 bg-zinc-50 hover:bg-zinc-100 active:scale-95 border border-zinc-200/80 text-zinc-800 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all duration-150 shrink-0"
+                      title="Open Camera Barcode Scanner"
+                    >
+                      <FiCamera className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Camera</span>
+                    </button>
                   </div>
 
-                  <button
-                    onClick={() => setIsCameraOpen(true)}
-                    className="px-3 py-2 bg-zinc-50 hover:bg-zinc-100 active:scale-95 border border-zinc-200/80 text-zinc-800 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all duration-150 shrink-0"
-                    title="Open Camera Barcode Scanner"
-                  >
-                    <FiCamera className="w-3.5 h-3.5" />
-                    <span className="hidden sm:inline">Camera</span>
-                  </button>
-                </div>
+                  {/* Mobile Category Dropdown Selector (< sm) */}
+                  <div className="sm:hidden w-full">
+                    <div className="relative">
+                      <select
+                        value={selectedCategory}
+                        onChange={(e) => setSelectedCategory(e.target.value)}
+                        aria-label="Filter Catalog by Category"
+                        className="w-full pl-3 pr-8 py-2 bg-zinc-50 border border-zinc-200/80 rounded-xl text-xs font-bold text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:bg-white appearance-none cursor-pointer"
+                      >
+                        {categories.map((cat) => (
+                          <option key={`m-cat-${cat}`} value={cat}>
+                            📂 Category: {cat}
+                          </option>
+                        ))}
+                      </select>
+                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-zinc-500 text-xs">
+                        ▼
+                      </div>
+                    </div>
+                  </div>
 
-                {/* Horizontal Category Filter Pills */}
-                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-                  {categories.map(cat => (
-                    <button
-                      key={cat}
-                      onClick={() => setSelectedCategory(cat)}
-                      className={`px-3 py-1 rounded-full text-xs font-bold transition-all duration-150 shrink-0 active:scale-95 ${
-                        selectedCategory === cat
-                          ? 'bg-zinc-900 text-white shadow-xs'
-                          : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200 hover:text-zinc-900'
-                      }`}
-                    >
-                      {cat}
-                    </button>
-                  ))}
-                </div>
+                  {/* Horizontal Category Filter Pills (>= sm) */}
+                  <div className="hidden sm:flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                    {categories.map(cat => (
+                      <button
+                        key={cat}
+                        onClick={() => setSelectedCategory(cat)}
+                        className={`px-3 py-1 rounded-full text-xs font-bold transition-all duration-150 shrink-0 active:scale-95 ${
+                          selectedCategory === cat
+                            ? 'bg-zinc-900 text-white shadow-xs'
+                            : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200 hover:text-zinc-900'
+                        }`}
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
 
-                {/* Secondary Filter Bar */}
-                <div className="flex items-center justify-between text-xs text-zinc-500 pt-0.5">
+                  {/* Secondary Filter Bar */}
+                  <div className="flex flex-wrap items-center justify-between gap-1.5 text-xs text-zinc-500 pt-0.5">
                   <div className="flex items-center gap-2">
                     <span className="font-semibold text-zinc-600">{filteredProducts.length} items</span>
                     <span className="text-zinc-300">•</span>
@@ -1241,11 +1351,22 @@ const PosDashboard = () => {
             {/* ───────────────────────────────────────────────────────── */}
             {/* RIGHT 50%: ACTIVE CART, TOTALS & CHECKOUT                 */}
             {/* ───────────────────────────────────────────────────────── */}
-            <div className="lg:col-span-6 flex flex-col bg-white/75 backdrop-blur-xl rounded-2xl border border-zinc-200/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden">
+            <div className={`lg:col-span-6 flex flex-col bg-white/75 backdrop-blur-xl rounded-2xl border border-zinc-200/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-hidden ${
+              mobilePosView === 'cart' ? 'flex flex-1 min-h-0' : 'hidden lg:flex'
+            }`}>
 
               {/* Cart Header */}
               <div className="p-3 border-b border-zinc-200/80 flex items-center justify-between bg-white/50">
                 <div className="flex items-center gap-2">
+                  {/* Mobile Back Button to Catalog */}
+                  <button
+                    type="button"
+                    onClick={() => setMobilePosView('catalog')}
+                    className="lg:hidden px-2.5 py-1 bg-zinc-100 hover:bg-zinc-200 active:scale-95 text-zinc-800 rounded-lg text-xs font-bold flex items-center gap-1 mr-1"
+                  >
+                    <span>← Catalog</span>
+                  </button>
+
                   <h3 className="font-black text-sm text-zinc-950">Active Cart</h3>
                   <span className="px-2 py-0.5 rounded-full text-[11px] font-black bg-zinc-900 text-white">
                     {cart.reduce((sum, item) => sum + item.quantity, 0)} items
@@ -1412,6 +1533,32 @@ const PosDashboard = () => {
               </div>
             </div>
           </div>
+
+          {/* Floating Mobile Cart Bar when in catalog mode */}
+          {mobilePosView === 'catalog' && cart.length > 0 && (
+            <div className="lg:hidden fixed bottom-3 inset-x-3 z-30">
+              <button
+                type="button"
+                onClick={() => setMobilePosView('cart')}
+                className="w-full p-3 bg-zinc-950 text-white rounded-2xl shadow-2xl border border-zinc-800 flex items-center justify-between active:scale-[0.98] transition-all"
+              >
+                <div className="flex items-center gap-2.5">
+                  <span className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 font-black flex items-center justify-center text-xs border border-emerald-500/30">
+                    {cart.reduce((s, i) => s + i.quantity, 0)}
+                  </span>
+                  <div className="text-left">
+                    <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-wider">Tap to View Cart</p>
+                    <p className="text-sm font-black font-mono text-white">KES {effectiveGrandTotal.toLocaleString()}</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 px-3.5 py-2 bg-white text-zinc-950 rounded-xl font-black text-xs shadow-xs">
+                  <span>Review & Checkout</span>
+                  <FiArrowRight className="w-3.5 h-3.5 text-emerald-600" />
+                </div>
+              </button>
+            </div>
+          )}
+        </div>
         )}
 
         {/* ───────────────────────────────────────────────────────── */}
@@ -1420,7 +1567,7 @@ const PosDashboard = () => {
         {activeTab === 'deliveries' && (
           <div className="h-[calc(100vh-4.75rem)] p-3 sm:p-6 bg-white/75 backdrop-blur-xl rounded-2xl border border-zinc-200/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-y-auto">
             <div className="max-w-5xl mx-auto">
-              <div className="flex justify-between items-center mb-6 pb-3 border-b border-zinc-200/80">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6 pb-3 border-b border-zinc-200/80">
                 <div>
                   <h2 className="text-lg font-black text-zinc-950 flex items-center gap-2">
                     <span>Social Deliveries & Pay on Delivery (POD)</span>
@@ -1432,26 +1579,51 @@ const PosDashboard = () => {
                     Orders queued for courier dispatch, balance collection on arrival, and inventory reconciliation.
                   </p>
                 </div>
-                <button
-                  onClick={fetchDeliveries}
-                  className="px-3.5 py-2 bg-zinc-900 hover:bg-black active:scale-95 text-white font-bold text-xs rounded-xl flex items-center space-x-1.5 transition-all duration-150 shadow-xs"
-                >
-                  <FiRefreshCw className={`w-3.5 h-3.5 ${isLoadingDeliveries ? 'animate-spin' : ''}`} />
-                  <span>Refresh</span>
-                </button>
+
+                {/* Filter Dropdown + Refresh Button */}
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <div className="relative flex-1 sm:w-48">
+                    <select
+                      value={deliveryStatusFilter}
+                      onChange={(e) => setDeliveryStatusFilter(e.target.value)}
+                      aria-label="Filter Deliveries by Status"
+                      className="w-full pl-3 pr-8 py-2 bg-white border border-zinc-200/80 rounded-xl text-xs font-bold text-zinc-800 focus:outline-none appearance-none cursor-pointer shadow-xs"
+                    >
+                      <option value="ALL">All Active ({deliveries.length})</option>
+                      <option value="pending_pod">
+                        Pending POD ({deliveries.filter(d => d.paymentStatus === 'pending_pod').length})
+                      </option>
+                      <option value="partial_deposit">
+                        Partial Deposit ({deliveries.filter(d => d.paymentStatus === 'partial_deposit').length})
+                      </option>
+                    </select>
+                    <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-zinc-500 text-xs">
+                      ▼
+                    </div>
+                  </div>
+                  <button
+                    onClick={fetchDeliveries}
+                    className="px-3.5 py-2 bg-zinc-900 hover:bg-black active:scale-95 text-white font-bold text-xs rounded-xl flex items-center space-x-1.5 transition-all duration-150 shrink-0 shadow-xs"
+                  >
+                    <FiRefreshCw className={`w-3.5 h-3.5 ${isLoadingDeliveries ? 'animate-spin' : ''}`} />
+                    <span>Refresh</span>
+                  </button>
+                </div>
               </div>
 
-              {deliveries.length === 0 ? (
+              {filteredDeliveries.length === 0 ? (
                 <div className="p-12 text-center bg-white rounded-2xl border border-zinc-200/80 shadow-xs">
                   <div className="text-4xl mb-2">🚚</div>
                   <h3 className="text-base font-bold text-zinc-800">No Active Deliveries</h3>
                   <p className="text-xs text-zinc-500 mt-1">
-                    All social media and POD orders have been reconciled and paid in full.
+                    {deliveryStatusFilter === 'ALL'
+                      ? 'All social media and POD orders have been reconciled and paid in full.'
+                      : `No orders match filter "${deliveryStatusFilter}".`}
                   </p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {deliveries.map(del => {
+                  {filteredDeliveries.map(del => {
                     const platform = del.socialPlatform || 'social';
                     const orderRef = String(del._id).slice(-6).toUpperCase();
                     return (
@@ -1569,7 +1741,7 @@ const PosDashboard = () => {
         {activeTab === 'queue' && (
           <div className="h-[calc(100vh-4.75rem)] p-3 sm:p-6 bg-white/75 backdrop-blur-xl rounded-2xl border border-zinc-200/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-y-auto">
             <div className="max-w-4xl mx-auto">
-              <div className="flex justify-between items-center mb-6 pb-3 border-b border-zinc-200/80">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6 pb-3 border-b border-zinc-200/80">
                 <div>
                   <h2 className="text-lg font-black text-zinc-950">WhatsApp Command Center Queue</h2>
                   <p className="text-xs text-zinc-500 mt-0.5">
@@ -1578,7 +1750,7 @@ const PosDashboard = () => {
                 </div>
                 <button
                   onClick={fetchQueue}
-                  className="px-3.5 py-2 bg-zinc-900 hover:bg-black active:scale-95 text-white font-bold text-xs rounded-xl flex items-center space-x-1.5 transition-all duration-150 shadow-xs"
+                  className="w-full sm:w-auto px-3.5 py-2 bg-zinc-900 hover:bg-black active:scale-95 text-white font-bold text-xs rounded-xl flex items-center justify-center space-x-1.5 transition-all duration-150 shadow-xs"
                 >
                   <FiRefreshCw className={`w-3.5 h-3.5 ${isLoadingQueue ? 'animate-spin' : ''}`} />
                   <span>Refresh Queue</span>
@@ -1628,17 +1800,17 @@ const PosDashboard = () => {
                       </div>
 
                       {/* Actions */}
-                      <div className="flex items-center gap-2 pt-3 border-t border-zinc-100">
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 pt-3 border-t border-zinc-100">
                         <button
                           onClick={() => handleLoadQueueOrder(order)}
-                          className="flex-1 py-2 bg-zinc-900 hover:bg-black active:scale-95 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all duration-150 shadow-xs"
+                          className="flex-1 py-2.5 sm:py-2 bg-zinc-900 hover:bg-black active:scale-95 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 transition-all duration-150 shadow-xs"
                         >
                           <span>Load into POS Cart</span>
                           <FiArrowRight className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => handleDismissQueueOrder(order._id)}
-                          className="px-3 py-2 bg-zinc-100 hover:bg-red-50 text-zinc-600 hover:text-red-600 active:scale-95 text-xs font-bold rounded-xl transition-all duration-150"
+                          className="px-3 py-2.5 sm:py-2 bg-zinc-100 hover:bg-red-50 text-zinc-600 hover:text-red-600 active:scale-95 text-xs font-bold rounded-xl transition-all duration-150 text-center"
                         >
                           Dismiss
                         </button>
@@ -1716,8 +1888,26 @@ const PosDashboard = () => {
                   )}
                 </div>
 
+                {/* Category Selector: Dropdown on Mobile (<sm), Horizontal Pills on Desktop (sm+) */}
+                <div className="sm:hidden">
+                  <label className="text-[11px] font-bold uppercase tracking-wider text-zinc-500 mb-1 block">
+                    Category Filter
+                  </label>
+                  <select
+                    value={barcodeCategory}
+                    onChange={(e) => setBarcodeCategory(e.target.value)}
+                    className="w-full px-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900/10"
+                  >
+                    {categories.map((cat) => (
+                      <option key={`m-barcode-cat-${cat}`} value={cat}>
+                        {cat === 'ALL' ? '📂 All Categories' : cat}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
                 {/* Category Pills Filter */}
-                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-1 no-scrollbar">
+                <div className="hidden sm:flex items-center gap-1.5 overflow-x-auto pb-1 pt-1 no-scrollbar">
                   <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 mr-1 shrink-0">
                     Category:
                   </span>
@@ -2393,11 +2583,11 @@ const PosDashboard = () => {
               </div>
 
               {/* Modal Footer */}
-              <div className="p-4 bg-zinc-50 border-t border-zinc-200 flex items-center justify-end gap-2.5">
+              <div className="p-4 bg-zinc-50 border-t border-zinc-200 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2.5">
                 <button
                   type="button"
                   onClick={() => setIsCheckoutModalOpen(false)}
-                  className="px-4 py-2.5 rounded-xl border border-zinc-200 hover:bg-zinc-100 active:scale-95 text-zinc-700 font-bold text-xs transition-all duration-150"
+                  className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-zinc-200 hover:bg-zinc-100 active:scale-95 text-zinc-700 font-bold text-xs transition-all duration-150 text-center justify-center"
                 >
                   Cancel (Esc)
                 </button>
@@ -2405,7 +2595,7 @@ const PosDashboard = () => {
                   type="button"
                   onClick={handleSubmitCheckout}
                   disabled={isSubmittingCheckout || (checkoutMode === 'walkin' && remainingBalance > 0)}
-                  className="px-6 py-2.5 rounded-xl bg-zinc-900 hover:bg-black active:scale-95 disabled:bg-zinc-300 text-white font-black text-sm shadow-md transition-all duration-150 flex items-center gap-1.5"
+                  className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-zinc-900 hover:bg-black active:scale-95 disabled:bg-zinc-300 text-white font-black text-sm shadow-md transition-all duration-150 flex items-center justify-center gap-1.5"
                 >
                   {isSubmittingCheckout ? (
                     <span>Processing Order...</span>
@@ -2536,17 +2726,17 @@ const PosDashboard = () => {
                 )}
               </div>
 
-              <div className="p-4 bg-zinc-50 border-t border-zinc-200 flex justify-end gap-2">
+              <div className="p-4 bg-zinc-50 border-t border-zinc-200 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2">
                 <button
                   onClick={() => setReconcileModalOrder(null)}
-                  className="px-4 py-2 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-700"
+                  className="w-full sm:w-auto px-4 py-2 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-700 text-center"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleCompleteDeliveryPayment}
                   disabled={isSubmittingReconcile}
-                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-black rounded-xl shadow-xs transition-all"
+                  className="w-full sm:w-auto px-5 py-2 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white text-xs font-black rounded-xl shadow-xs transition-all text-center"
                 >
                   {isSubmittingReconcile ? 'Reconciling...' : 'Confirm & Dispatch Official Receipt'}
                 </button>
@@ -2603,17 +2793,17 @@ const PosDashboard = () => {
                 </div>
               </div>
 
-              <div className="p-4 bg-zinc-50 border-t border-zinc-200 flex justify-end gap-2">
+              <div className="p-4 bg-zinc-50 border-t border-zinc-200 flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2">
                 <button
                   onClick={() => setCancelModalOrder(null)}
-                  className="px-4 py-2 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-700"
+                  className="w-full sm:w-auto px-4 py-2 border border-zinc-200 rounded-xl text-xs font-bold text-zinc-700 text-center"
                 >
                   Keep Order
                 </button>
                 <button
                   onClick={handleCancelDeliveryAndRestock}
                   disabled={isSubmittingCancel}
-                  className="px-5 py-2 bg-red-600 hover:bg-red-700 active:scale-95 text-white text-xs font-black rounded-xl shadow-xs transition-all"
+                  className="w-full sm:w-auto px-5 py-2 bg-red-600 hover:bg-red-700 active:scale-95 text-white text-xs font-black rounded-xl shadow-xs transition-all text-center"
                 >
                   {isSubmittingCancel ? 'Restocking...' : 'Confirm Restock & Cancel'}
                 </button>
