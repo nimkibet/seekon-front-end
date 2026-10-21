@@ -80,6 +80,7 @@ const AdminSidebar = ({ isFlashSaleActive = false, isMobileMenuOpen: propIsMobil
 
   const menuItems = [
     { path: '/admin/dashboard', label: 'Dashboard', icon: FiLayout },
+    { path: '/pos-dashboard', label: 'POS Terminal', icon: FiShoppingCart },
     { path: '/admin/shop', label: 'Shop View', icon: FiEye, external: true },
     { path: '/admin/products', label: 'Products', icon: FiPackage },
     { path: '/admin/add-product', label: 'Add Product', icon: FiPlus },

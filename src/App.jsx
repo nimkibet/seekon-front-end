@@ -26,6 +26,7 @@ const Checkout = lazy(() => import('./pages/Checkout'));
 const Orders = lazy(() => import('./pages/Orders'));
 const OrderDetails = lazy(() => import('./pages/OrderDetails'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const PosDashboard = lazy(() => import('./pages/PosDashboard'));
 const AdminTransactions = lazy(() => import('./pages/AdminTransactions'));
 const AdminOrders = lazy(() => import('./pages/AdminOrders'));
 const AdminUsers = lazy(() => import('./pages/AdminUsers'));
@@ -73,11 +74,10 @@ import ErrorBoundary from './components/ErrorBoundary';
 import ScrollToTop from './components/ScrollToTop';
 
 // Protected Route Component
-const ProtectedRoute = ({ children, requireAuth = true, requireAdmin = false }) => {
+const ProtectedRoute = ({ children, requireAuth = true, requireAdmin = false, requireCashierOrAdmin = false }) => {
   const { isAuthenticated, user, isLoading } = useAuth();
   const location = useLocation();
 
-  // Show a blank screen or a spinner while checking the token on refresh
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
@@ -90,7 +90,16 @@ const ProtectedRoute = ({ children, requireAuth = true, requireAdmin = false }) 
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  if (requireAdmin && user?.role !== 'admin') {
+  // Cashiers can access POS dashboard only
+  if (user?.role === 'cashier' && !requireCashierOrAdmin) {
+    return <Navigate to="/pos-dashboard" replace />;
+  }
+
+  if (requireAdmin && user?.role !== 'admin' && user?.role !== 'superadmin') {
+    return <Navigate to={user?.role === 'cashier' ? '/pos-dashboard' : '/'} replace />;
+  }
+
+  if (requireCashierOrAdmin && user?.role !== 'admin' && user?.role !== 'cashier' && user?.role !== 'superadmin') {
     return <Navigate to="/" replace />;
   }
 
@@ -102,9 +111,11 @@ const PublicRoute = ({ children }) => {
   const { isAuthenticated, user } = useAuth();
 
   if (isAuthenticated) {
-    // Redirect based on user role
-    if (user?.role === 'admin') {
-      return <Navigate to="/admin" replace />;
+    if (user?.role === 'admin' || user?.role === 'superadmin') {
+      return <Navigate to="/admin/dashboard" replace />;
+    }
+    if (user?.role === 'cashier') {
+      return <Navigate to="/pos-dashboard" replace />;
     }
     return <Navigate to="/" replace />;
   }
@@ -141,6 +152,10 @@ const ProtectedFlashSaleRoute = ({ children }) => {
 
 // Main App Layout
 const AppLayout = ({ children }) => {
+  const { user } = useAuth();
+  if (user?.role === 'cashier') {
+    return <Navigate to="/pos-dashboard" replace />;
+  }
   return (
     <Layout>
       <Navbar />
@@ -328,6 +343,14 @@ const App = () => {
                   <OutfitBuilder />
                 </AppLayout>
               } />
+
+              {/* POS Routes (Cashier & Admin Only) */}
+              <Route path="/pos-dashboard" element={
+                <ProtectedRoute requireCashierOrAdmin={true}>
+                  <PosDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/pos" element={<Navigate to="/pos-dashboard" replace />} />
 
               {/* Admin Routes */}
               <Route path="/admin/dashboard" element={

@@ -96,6 +96,17 @@ const AdminUsers = () => {
     }
   };
 
+  const handleRoleChange = async (userId, newRole) => {
+    try {
+      await adminApi.updateUserStatus(userId, { role: newRole });
+      toast.success(`User role updated to ${newRole}`);
+      setUsers(users.map(u => u._id === userId ? { ...u, role: newRole } : u));
+    } catch (error) {
+      console.error('Error updating user role:', error);
+      toast.error(error.message || 'Failed to update user role');
+    }
+  };
+
   const handleRoleToggle = async (userId, currentRole) => {
     try {
       const newRole = currentRole === 'user' || !currentRole ? 'admin' : 'user';
@@ -122,7 +133,10 @@ const AdminUsers = () => {
 
   const getRoleColor = (role) => {
     if (role === 'admin' || role === 'superadmin') {
-      return 'bg-purple-500/20 text-purple-400 border-purple-500/50';
+      return 'bg-purple-500/20 text-purple-300 border-purple-500/50';
+    }
+    if (role === 'cashier') {
+      return 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50';
     }
     return 'bg-blue-500/20 text-blue-400 border-blue-500/50';
   };
@@ -222,14 +236,16 @@ const AdminUsers = () => {
                       <td className="px-4 lg:px-6 py-3 sm:py-4 whitespace-nowrap text-gray-300 text-xs sm:text-sm">{user.email}</td>
                       <td className="px-4 lg:px-6 py-3 sm:py-4 whitespace-nowrap text-gray-300 hidden lg:table-cell text-xs sm:text-sm">{user.phone || 'N/A'}</td>
                       <td className="px-4 lg:px-6 py-3 sm:py-4 whitespace-nowrap">
-                        <button
-                          onClick={() => handleRoleToggle(user._id, user.role)}
-                          className={`px-2 sm:px-3 py-1 rounded-full text-xs font-medium border transition-colors ${getRoleColor(user.role)}`}
-                          title={`Click to change role to ${user.role === 'user' ? 'admin' : 'user'}`}
+                        <select
+                          value={user.role || 'user'}
+                          onChange={(e) => handleRoleChange(user._id, e.target.value)}
+                          className={`px-2.5 py-1 rounded-full text-xs font-semibold border cursor-pointer focus:outline-none bg-gray-900/90 transition-all ${getRoleColor(user.role)}`}
+                          title="Change user role"
                         >
-                          <FiShield className="inline w-3 h-3 mr-1" />
-                          {user.role || 'user'}
-                        </button>
+                          <option value="user" className="bg-gray-900 text-blue-300">Customer</option>
+                          <option value="cashier" className="bg-gray-900 text-emerald-300">POS Cashier</option>
+                          <option value="admin" className="bg-gray-900 text-purple-300">Admin</option>
+                        </select>
                       </td>
                       <td className="px-4 lg:px-6 py-3 sm:py-4 whitespace-nowrap">
                         <span
@@ -293,14 +309,15 @@ const AdminUsers = () => {
                     </div>
                   </div>
                   <div className="flex flex-wrap gap-2 mt-2">
-                    <button
-                      onClick={() => handleRoleToggle(user._id, user.role)}
-                      className={`px-2 py-1 rounded-full text-xs font-medium border transition-colors ${getRoleColor(user.role)}`}
-                      title={`Click to change role to ${user.role === 'user' ? 'admin' : 'user'}`}
+                    <select
+                      value={user.role || 'user'}
+                      onChange={(e) => handleRoleChange(user._id, e.target.value)}
+                      className={`px-2.5 py-1 rounded-full text-xs font-semibold border cursor-pointer focus:outline-none bg-gray-900/90 transition-all ${getRoleColor(user.role)}`}
                     >
-                      <FiShield className="inline w-3 h-3 mr-1" />
-                      {user.role || 'user'}
-                    </button>
+                      <option value="user" className="bg-gray-900 text-blue-300">Customer</option>
+                      <option value="cashier" className="bg-gray-900 text-emerald-300">POS Cashier</option>
+                      <option value="admin" className="bg-gray-900 text-purple-300">Admin</option>
+                    </select>
                     <span
                       className={`px-2 py-1 rounded-full text-xs font-medium border transition-colors ${
                         user.isActive
@@ -395,6 +412,7 @@ const AdminUsers = () => {
                     style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
                   >
                     <option value="user" className="bg-gray-800 text-white">User</option>
+                    <option value="cashier" className="bg-gray-800 text-emerald-300">Cashier</option>
                     <option value="admin" className="bg-gray-800 text-white">Admin</option>
                   </select>
                 </div>
