@@ -55,6 +55,11 @@ const PosDashboard = () => {
   const [sortBy, setSortBy] = useState('name-asc');
   const [isCameraOpen, setIsCameraOpen] = useState(false);
 
+  // Barcode Generation Tab search & filter state
+  const [barcodeSearch, setBarcodeSearch] = useState('');
+  const [barcodeCategory, setBarcodeCategory] = useState('ALL');
+  const [barcodeDisplayLimit, setBarcodeDisplayLimit] = useState(48);
+
   // Hardware-Accelerated Auto-Animate list refs
   const [catalogListRef] = useAutoAnimate({ duration: 180, easing: 'ease-out' });
   const [cartListRef] = useAutoAnimate({ duration: 180, easing: 'ease-out' });
@@ -287,6 +292,31 @@ const PosDashboard = () => {
 
     return result;
   }, [allProducts, topSearch, selectedCategory, stockFilter, sortBy]);
+
+  // Barcode Sheet filtered products with auto-animate
+  const [barcodeGridRef] = useAutoAnimate({ duration: 180, easing: 'ease-out' });
+
+  const filteredBarcodeProducts = useMemo(() => {
+    let result = [...allProducts];
+
+    if (barcodeCategory !== 'ALL') {
+      const target = barcodeCategory.toLowerCase();
+      result = result.filter(p => p.category && p.category.toLowerCase() === target);
+    }
+
+    if (barcodeSearch.trim()) {
+      const q = barcodeSearch.trim().toLowerCase();
+      result = result.filter(p =>
+        (p.name && p.name.toLowerCase().includes(q)) ||
+        (p.barcode && String(p.barcode).toLowerCase().includes(q)) ||
+        (p.sku && String(p.sku).toLowerCase().includes(q)) ||
+        (p.category && p.category.toLowerCase().includes(q)) ||
+        (p.brand && p.brand.toLowerCase().includes(q))
+      );
+    }
+
+    return result;
+  }, [allProducts, barcodeSearch, barcodeCategory]);
 
   // ─────────────────────────────────────────────────────────────────────────
   // 3. CART OPERATIONS
@@ -1626,42 +1656,212 @@ const PosDashboard = () => {
         {/* ───────────────────────────────────────────────────────── */}
         {activeTab === 'barcodes' && (
           <div className="h-[calc(100vh-4.75rem)] p-3 sm:p-6 bg-white/75 backdrop-blur-xl rounded-2xl border border-zinc-200/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)] overflow-y-auto">
-            <div className="max-w-4xl mx-auto">
-              <div className="mb-6 pb-3 border-b border-zinc-200/80">
-                <h2 className="text-lg font-black text-zinc-950">A4 Barcode Label Sheet Generator</h2>
-                <p className="text-xs text-zinc-500 mt-0.5">
-                  Generates standardized Code 128 sticker sheets (21 stickers per A4 page). Click below to download PDF directly.
-                </p>
+            <div className="max-w-5xl mx-auto space-y-6">
+              {/* Header Banner */}
+              <div className="pb-4 border-b border-zinc-200/80 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="p-1.5 rounded-lg bg-zinc-900 text-white">
+                      <FiPackage className="w-4 h-4" />
+                    </span>
+                    <h2 className="text-xl font-black text-zinc-950 tracking-tight">A4 Barcode Sticker Sheet Generator</h2>
+                  </div>
+                  <p className="text-xs text-zinc-500 mt-1">
+                    Standardized Code 128 sticker sheets (21 labels per page). Search your catalog or click any product to download a print-ready PDF directly.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 self-start md:self-auto">
+                  <span className="px-3 py-1 bg-zinc-100 border border-zinc-200 rounded-full text-[11px] font-bold text-zinc-700">
+                    {allProducts.length} Total Products
+                  </span>
+                </div>
+              </div>
+
+              {/* Search & Category Filter Section */}
+              <div className="bg-white border border-zinc-200/80 rounded-2xl p-4 shadow-xs space-y-3">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                  {/* Search Input */}
+                  <div className="relative flex-1">
+                    <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+                    <input
+                      type="text"
+                      value={barcodeSearch}
+                      onChange={(e) => setBarcodeSearch(e.target.value)}
+                      placeholder="Search product by name, barcode number, SKU, or category..."
+                      className="w-full pl-10 pr-10 py-2.5 bg-zinc-50 hover:bg-zinc-100/80 focus:bg-white border border-zinc-200 rounded-xl text-sm font-medium text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900/10 focus:border-zinc-900 transition-all"
+                    />
+                    {barcodeSearch && (
+                      <button
+                        onClick={() => setBarcodeSearch('')}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-zinc-400 hover:text-zinc-700 rounded-full hover:bg-zinc-200 transition-colors"
+                        title="Clear search"
+                      >
+                        <FiX className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Reset Filters CTA if any filter active */}
+                  {(barcodeSearch || barcodeCategory !== 'ALL') && (
+                    <button
+                      onClick={() => {
+                        setBarcodeSearch('');
+                        setBarcodeCategory('ALL');
+                      }}
+                      className="px-3 py-2.5 bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center justify-center gap-1.5"
+                    >
+                      <FiRefreshCw className="w-3 h-3" />
+                      <span>Reset Filters</span>
+                    </button>
+                  )}
+                </div>
+
+                {/* Category Pills Filter */}
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 pt-1 no-scrollbar">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-zinc-400 mr-1 shrink-0">
+                    Category:
+                  </span>
+                  {categories.map((cat) => {
+                    const isSelected = barcodeCategory === cat;
+                    return (
+                      <button
+                        key={`barcode-cat-${cat}`}
+                        onClick={() => setBarcodeCategory(cat)}
+                        className={`px-3 py-1 rounded-full text-xs font-bold transition-all shrink-0 ${
+                          isSelected
+                            ? 'bg-zinc-900 text-white shadow-xs'
+                            : 'bg-zinc-100 hover:bg-zinc-200 text-zinc-600 hover:text-zinc-900'
+                        }`}
+                      >
+                        {cat}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Filter Results Summary */}
+                <div className="flex items-center justify-between text-xs text-zinc-500 pt-1 border-t border-zinc-100">
+                  <span>
+                    Showing <strong className="text-zinc-900">{Math.min(filteredBarcodeProducts.length, barcodeDisplayLimit)}</strong> of{' '}
+                    <strong className="text-zinc-900">{filteredBarcodeProducts.length}</strong> matching products
+                    {barcodeSearch && (
+                      <span className="ml-1 text-zinc-400">
+                        (filtered by &ldquo;<span className="text-zinc-700 font-semibold">{barcodeSearch}</span>&rdquo;)
+                      </span>
+                    )}
+                  </span>
+                  {filteredBarcodeProducts.length > barcodeDisplayLimit && (
+                    <button
+                      onClick={() => setBarcodeDisplayLimit(prev => prev + 48)}
+                      className="text-xs font-bold text-zinc-900 hover:underline"
+                    >
+                      Show more ({filteredBarcodeProducts.length - barcodeDisplayLimit} remaining)
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Product Sheet Grid */}
-              <div className="bg-white border border-zinc-200/80 rounded-2xl p-4 shadow-xs mb-6">
-                <h3 className="font-black text-sm text-zinc-900 mb-3">Download Stickers by Product</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {allProducts.slice(0, 30).map(prod => (
-                    <div
-                      key={prod._id}
-                      className="p-3 bg-zinc-50 border border-zinc-200/80 rounded-xl flex items-center justify-between"
-                    >
-                      <div className="truncate mr-2">
-                        <h4 className="font-bold text-xs text-zinc-900 truncate">{prod.name}</h4>
-                        <p className="text-[10px] font-mono text-zinc-500">#{prod.barcode}</p>
-                      </div>
-                      <button
-                        onClick={() => handleDownloadProductBarcode(prod._id, prod.name)}
-                        className="px-3 py-1.5 bg-zinc-900 hover:bg-black active:scale-95 text-white font-bold text-xs rounded-lg transition-all duration-150 shrink-0 flex items-center gap-1 shadow-xs"
-                      >
-                        <FiDownload className="w-3 h-3" />
-                        <span>Download A4</span>
-                      </button>
-                    </div>
-                  ))}
+              <div className="bg-white border border-zinc-200/80 rounded-2xl p-4 shadow-xs">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-black text-sm text-zinc-900 tracking-tight">
+                    Select Product for Barcode Sticker Sheet (21 Stickers / A4)
+                  </h3>
                 </div>
+
+                {filteredBarcodeProducts.length === 0 ? (
+                  <div className="p-8 text-center bg-zinc-50 rounded-xl border border-dashed border-zinc-300">
+                    <FiSearch className="w-8 h-8 mx-auto text-zinc-400 mb-2" />
+                    <h4 className="font-bold text-sm text-zinc-800">No products found</h4>
+                    <p className="text-xs text-zinc-500 mt-1 max-w-sm mx-auto">
+                      No products match your search query &ldquo;{barcodeSearch}&rdquo; in category &ldquo;{barcodeCategory}&rdquo;.
+                    </p>
+                    <button
+                      onClick={() => {
+                        setBarcodeSearch('');
+                        setBarcodeCategory('ALL');
+                      }}
+                      className="mt-3 px-4 py-2 bg-zinc-900 hover:bg-black text-white text-xs font-bold rounded-lg transition-all"
+                    >
+                      Clear Search Filters
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div
+                      ref={barcodeGridRef}
+                      className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"
+                    >
+                      {filteredBarcodeProducts.slice(0, barcodeDisplayLimit).map((prod) => (
+                        <div
+                          key={prod._id}
+                          className="p-3 bg-zinc-50 hover:bg-zinc-100/80 border border-zinc-200/80 rounded-xl flex items-center justify-between gap-3 transition-all duration-150 group"
+                        >
+                          {/* Thumbnail & Product Details */}
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <div className="w-12 h-12 rounded-lg bg-zinc-200 border border-zinc-200 overflow-hidden shrink-0">
+                              <img
+                                src={prod.image || prod.images?.[0] || FALLBACK_LOGO_URL}
+                                alt={prod.name}
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  e.target.src = FALLBACK_LOGO_URL;
+                                }}
+                              />
+                            </div>
+                            <div className="min-w-0">
+                              <h4 className="font-bold text-xs text-zinc-900 truncate group-hover:text-black">
+                                {prod.name}
+                              </h4>
+                              <div className="flex items-center gap-1.5 mt-0.5">
+                                <span className="font-mono text-[10px] bg-zinc-200/70 text-zinc-700 px-1.5 py-0.5 rounded">
+                                  #{prod.barcode}
+                                </span>
+                                <span className="text-[10px] font-bold text-emerald-700">
+                                  KES {(prod.price || 0).toLocaleString()}
+                                </span>
+                              </div>
+                              <p className="text-[10px] text-zinc-500 mt-0.5 truncate">
+                                {prod.category || 'Apparel'} • {prod.stock || 0} in stock
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Direct Download Button */}
+                          <button
+                            onClick={() => handleDownloadProductBarcode(prod._id, prod.name)}
+                            className="px-3 py-2 bg-zinc-900 hover:bg-black active:scale-95 text-white font-bold text-xs rounded-lg transition-all duration-150 shrink-0 flex items-center gap-1.5 shadow-xs"
+                            title={`Download 21 barcode stickers for ${prod.name}`}
+                          >
+                            <FiDownload className="w-3.5 h-3.5" />
+                            <span className="hidden sm:inline">Download A4</span>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+
+                    {filteredBarcodeProducts.length > barcodeDisplayLimit && (
+                      <div className="mt-4 text-center">
+                        <button
+                          onClick={() => setBarcodeDisplayLimit(prev => prev + 48)}
+                          className="px-4 py-2 bg-zinc-100 hover:bg-zinc-200 text-zinc-800 text-xs font-bold rounded-xl transition-all"
+                        >
+                          Load More Products ({filteredBarcodeProducts.length - barcodeDisplayLimit} remaining)
+                        </button>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
 
               {/* Category Bulk Sheets */}
               <div className="bg-white border border-zinc-200/80 rounded-2xl p-4 shadow-xs">
-                <h3 className="font-black text-sm text-zinc-900 mb-3">Download Bulk Sheets by Category</h3>
+                <div className="mb-3">
+                  <h3 className="font-black text-sm text-zinc-900">Download Bulk Sheets by Category</h3>
+                  <p className="text-xs text-zinc-500 mt-0.5">
+                    Generate multi-product sticker sheets covering an entire collection with 1 click.
+                  </p>
+                </div>
                 <div className="flex flex-wrap gap-2">
                   {categories.filter(c => c !== 'ALL').map(cat => (
                     <button
