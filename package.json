@@ -47,6 +47,8 @@
     "react-redux": "^9.2.0",
     "react-router-dom": "^7.9.4",
     "three": "^0.180.0",
-    "xlsx": "https://cdn.sheetjs.com/xlsx-latest/xlsx-latest.tgz"
+    "xlsx": "https://cdn.sheetjs.com/xlsx-latest/xlsx-latest.tgz",
+    "@formkit/auto-animate": "^0.10.0",
+    "@number-flow/react": "^0.6.2"
   }
 }
