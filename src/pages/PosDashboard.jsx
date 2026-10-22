@@ -138,7 +138,11 @@ const PosDashboard = () => {
       return;
     }
     setTimeout(() => {
-      if (quickBarcodeInputRef.current && document.activeElement !== quickBarcodeInputRef.current) {
+      // Avoid stealing focus if cashier is actively typing in another input (e.g., catalog search)
+      if (document.activeElement && document.activeElement.tagName === 'INPUT' && document.activeElement !== quickBarcodeInputRef.current) {
+        return;
+      }
+      if (quickBarcodeInputRef.current) {
         quickBarcodeInputRef.current.focus();
       }
     }, 60);
@@ -176,7 +180,10 @@ const PosDashboard = () => {
         }
       } else if (e.key === 'F3') {
         e.preventDefault();
-        refocusBarcodeInput();
+        if (quickBarcodeInputRef.current) {
+          quickBarcodeInputRef.current.focus();
+          quickBarcodeInputRef.current.select();
+        }
       } else if (e.key === 'Escape') {
         if (isCheckoutModalOpen) setIsCheckoutModalOpen(false);
         else if (isHeldCartsModalOpen) setIsHeldCartsModalOpen(false);
@@ -427,6 +434,26 @@ const PosDashboard = () => {
     }
   };
 
+  // Instant Auto-Capture on exact barcode or SKU entry (hardware scanner or typing)
+  const checkAndAutoCaptureBarcode = (rawVal) => {
+    const val = String(rawVal || '').trim();
+    if (!val || val.length < 3) return;
+
+    // Check if the current value matches a product barcode or SKU exactly
+    const matched = allProducts.find(p =>
+      (p.barcode && String(p.barcode).trim() === val) ||
+      (p.sku && String(p.sku).trim().toLowerCase() === val.toLowerCase())
+    );
+
+    if (matched) {
+      addToCart(matched, parseInt(quickBarcodeQty, 10) || 1);
+      setQuickBarcodeQuery('');
+      setQuickBarcodeQty(1);
+      toast.success(`⚡ Auto-Captured: ${matched.name}`, { id: `auto-scan-${matched._id}` });
+      refocusBarcodeInput();
+    }
+  };
+
   // Quick Barcode Scanning Form Submission
   const handleBarcodeSubmit = (e) => {
     e.preventDefault();
@@ -434,13 +461,13 @@ const PosDashboard = () => {
     if (!query) return;
 
     const matchedProduct = allProducts.find(p =>
-      p.barcode === query ||
-      (p.sku && p.sku.toLowerCase() === query.toLowerCase()) ||
-      (p.name && p.name.toLowerCase() === query.toLowerCase())
+      (p.barcode && String(p.barcode).trim() === query) ||
+      (p.sku && String(p.sku).trim().toLowerCase() === query.toLowerCase()) ||
+      (p.name && String(p.name).trim().toLowerCase() === query.toLowerCase())
     );
 
     if (matchedProduct) {
-      addToCart(matchedProduct, quickBarcodeQty);
+      addToCart(matchedProduct, parseInt(quickBarcodeQty, 10) || 1);
       setQuickBarcodeQuery('');
       setQuickBarcodeQty(1);
     } else {
@@ -452,14 +479,49 @@ const PosDashboard = () => {
 
   const handleCameraScanSuccess = (decodedText) => {
     setIsCameraOpen(false);
-    const matched = allProducts.find(p => p.barcode === decodedText || p.sku === decodedText);
+    const cleaned = String(decodedText || '').trim();
+    if (!cleaned) return;
+
+    const matched = allProducts.find(p =>
+      (p.barcode && String(p.barcode).trim() === cleaned) ||
+      (p.sku && String(p.sku).trim().toLowerCase() === cleaned.toLowerCase()) ||
+      (p.name && String(p.name).trim().toLowerCase() === cleaned.toLowerCase())
+    );
+
     if (matched) {
       addToCart(matched, 1);
-      toast.success(`Scanned: ${matched.name}`);
+      toast.success(`⚡ Scanned & Added: ${matched.name}`);
     } else {
-      toast.error(`Unrecognized barcode: ${decodedText}`);
+      setQuickBarcodeQuery(cleaned);
+      toast.error(`Barcode "${cleaned}" not recognized. Entered in scan box.`);
     }
     refocusBarcodeInput();
+  };
+
+  const handleTopSearchKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      const query = topSearch.trim();
+      if (!query) return;
+
+      const matched = allProducts.find(p =>
+        (p.barcode && String(p.barcode).trim() === query) ||
+        (p.sku && String(p.sku).trim().toLowerCase() === query.toLowerCase()) ||
+        (p.name && String(p.name).trim().toLowerCase() === query.toLowerCase())
+      );
+
+      if (matched) {
+        addToCart(matched, 1);
+        setTopSearch('');
+        toast.success(`Added: ${matched.name}`);
+        refocusBarcodeInput();
+      } else if (filteredProducts.length === 1) {
+        addToCart(filteredProducts[0], 1);
+        setTopSearch('');
+        toast.success(`Added: ${filteredProducts[0].name}`);
+        refocusBarcodeInput();
+      }
+    }
   };
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -1137,7 +1199,8 @@ const PosDashboard = () => {
                         type="text"
                         value={topSearch}
                         onChange={(e) => setTopSearch(e.target.value)}
-                        placeholder="Search inventory by Name, Barcode, SKU, Brand... (F3)"
+                        onKeyDown={handleTopSearchKeyDown}
+                        placeholder="Search catalog by Name, SKU, Category, Brand..."
                         className="w-full pl-9 pr-8 py-2 bg-zinc-50/80 border border-zinc-200/80 rounded-xl text-xs font-semibold text-zinc-900 placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:bg-white transition-all"
                       />
                       {topSearch && (
@@ -1320,15 +1383,43 @@ const PosDashboard = () => {
               {/* Bottom Quick Barcode Scanner Bar */}
               <div className="p-2.5 bg-white/90 border-t border-zinc-200/80">
                 <form onSubmit={handleBarcodeSubmit} className="flex gap-2 items-center">
+                  {/* Camera Barcode Scanner Trigger Button */}
+                  <button
+                    type="button"
+                    onClick={() => setIsCameraOpen(true)}
+                    className="px-2.5 sm:px-3 py-2 bg-zinc-900 hover:bg-black active:scale-95 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all duration-150 shrink-0 shadow-xs"
+                    title="Scan Barcode using Device Camera"
+                  >
+                    <FiCamera className="w-4 h-4 text-emerald-400" />
+                    <span className="hidden sm:inline">Camera</span>
+                  </button>
+
                   <div className="relative flex-1">
                     <input
                       ref={quickBarcodeInputRef}
                       type="text"
                       value={quickBarcodeQuery}
-                      onChange={(e) => setQuickBarcodeQuery(e.target.value)}
-                      placeholder="Scan or type barcode / SKU then press Enter..."
-                      className="w-full pl-3 pr-3 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-mono font-bold text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:bg-white"
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setQuickBarcodeQuery(val);
+                        checkAndAutoCaptureBarcode(val);
+                      }}
+                      placeholder="⚡ Scan or type barcode / SKU then Enter... (F3)"
+                      className="w-full pl-3 pr-8 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-xs font-mono font-bold text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900 focus:bg-white transition-all"
                     />
+                    {quickBarcodeQuery && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setQuickBarcodeQuery('');
+                          refocusBarcodeInput();
+                        }}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-zinc-400 hover:text-zinc-700 rounded-full hover:bg-zinc-200 transition-colors"
+                        title="Clear barcode"
+                      >
+                        <FiX className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
                   <input
                     type="number"
@@ -2944,6 +3035,7 @@ const PosDashboard = () => {
           refocusBarcodeInput();
         }}
         onScanSuccess={handleCameraScanSuccess}
+        onDetected={handleCameraScanSuccess}
       />
     </div>
   );
